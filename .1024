@@ -1,1 +1,1 @@
-run_command: "node index.js"
+run_command: "node dist/index.js test-pkg"
