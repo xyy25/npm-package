@@ -2,17 +2,17 @@ import { join, sep } from "path";
 import { satisfies } from "semver";
 import { PkgDependencies } from "./types";
 import fs from 'fs';
-import { countMatches, readPackageJson } from ".";
+import { readPackageJson } from ".";
 
 export type DepResult = {
     [name: string]: DepItem
 }
 
 export type DepItem = {
-    version: string, // 该依赖实际使用的版本
-    range: string, // 该依赖需要的版本范围
-    path: string, // 该依赖安装的相对路径
-    requires?: DepResult // 该依赖的子依赖（若无依赖或已经计算过，则没有这条）
+    version: string, // 该依赖包实际使用的版本
+    range: string, // 该依赖包需要的版本范围
+    path: string, // 该依赖包安装的相对路径
+    requires?: DepResult // 该依赖包的子依赖列表（若无依赖或已经计算过，则没有这条）
 }
 
 const NODE_MODULES = 'node_modules';

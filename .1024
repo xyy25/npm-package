@@ -1,1 +1,3 @@
-run_command: "node dist/index.js test-pkg"
+run_command: node dist/index.js test-pkg
+compile_command: tsc
+gui: false

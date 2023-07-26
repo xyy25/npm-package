@@ -1,7 +1,6 @@
-
 import { requireRecur } from "./src/utils/npmUtils";
 
-export async function main(...args: any) {
+export async function main() {
     // const pkgs = {
     //     'axios': '^1.7.0',
     //     'ws': '^8.3.0',

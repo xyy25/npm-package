@@ -33,7 +33,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.main = void 0;
-function main(...args) {
+function main() {
     return __awaiter(this, void 0, void 0, function* () {
         // const pkgs = {
         //     'axios': '^1.7.0',
