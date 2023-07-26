@@ -46,6 +46,9 @@ function read(pkgRoot, dependencies, depth = Infinity) {
                         path: pth
                     };
                     console.log('FOUND');
+                    if (hash.has((0, path_1.join)(pth, id))) {
+                        break;
+                    }
                     // 如果该包有未登记的依赖，且当前搜索深度未超标，则计算它的子依赖
                     if (p.depth <= depth &&
                         pkg.dependencies &&

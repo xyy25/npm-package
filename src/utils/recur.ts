@@ -1,89 +1,102 @@
-import { join, sep } from "path";
-import { satisfies } from "semver";
-import { PkgDependencies } from "./types";
+import { join, sep } from 'path';
+import { satisfies } from 'semver';
+import { Dependencies } from './types';
 import fs from 'fs';
-import { readPackageJson } from ".";
+import { readPackageJson } from '.';
 
 export type DepResult = {
-    [name: string]: DepItem
-}
+    [name: string]: DepItem;
+};
 
 export type DepItem = {
-    version: string, // 该依赖包实际使用的版本
-    range: string, // 该依赖包需要的版本范围
-    path: string, // 该依赖包安装的相对路径
-    requires?: DepResult // 该依赖包的子依赖列表（若无依赖或已经计算过，则没有这条）
-}
+    version: string; // 该依赖包实际使用的版本
+    range: string; // 该依赖包需要的版本范围
+    path: string; // 该依赖包安装的相对路径
+    requires?: DepResult; // 该依赖包的子依赖列表（若无依赖或已经计算过，则没有这条）
+};
 
 const NODE_MODULES = 'node_modules';
 const PACKAGE_JSON = 'package.json';
 
-function read(pkgRoot: string, dependencies: PkgDependencies, depth: number = Infinity): DepResult {
-    if(depth <= 0 || !Object.keys(dependencies).length) {
+function read(
+    pkgRoot: string,
+    dependencies: Dependencies,
+    depth: number = Infinity
+): DepResult {
+    if (depth <= 0 || !Object.keys(dependencies).length) {
         return {};
     }
     const abs = (...path: string[]): string => join(pkgRoot, ...path);
     // 建立哈希集合，把已经解析过的包登记起来，避免重复计算子依赖
-    const hash: Set<string> = new Set(); 
+    const hash: Set<string> = new Set();
     const res: DepResult = {};
 
     // 广度优先搜索队列
-    type QueueItem = { 
-        id: string,    // 包名
-        range: string,  // 需要的版本范围
-        depth: number, // 当前深度
-        path: string, 
-        target: DepResult
+    type QueueItem = {
+        id: string; // 包名
+        range: string; // 需要的版本范围
+        depth: number; // 当前深度
+        path: string;
+        target: DepResult;
     };
-    const queue: QueueItem[] = 
-        Object.entries(dependencies).map(e => { return { 
-            id: e[0], 
-            range: e[1], 
-            depth: 1, 
+    const queue: QueueItem[] = Object.entries(dependencies).map((e) => {
+        return {
+            id: e[0],
+            range: e[1],
+            depth: 1,
             path: join(sep, NODE_MODULES),
-            target: res
-        } });
-    
-    while(queue.length) {
+            target: res,
+        };
+    });
+
+    while (queue.length) {
         const p = queue.shift();
-        if(!p) break;
+        if (!p) break;
         const { id, range } = p;
 
         let pth = p.path;
 
         // 从内到外寻找包
-        while(true) {
+        while (true) {
             const pkgPath = join(pth, id);
             const pkgJsonPath = join(pkgPath, PACKAGE_JSON);
             console.log('current', id, range, pth);
-            if(fs.existsSync(abs(pkgPath)) && fs.existsSync(abs(pkgJsonPath))) {
+            if (
+                fs.existsSync(abs(pkgPath)) &&
+                fs.existsSync(abs(pkgJsonPath))
+            ) {
                 const pkg = readPackageJson(abs(pkgJsonPath));
 
-                if(pkg && satisfies(pkg.version, range)) {
+                if (pkg && satisfies(pkg.version, range)) {
                     p.target[id] = {
                         range,
                         version: pkg.version,
-                        path: pth
-                    }
-                    
+                        path: pth,
+                    };
+
                     console.log('FOUND');
+                    if (hash.has(join(pth, id))) {
+                        break;
+                    }
                     // 如果该包有未登记的依赖，且当前搜索深度未超标，则计算它的子依赖
-                    if(
-                        p.depth <= depth && 
-                        pkg.dependencies && 
-                        Object.keys(pkg.dependencies).length && 
+                    if (
+                        p.depth <= depth &&
+                        pkg.dependencies &&
+                        Object.keys(pkg.dependencies).length &&
                         !hash.has(join(pth, id))
                     ) {
                         p.target[id].requires = {};
                         const newTasks = Object.entries(pkg.dependencies).map(
-                            (e: any) => { return { 
-                                id: e[0], 
-                                range: e[1], 
-                                depth: p.depth + 1, 
-                                path: join(pkgPath, NODE_MODULES),
-                                target: p.target[id].requires as DepResult 
-                            } }
-                        )
+                            (e: any) => {
+                                return {
+                                    id: e[0],
+                                    range: e[1],
+                                    depth: p.depth + 1,
+                                    path: join(pkgPath, NODE_MODULES),
+                                    target: p.target[id].requires as DepResult,
+                                };
+                            }
+                        );
                         queue.push(...newTasks);
                         //console.log(newTasks);
                         hash.add(join(pth, id));
@@ -94,15 +107,16 @@ function read(pkgRoot: string, dependencies: PkgDependencies, depth: number = In
                 }
             }
             // 在本目录的node_modules未找到包，则转到上级目录继续
-            if(!pth || pth === sep || pth === join(sep, NODE_MODULES)) break;
-            pth = pth.slice(0, pth.lastIndexOf(NODE_MODULES + sep) + NODE_MODULES.length);
+            if (!pth || pth === sep || pth === join(sep, NODE_MODULES)) break;
+            pth = pth.slice(
+                0,
+                pth.lastIndexOf(NODE_MODULES + sep) + NODE_MODULES.length
+            );
         }
 
         console.log('current QUEUE', queue.length);
     }
     return res;
-
-
 }
 export default read;
 

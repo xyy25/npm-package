@@ -1,6 +1,8 @@
 import axios from 'axios';
 import semver from 'semver';
-import { PkgDependencies, RequireList } from './types';
+import { Dependencies, RequireList } from './types';
+
+// 这是从registry.npmjs.org上递归获取依赖包信息的demo
 
 const npmApi = axios.create({
     baseURL: 'https://registry.npmjs.org',
@@ -21,7 +23,7 @@ export const getPackage = async (pkgName: string, version: string): Promise<any>
 }
 
 export const requireRecur = async (
-    pkgs: PkgDependencies, 
+    pkgs: Dependencies, 
     depth: number = Infinity, 
     parent?: RequireList
     ): Promise<RequireList> => 
@@ -48,7 +50,7 @@ export const requireRecur = async (
         const pkg = await getPackage(id, verRange).catch(console.error);
         if (pkg) {
             const depends = pkg.dependencies ?? {};
-            const unsatisfiedDepends: PkgDependencies = {};
+            const unsatisfiedDepends: Dependencies = {};
             reqList[id].dependencies = depends;
             for(const n of Object.keys(depends)) {
                 const version = depends[n];

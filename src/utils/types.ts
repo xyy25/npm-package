@@ -1,4 +1,4 @@
-export type PkgDependencies = {
+export type Dependencies = {
     [id: string]: string
 }
 
