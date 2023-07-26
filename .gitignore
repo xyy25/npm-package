@@ -1,2 +1,7 @@
-\node_modules
-\test-pkg\node_modules
+node_modules/
+test-pkg/node_modules/
+.git/
+.1024.nix
+.1024nix
+.1024feature*
+.nfs*
