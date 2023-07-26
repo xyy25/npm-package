@@ -12,13 +12,14 @@ const cmd = new commander_1.Command();
 cmd.name('npmpkg-cli')
     .description('NPM Package Dependency Analyzer')
     .version('0.0.1');
-cmd.argument('<string>', 'package uri')
-    .option('-j, --json, --out-json [fileName]', 'output result as JSON file')
-    .option('-d, --depth <depth>', 'recursive searching maximum depth', 'NaN')
+cmd.command('analyze').description('analyze node_modules recursively')
+    .argument('<string>', 'package uri that needs to be analyzed')
+    .option('-j, --json, --out-json [fileName]', 'output result as JSON file, otherwise print the result on the console')
+    .option('-d, --depth <depth>', 'maximum depth of recursive searching, otherwise set it to Infinity', 'NaN')
     .action((str, options) => {
-    const cwd = process.cwd();
-    const pkgRoot = path_1.default.join(cwd, str);
-    let depth = parseInt(options.depth);
+    const cwd = process.cwd(); // 命令执行路径
+    const pkgRoot = path_1.default.join(cwd, str); // 包的根目录
+    let depth = parseInt(options.depth); // 最大深度设置，默认为Infinity
     depth = Number.isNaN(depth) ? Infinity : depth;
     try {
         const pkgJson = (0, utils_1.readPackageJson)(path_1.default.join(cwd, str, 'package.json'));
@@ -26,7 +27,7 @@ cmd.argument('<string>', 'package uri')
         const allDeps = Object.assign(Object.assign({}, (dependencies !== null && dependencies !== void 0 ? dependencies : {})), (devDependencies !== null && devDependencies !== void 0 ? devDependencies : {}));
         console.log(pkgRoot, allDeps, depth);
         const res = (0, recur_1.default)(pkgRoot, allDeps, depth);
-        if (options.json) {
+        if (options.json) { // 输出JSON文件设置
             const outFileName = options.json === true ? str : options.json;
             const outFileUri = path_1.default.join(cwd, outFileName + '.json');
             fs_1.default.writeFileSync(outFileUri, Buffer.from(JSON.stringify(res)));

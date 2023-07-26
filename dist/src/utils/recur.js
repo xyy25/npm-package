@@ -17,13 +17,13 @@ function read(pkgRoot, dependencies, depth = Infinity) {
     // 建立哈希集合，把已经解析过的包登记起来，避免重复计算子依赖
     const hash = new Set();
     const res = {};
-    const queue = Object.entries(dependencies).map(e => {
+    const queue = Object.entries(dependencies).map((e) => {
         return {
             id: e[0],
             range: e[1],
             depth: 1,
             path: (0, path_1.join)(path_1.sep, NODE_MODULES),
-            target: res
+            target: res,
         };
     });
     while (queue.length) {
@@ -37,13 +37,14 @@ function read(pkgRoot, dependencies, depth = Infinity) {
             const pkgPath = (0, path_1.join)(pth, id);
             const pkgJsonPath = (0, path_1.join)(pkgPath, PACKAGE_JSON);
             console.log('current', id, range, pth);
-            if (fs_1.default.existsSync(abs(pkgPath)) && fs_1.default.existsSync(abs(pkgJsonPath))) {
+            if (fs_1.default.existsSync(abs(pkgPath)) &&
+                fs_1.default.existsSync(abs(pkgJsonPath))) {
                 const pkg = (0, _1.readPackageJson)(abs(pkgJsonPath));
                 if (pkg && (0, semver_1.satisfies)(pkg.version, range)) {
                     p.target[id] = {
                         range,
                         version: pkg.version,
-                        path: pth
+                        path: pth,
                     };
                     console.log('FOUND');
                     if (hash.has((0, path_1.join)(pth, id))) {
@@ -61,7 +62,7 @@ function read(pkgRoot, dependencies, depth = Infinity) {
                                 range: e[1],
                                 depth: p.depth + 1,
                                 path: (0, path_1.join)(pkgPath, NODE_MODULES),
-                                target: p.target[id].requires
+                                target: p.target[id].requires,
                             };
                         });
                         queue.push(...newTasks);
@@ -117,4 +118,4 @@ exports.default = read;
         requires: { ... }
     }
 }
-*/ 
+*/

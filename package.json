@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "start": "node dist/index.js",
-    "test": "node dist/index.js test-pkg --json res"
+    "test": "node dist/index.js analyze test-pkg --json=res"
   },
   "keywords": [],
   "author": "",
