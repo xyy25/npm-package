@@ -7,7 +7,7 @@ export type DepResult = {
 };
 
 export type DepItem = {
-    version: string; // 该依赖包实际使用的版本
+    version: string; // 该依赖包实际使用的版本（即在node_modules里存在的版本）
     range?: string; // 该依赖包需要的版本范围
     path: string; // 该依赖包安装的相对路径
     requires?: DepResult; // 该依赖包的子依赖列表（若无依赖或已经计算过，则没有这条）

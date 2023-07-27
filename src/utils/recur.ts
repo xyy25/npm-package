@@ -1,8 +1,8 @@
 import { join, sep } from 'path';
 import { satisfies } from 'semver';
-import { Dependencies, DepResult } from './types';
+import { Dependencies, DepResult, DepItem } from './types';
 import fs from 'fs';
-import { readPackageJson } from '.';
+import { readPackageJson, toString } from '.';
 
 const NODE_MODULES = 'node_modules';
 const PACKAGE_JSON = 'package.json';
@@ -57,14 +57,16 @@ function read(
                 const pkg = readPackageJson(abs(pkgJsonPath));
 
                 if (pkg && satisfies(pkg.version, range)) {
-                    p.target[id] = {
+                    const item: DepItem = {
                         range,
                         version: pkg.version,
                         path: pth,
                     };
+                    p.target[id] = item;
 
-                    console.log('FOUND');
-                    if (hash.has(join(pth, id))) {
+                    const itemStr = toString(item, id);
+                    console.log('FOUND', itemStr);
+                    if (hash.has(itemStr)) {
                         break;
                     }
                     // 如果该包有未登记的依赖，且当前搜索深度未超标，则计算它的子依赖
@@ -72,7 +74,7 @@ function read(
                         p.depth <= depth &&
                         pkg.dependencies &&
                         Object.keys(pkg.dependencies).length &&
-                        !hash.has(join(pth, id))
+                        !hash.has(itemStr)
                     ) {
                         p.target[id].requires = {};
                         const newTasks = Object.entries(pkg.dependencies).map(
@@ -88,8 +90,8 @@ function read(
                         );
                         queue.push(...newTasks);
                         //console.log(newTasks);
-                        hash.add(join(pth, id));
-                        console.log('ADDED');
+                        hash.add(itemStr);
+                        console.log('ADDED', itemStr);
                         break;
                     }
                     //console.log(hash);

@@ -41,20 +41,22 @@ function read(pkgRoot, dependencies, depth = Infinity) {
                 fs_1.default.existsSync(abs(pkgJsonPath))) {
                 const pkg = (0, _1.readPackageJson)(abs(pkgJsonPath));
                 if (pkg && (0, semver_1.satisfies)(pkg.version, range)) {
-                    p.target[id] = {
+                    const item = {
                         range,
                         version: pkg.version,
                         path: pth,
                     };
-                    console.log('FOUND');
-                    if (hash.has((0, path_1.join)(pth, id))) {
+                    p.target[id] = item;
+                    const itemStr = (0, _1.toString)(item, id);
+                    console.log('FOUND', itemStr);
+                    if (hash.has(itemStr)) {
                         break;
                     }
                     // 如果该包有未登记的依赖，且当前搜索深度未超标，则计算它的子依赖
                     if (p.depth <= depth &&
                         pkg.dependencies &&
                         Object.keys(pkg.dependencies).length &&
-                        !hash.has((0, path_1.join)(pth, id))) {
+                        !hash.has(itemStr)) {
                         p.target[id].requires = {};
                         const newTasks = Object.entries(pkg.dependencies).map((e) => {
                             return {
@@ -67,8 +69,8 @@ function read(pkgRoot, dependencies, depth = Infinity) {
                         });
                         queue.push(...newTasks);
                         //console.log(newTasks);
-                        hash.add((0, path_1.join)(pth, id));
-                        console.log('ADDED');
+                        hash.add(itemStr);
+                        console.log('ADDED', itemStr);
                         break;
                     }
                     //console.log(hash);

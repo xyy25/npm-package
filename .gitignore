@@ -6,5 +6,5 @@ test-pkg/node_modules/
 .1024nix
 .1024feature*
 .nfs*
-.breakpoints
+ssh/
 res.json
