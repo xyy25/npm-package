@@ -10,11 +10,11 @@ cmd.name('npmpkg-cli')
     .description('NPM Package Dependency Analyzer')
     .version('0.0.1');
 
-cmd.command('analyze').description('analyze node_modules recursively')
-    .argument('<string>', 'package uri that needs to be analyzed')
-    .option('-j, --json, --out-json [fileName]', 'output result as JSON file, otherwise print the result on the console')
-    .option('-d, --depth <depth>', 'maximum depth of recursive searching, otherwise set it to Infinity', 'NaN')
-    .option('--diagram', 'auto convert result to DirectedDiagram data structure')
+cmd.command('analyze').description('Analyze node_modules recursively.')
+    .argument('<string>', 'The root dir of the package that needs to be analyzed.')
+    .option('-j, --json, --out-json [fileName]', 'Output result as JSON file, otherwise will print the result on the console.')
+    .option('-d, --depth <depth>', 'Maximum depth of recursive searching, otherwise set it to Infinity.', 'NaN')
+    .option('--diagram', 'Auto convert result to DirectedDiagram data structure.')
     .action((str, options) => {
         const cwd = process.cwd(); // 命令执行路径
         const pkgRoot = path.join(cwd, str); // 包的根目录
