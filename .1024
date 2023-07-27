@@ -1,2 +1,2 @@
-compile_command: "tsc"
-run_command: "node dist/index.js analyze test-pkg --json=res"
+compile_command: tsc
+run_command: node dist/index.js analyze test-pkg --json=res --diagram

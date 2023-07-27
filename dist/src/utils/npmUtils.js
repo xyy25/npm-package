@@ -15,7 +15,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.requireRecur = exports.getPackage = void 0;
 const axios_1 = __importDefault(require("axios"));
 const semver_1 = __importDefault(require("semver"));
-// 这是从registry.npmjs.org上递归获取依赖包信息的demo
 const npmApi = axios_1.default.create({
     baseURL: 'https://registry.npmjs.org',
     proxy: {

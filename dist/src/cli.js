@@ -16,6 +16,7 @@ cmd.command('analyze').description('analyze node_modules recursively')
     .argument('<string>', 'package uri that needs to be analyzed')
     .option('-j, --json, --out-json [fileName]', 'output result as JSON file, otherwise print the result on the console')
     .option('-d, --depth <depth>', 'maximum depth of recursive searching, otherwise set it to Infinity', 'NaN')
+    .option('--diagram', 'auto convert result to DirectedDiagram data structure')
     .action((str, options) => {
     const cwd = process.cwd(); // 命令执行路径
     const pkgRoot = path_1.default.join(cwd, str); // 包的根目录
@@ -26,12 +27,15 @@ cmd.command('analyze').description('analyze node_modules recursively')
         const { dependencies, devDependencies } = pkgJson;
         const allDeps = Object.assign(Object.assign({}, (dependencies !== null && dependencies !== void 0 ? dependencies : {})), (devDependencies !== null && devDependencies !== void 0 ? devDependencies : {}));
         console.log(pkgRoot, allDeps, depth);
-        const res = (0, recur_1.default)(pkgRoot, allDeps, depth);
+        let res = (0, recur_1.default)(pkgRoot, allDeps, depth);
+        if (options.diagram) {
+            res = (0, utils_1.toDiagram)(res);
+        }
         if (options.json) { // 输出JSON文件设置
             const outFileName = options.json === true ? str : options.json;
             const outFileUri = path_1.default.join(cwd, outFileName + '.json');
             fs_1.default.writeFileSync(outFileUri, Buffer.from(JSON.stringify(res)));
-            console.log(`Analyze result has been save to ${outFileName}.json.`);
+            console.log(`Analyze result has been saved to ${outFileName}.json.`);
         }
         else {
             console.log(res);

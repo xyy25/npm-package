@@ -1,8 +1,19 @@
 import axios from 'axios';
 import semver from 'semver';
-import { Dependencies, RequireList } from './types';
+import { Dependencies } from './types';
 
 // 这是从registry.npmjs.org上递归获取依赖包信息的demo
+export type RequireItem = {
+    version: string //当前选择的版本
+    dependencies?: { 
+        [id: string]: string
+    },
+    subDependencies: RequireList
+}
+
+export type RequireList = {
+    [id: string]: RequireItem
+}
 
 const npmApi = axios.create({
     baseURL: 'https://registry.npmjs.org',

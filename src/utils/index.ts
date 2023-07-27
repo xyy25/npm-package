@@ -1,9 +1,50 @@
+import { DepResult, DepItem, DepItemWithId, DirectedDiagram } from './types';
+import { join } from 'path';
+
 export const readPackageJson = (fileUri: string): any => {
     return require(fileUri);
 }
 
 export const countMatches = (str: string, matcher: RegExp | string): number => 
     str.match(new RegExp(matcher, "g"))?.length ?? 0;
+
+export const toString = (depItem: DepItemWithId | DepItem, id?: string): string => {
+    if((id = id ?? (depItem as DepItemWithId).id) === undefined) return '';
+    return join(depItem.path, id + '@' + depItem.version);
+}
+    
+export const find = (items: DepItemWithId[], item: DepItemWithId): number =>
+    items.findIndex(e => toString(e) === toString(item));
+    
+export const toDiagram = (depResult: DepResult): DirectedDiagram => {
+    const res: DirectedDiagram = {
+        map: [], 
+        borders: []
+    };
+    
+    const dfs = (dep: DepResult, parentIndex: number = -1) => {
+        for(const [id, item] of Object.entries(dep)) {
+            const { requires, range, ...rest } = item;
+            const newItem = { id, ...rest };
+            
+            let index = find(res.map, newItem);
+            if(index === -1) {
+                index = res.map.push(newItem) - 1;
+                res.borders.push([]);
+            }
+            if(parentIndex >= 0) {
+                res.borders[parentIndex].push(index);
+            }
+                
+            if(requires) {
+                dfs(requires, index);
+            }
+        }
+    }
+
+    dfs(depResult);
+    return res;
+}
 
 export const compareVersion = (versionA: string, versionB: string): -1 | 0 | 1 => {
     const [arr1, arr2] = [versionA, versionB].map(v => v.split('.'));

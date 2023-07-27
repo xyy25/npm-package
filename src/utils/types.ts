@@ -2,14 +2,48 @@ export type Dependencies = {
     [id: string]: string
 }
 
-export type RequireItem = {
-    version: string //当前选择的版本
-    dependencies?: { 
-        [id: string]: string
-    },
-    subDependencies: RequireList
+export type DepResult = {
+    [name: string]: DepItem;
+};
+
+export type DepItem = {
+    version: string; // 该依赖包实际使用的版本
+    range?: string; // 该依赖包需要的版本范围
+    path: string; // 该依赖包安装的相对路径
+    requires?: DepResult; // 该依赖包的子依赖列表（若无依赖或已经计算过，则没有这条）
+};
+
+export type DepItemWithId = {
+    id: string    
+} & DepItem;
+
+export type DirectedDiagram = { // 表示依赖关系的有向图结构
+    map: DepItemWithId[], // 下标映射
+    borders: number[][] // 有向图的边
 }
 
-export type RequireList = {
-    [id: string]: RequireItem
+/*
+有向图的表示方法：
+{
+    map: [{ 
+            id: 'axios', 
+            version: '1.4.0', 
+            path: '\\node_modules'
+        }, {
+            id: 'pinus',
+            version: '0.3.0',
+            path: '\\node_modules'
+        }, {
+            id: 'commander',
+            version: '1.0.0',
+            path: '\\node_modules'
+        }],
+    borders: [
+        [2], 
+        [0, 2],
+        []
+    ] 
+    // 下标为i的数组[a, c]表示从map[i]到a, b, c有一条有向边
+    // 即map[i]依赖map[a], map[b]和map[c]
 }
+*/

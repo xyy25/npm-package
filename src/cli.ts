@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import path from 'path';
 import fs from 'fs';
-import { readPackageJson } from './utils';
+import { readPackageJson, toDiagram } from './utils';
 import readRecur from './utils/recur'; 
 
 const cmd = new Command();
@@ -14,6 +14,7 @@ cmd.command('analyze').description('analyze node_modules recursively')
     .argument('<string>', 'package uri that needs to be analyzed')
     .option('-j, --json, --out-json [fileName]', 'output result as JSON file, otherwise print the result on the console')
     .option('-d, --depth <depth>', 'maximum depth of recursive searching, otherwise set it to Infinity', 'NaN')
+    .option('--diagram', 'auto convert result to DirectedDiagram data structure')
     .action((str, options) => {
         const cwd = process.cwd(); // 命令执行路径
         const pkgRoot = path.join(cwd, str); // 包的根目录
@@ -29,13 +30,16 @@ cmd.command('analyze').description('analyze node_modules recursively')
             };
 
             console.log(pkgRoot, allDeps, depth);
-            const res = readRecur(pkgRoot, allDeps, depth);
+            let res: any = readRecur(pkgRoot, allDeps, depth);
+            if(options.diagram) {
+                res = toDiagram(res);
+            }
 
             if(options.json) { // 输出JSON文件设置
                 const outFileName = options.json === true ? str : options.json;
                 const outFileUri = path.join(cwd, outFileName + '.json');
                 fs.writeFileSync(outFileUri, Buffer.from(JSON.stringify(res)));
-                console.log(`Analyze result has been save to ${outFileName}.json.`);
+                console.log(`Analyze result has been saved to ${outFileName}.json.`);
             } else {
                 console.log(res);
             }
