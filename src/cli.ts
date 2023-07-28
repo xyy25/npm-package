@@ -32,7 +32,7 @@ cmd.command('analyze').description('Analyze node_modules recursively.')
             console.log(pkgRoot, allDeps, depth);
             let res: any = readRecur(pkgRoot, allDeps, depth);
             if(options.diagram) {
-                res = toDiagram(res);
+                res = toDiagram(pkgJson, res);
             }
 
             if(options.json) { // 输出JSON文件设置

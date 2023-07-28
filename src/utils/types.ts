@@ -3,7 +3,7 @@ export type Dependencies = {
 }
 
 export type DepResult = {
-    [name: string]: DepItem;
+    [id: string]: DepItem;
 };
 
 export type DepItem = {
@@ -43,7 +43,7 @@ export type DirectedDiagram = { // 表示依赖关系的有向图结构
         [0, 2],
         []
     ] 
-    // 下标为i的数组[a, c]表示从map[i]到a, b, c有一条有向边
+    // borders中下标为i的数组[a, c]表示从map[i]到a, b, c有一条有向边
     // 即map[i]依赖map[a], map[b]和map[c]
 }
 */

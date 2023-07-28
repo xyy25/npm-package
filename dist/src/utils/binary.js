@@ -17,18 +17,18 @@ const get = (set, pos) => {
     return !!((set[index] >> pos) & 1);
 };
 exports.get = get;
-const add = (set, ...nums) => {
+const add = (set, ...poses) => {
     const res = set.length ? [...set] : [0];
-    nums = nums.filter(e => e >= 0).sort((a, b) => a - b);
+    poses = poses.filter(e => e >= 0).sort((a, b) => a - b);
     let index = 0, base = 0;
-    for (let num of nums) {
-        while (num - base >= 32) {
+    for (let pos of poses) {
+        while (pos - base >= 32) {
             base += 32;
             index++;
             index >= res.length && res.push(0);
         }
-        num -= base;
-        res[index] |= 1 << num;
+        pos -= base;
+        res[index] |= 1 << pos;
     }
     return res;
 };

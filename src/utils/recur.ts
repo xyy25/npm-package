@@ -7,6 +7,8 @@ import { readPackageJson, toString } from '.';
 const NODE_MODULES = 'node_modules';
 const PACKAGE_JSON = 'package.json';
 
+// 广度优先搜索node_modules的主函数
+
 function read(
     pkgRoot: string,
     dependencies: Dependencies,
@@ -98,6 +100,7 @@ function read(
                 }
             }
             // 在本目录的node_modules未找到包，则转到上级目录继续
+            // 如果已到达根目录还是没找到，那说明该包的依赖未正确安装
             if (!pth || pth === sep || pth === join(sep, NODE_MODULES)) break;
             pth = pth.slice(
                 0,
@@ -109,6 +112,7 @@ function read(
     }
     return res;
 }
+
 export default read;
 
 /*
@@ -126,9 +130,10 @@ export default read;
                 requires: { ... }
             },
             "commander": {
-                version: "2.88.0",
-                range: "^2.88.0"
-                path: "\\node_modules"
+                version: "11.0.0",
+                range: "^11.0.0",
+                path: "\\node_modules",
+                requires: { ... }
             }
         }
     },
@@ -136,7 +141,8 @@ export default read;
         version: "11.0.0",
         range: "^11.0.0",
         path: "\\node_modules",
-        requires: { ... }
+        // 该包的requires已经在"axios"."commander".requires中被搜索过
+        // 所以不再搜索
     },
     "ws": {
         version: "8.13.0",

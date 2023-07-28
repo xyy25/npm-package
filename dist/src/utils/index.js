@@ -27,12 +27,16 @@ const toString = (depItem, id) => {
 exports.toString = toString;
 const find = (items, item) => items.findIndex(e => (0, exports.toString)(e) === (0, exports.toString)(item));
 exports.find = find;
-const toDiagram = (depResult) => {
+const toDiagram = (rootPkg, depResult) => {
     const res = {
-        map: [],
-        borders: []
+        map: [{
+                id: rootPkg.name,
+                version: rootPkg.version,
+                path: path_1.sep
+            }],
+        borders: [[]]
     };
-    const dfs = (dep, parentIndex = -1) => {
+    const dfs = (dep, parentIndex = 0) => {
         for (const [id, item] of Object.entries(dep)) {
             const { requires, range } = item, rest = __rest(item, ["requires", "range"]);
             const newItem = Object.assign({ id }, rest);
@@ -41,9 +45,7 @@ const toDiagram = (depResult) => {
                 index = res.map.push(newItem) - 1;
                 res.borders.push([]);
             }
-            if (parentIndex >= 0) {
-                res.borders[parentIndex].push(index);
-            }
+            res.borders[parentIndex].push(index);
             if (requires) {
                 dfs(requires, index);
             }

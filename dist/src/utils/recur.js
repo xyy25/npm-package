@@ -9,6 +9,7 @@ const fs_1 = __importDefault(require("fs"));
 const _1 = require(".");
 const NODE_MODULES = 'node_modules';
 const PACKAGE_JSON = 'package.json';
+// 广度优先搜索node_modules的主函数
 function read(pkgRoot, dependencies, depth = Infinity) {
     if (depth <= 0 || !Object.keys(dependencies).length) {
         return {};
@@ -101,9 +102,10 @@ exports.default = read;
                 requires: { ... }
             },
             "commander": {
-                version: "2.88.0",
-                range: "^2.88.0"
-                path: "\\node_modules"
+                version: "11.0.0",
+                range: "^11.0.0",
+                path: "\\node_modules",
+                requires: { ... }
             }
         }
     },
@@ -111,7 +113,8 @@ exports.default = read;
         version: "11.0.0",
         range: "^11.0.0",
         path: "\\node_modules",
-        requires: { ... }
+        // 该包的requires已经在"axios"."commander".requires中被搜索过
+        // 所以不再搜索
     },
     "ws": {
         version: "8.13.0",

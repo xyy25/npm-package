@@ -21,7 +21,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
         [0, 2],
         []
     ]
-    // 下标为i的数组[a, c]表示从map[i]到a, b, c有一条有向边
+    // borders中下标为i的数组[a, c]表示从map[i]到a, b, c有一条有向边
     // 即map[i]依赖map[a], map[b]和map[c]
 }
 */ 

@@ -29,7 +29,7 @@ cmd.command('analyze').description('Analyze node_modules recursively.')
         console.log(pkgRoot, allDeps, depth);
         let res = (0, recur_1.default)(pkgRoot, allDeps, depth);
         if (options.diagram) {
-            res = (0, utils_1.toDiagram)(res);
+            res = (0, utils_1.toDiagram)(pkgJson, res);
         }
         if (options.json) { // 输出JSON文件设置
             const outFileName = options.json === true ? str : options.json;

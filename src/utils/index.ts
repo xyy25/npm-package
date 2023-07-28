@@ -1,5 +1,5 @@
 import { DepResult, DepItem, DepItemWithId, DirectedDiagram } from './types';
-import { join } from 'path';
+import { join, sep } from 'path';
 
 export const readPackageJson = (fileUri: string): any => {
     return require(fileUri);
@@ -16,13 +16,17 @@ export const toString = (depItem: DepItemWithId | DepItem, id?: string): string 
 export const find = (items: DepItemWithId[], item: DepItemWithId): number =>
     items.findIndex(e => toString(e) === toString(item));
     
-export const toDiagram = (depResult: DepResult): DirectedDiagram => {
+export const toDiagram = (rootPkg: any, depResult: DepResult): DirectedDiagram => {
     const res: DirectedDiagram = {
-        map: [], 
-        borders: []
+        map: [{
+          id: rootPkg.name,
+          version: rootPkg.version,
+          path: sep
+        }], 
+        borders: [[]]
     };
     
-    const dfs = (dep: DepResult, parentIndex: number = -1) => {
+    const dfs = (dep: DepResult, parentIndex: number = 0) => {
         for(const [id, item] of Object.entries(dep)) {
             const { requires, range, ...rest } = item;
             const newItem = { id, ...rest };
@@ -32,9 +36,7 @@ export const toDiagram = (depResult: DepResult): DirectedDiagram => {
                 index = res.map.push(newItem) - 1;
                 res.borders.push([]);
             }
-            if(parentIndex >= 0) {
-                res.borders[parentIndex].push(index);
-            }
+            res.borders[parentIndex].push(index);
                 
             if(requires) {
                 dfs(requires, index);
