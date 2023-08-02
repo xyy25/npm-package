@@ -7,16 +7,49 @@ import { readPackageJson, toString } from '.';
 const NODE_MODULES = 'node_modules';
 const PACKAGE_JSON = 'package.json';
 
-// 广度优先搜索node_modules的主函数
+// 深度递归搜索当前NODE_MODULES文件夹中包的总数量
+export function count(
+    pkgRoot: string,
+    depth: number = Infinity
+): number {
+    const abs = (...path: string[]): string => join(pkgRoot, ...path);
+    if(
+        depth <= 0 || 
+        !fs.existsSync(pkgRoot) || 
+        !fs.existsSync(abs(NODE_MODULES))
+    ) { return 0; }
+    let res = 0;
 
+    const countPkg = (pkgPath: string) => 
+        res += 1 + count(abs(pkgPath), depth - 1);
+
+    for(const pkg of fs.readdirSync(abs(NODE_MODULES))) {
+        if(!fs.lstatSync(abs(join(NODE_MODULES, pkg))).isDirectory()) {
+            continue;
+        } else if(pkg.startsWith('@')) {
+            const areaPath = join(NODE_MODULES, pkg);
+            for(const areaPkg of fs.readdirSync(abs(areaPath))) {
+                countPkg(join(areaPath, areaPkg));
+            }
+        } else {
+            countPkg(join(NODE_MODULES, pkg));
+        }
+    }
+
+    return res;
+}
+
+// 广度优先搜索node_modules的主函数
 function read(
     pkgRoot: string,
     dependencies: Dependencies,
     depth: number = Infinity
 ): DepResult {
-    if (depth <= 0 || !Object.keys(dependencies).length) {
-        return {};
-    }
+    if (
+        depth <= 0 || 
+        !fs.existsSync(pkgRoot) || 
+        !Object.keys(dependencies).length
+    ) { return {}; }
     const abs = (...path: string[]): string => join(pkgRoot, ...path);
     // 建立哈希集合，把已经解析过的包登记起来，避免重复计算子依赖
     const hash: Set<string> = new Set();

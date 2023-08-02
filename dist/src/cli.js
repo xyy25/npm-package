@@ -1,4 +1,27 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -17,13 +40,13 @@ const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const utils_1 = require("./utils");
 const npmUtils_1 = require("./utils/npmUtils");
-const recur_1 = __importDefault(require("./utils/recur"));
+const recur_1 = __importStar(require("./utils/recur"));
 const cmd = new commander_1.Command();
 cmd.name('npmpkg-cli')
     .description('NPM Package Dependency Analyzer')
     .version('0.0.1');
 cmd.command('analyze').description('Analyze node_modules recursively.')
-    .argument('<string>', 'The root dir of the package that needs to be analyzed.')
+    .argument('<string>', 'The root dir of the package that needs to analyze.')
     .option('-j, --json, --out-json [fileName]', 'Output result as JSON file, otherwise will print the result on the console.')
     .option('-d, --depth <depth>', 'Maximum depth of recursive searching, otherwise set it to Infinity.', 'NaN')
     .option('--diagram', 'Auto convert result to DirectedDiagram data structure.')
@@ -55,7 +78,25 @@ cmd.command('analyze').description('Analyze node_modules recursively.')
         console.error(e);
     }
 });
-cmd.command('get').description('Get the information of the package from registry.npmjs.org')
+cmd.command('count')
+    .description('Recursively count the number of packages exists in the target package node_modules.')
+    .argument('<string>', 'The root dir of the package that needs to count.')
+    .option('-d, --depth <depth>', 'Maximum depth of recursive searching, otherwise set it to Infinity.', 'NaN')
+    .action((str, options) => {
+    const cwd = process.cwd(); // 命令执行路径
+    const pkgRoot = path_1.default.join(cwd, str); // 包的根目录
+    let depth = parseInt(options.depth); // 最大深度设置，默认为Infinity
+    depth = Number.isNaN(depth) ? Infinity : depth;
+    try {
+        const res = (0, recur_1.count)(pkgRoot, depth);
+        console.log('CURRENT PACKAGES: ', res);
+    }
+    catch (e) {
+        console.error(e);
+    }
+});
+cmd.command('get')
+    .description('Get the information of the package from registry.npmjs.org')
     .argument('<string>', 'The name or id of the package.')
     .option('-v, --version <string>', 'The version range of the package.')
     .option('-a, --all', 'Auto get all versions of the package which satisfy the version range described by the option -v, otherwise will get the latest.')

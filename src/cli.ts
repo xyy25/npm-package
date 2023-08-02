@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { readPackageJson, toDiagram } from './utils';
 import { getPackage } from './utils/npmUtils';
-import readRecur from './utils/recur'; 
+import readRecur, { count } from './utils/recur'; 
 
 const cmd = new Command();
 
@@ -12,7 +12,7 @@ cmd.name('npmpkg-cli')
     .version('0.0.1');
 
 cmd.command('analyze').description('Analyze node_modules recursively.')
-    .argument('<string>', 'The root dir of the package that needs to be analyzed.')
+    .argument('<string>', 'The root dir of the package that needs to analyze.')
     .option('-j, --json, --out-json [fileName]', 'Output result as JSON file, otherwise will print the result on the console.')
     .option('-d, --depth <depth>', 'Maximum depth of recursive searching, otherwise set it to Infinity.', 'NaN')
     .option('--diagram', 'Auto convert result to DirectedDiagram data structure.')
@@ -49,7 +49,26 @@ cmd.command('analyze').description('Analyze node_modules recursively.')
         }
     });
 
-cmd.command('get').description('Get the information of the package from registry.npmjs.org')
+cmd.command('count')
+    .description('Recursively count the number of packages exists in the target package node_modules.')
+    .argument('<string>', 'The root dir of the package that needs to count.')
+    .option('-d, --depth <depth>', 'Maximum depth of recursive searching, otherwise set it to Infinity.', 'NaN')
+    .action((str, options) => {
+        const cwd = process.cwd(); // 命令执行路径
+        const pkgRoot = path.join(cwd, str); // 包的根目录
+        let depth = parseInt(options.depth); // 最大深度设置，默认为Infinity
+        depth = Number.isNaN(depth) ? Infinity : depth; 
+
+        try {
+            const res = count(pkgRoot, depth);
+            console.log('CURRENT PACKAGES: ', res);
+        } catch (e) {
+            console.error(e);
+        }
+    })
+
+cmd.command('get')
+    .description('Get the information of the package from registry.npmjs.org')
     .argument('<string>', 'The name or id of the package.')
     .option('-v, --version <string>', 'The version range of the package.')
     .option('-a, --all', 'Auto get all versions of the package which satisfy the version range described by the option -v, otherwise will get the latest.')

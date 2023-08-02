@@ -3,15 +3,45 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.count = void 0;
 const path_1 = require("path");
 const semver_1 = require("semver");
 const fs_1 = __importDefault(require("fs"));
 const _1 = require(".");
 const NODE_MODULES = 'node_modules';
 const PACKAGE_JSON = 'package.json';
+// 深度递归搜索当前NODE_MODULES文件夹中包的总数量
+function count(pkgRoot, depth = Infinity) {
+    const abs = (...path) => (0, path_1.join)(pkgRoot, ...path);
+    if (depth <= 0 ||
+        !fs_1.default.existsSync(pkgRoot) ||
+        !fs_1.default.existsSync(abs(NODE_MODULES))) {
+        return 0;
+    }
+    let res = 0;
+    const countPkg = (pkgPath) => res += 1 + count(abs(pkgPath), depth - 1);
+    for (const pkg of fs_1.default.readdirSync(abs(NODE_MODULES))) {
+        if (!fs_1.default.lstatSync(abs((0, path_1.join)(NODE_MODULES, pkg))).isDirectory()) {
+            continue;
+        }
+        else if (pkg.startsWith('@')) {
+            const areaPath = (0, path_1.join)(NODE_MODULES, pkg);
+            for (const areaPkg of fs_1.default.readdirSync(abs(areaPath))) {
+                countPkg((0, path_1.join)(areaPath, areaPkg));
+            }
+        }
+        else {
+            countPkg((0, path_1.join)(NODE_MODULES, pkg));
+        }
+    }
+    return res;
+}
+exports.count = count;
 // 广度优先搜索node_modules的主函数
 function read(pkgRoot, dependencies, depth = Infinity) {
-    if (depth <= 0 || !Object.keys(dependencies).length) {
+    if (depth <= 0 ||
+        !fs_1.default.existsSync(pkgRoot) ||
+        !Object.keys(dependencies).length) {
         return {};
     }
     const abs = (...path) => (0, path_1.join)(pkgRoot, ...path);
