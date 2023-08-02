@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import path from 'path';
 import fs from 'fs';
 import { readPackageJson, toDiagram } from './utils';
+import { getPackage } from './utils/npmUtils';
 import readRecur from './utils/recur'; 
 
 const cmd = new Command();
@@ -32,7 +33,7 @@ cmd.command('analyze').description('Analyze node_modules recursively.')
             console.log(pkgRoot, allDeps, depth);
             let res: any = readRecur(pkgRoot, allDeps, depth);
             if(options.diagram) {
-                res = toDiagram(pkgJson, res);
+                res = toDiagram(res, pkgJson);
             }
 
             if(options.json) { // 输出JSON文件设置
@@ -47,6 +48,15 @@ cmd.command('analyze').description('Analyze node_modules recursively.')
             console.error(e);
         }
     });
+
+cmd.command('get').description('Get the information of the package from registry.npmjs.org')
+    .argument('<string>', 'The name or id of the package.')
+    .option('-v, --version <string>', 'The version range of the package.')
+    .option('-a, --all', 'Auto get all versions of the package which satisfy the version range described by the option -v, otherwise will get the latest.')
+    .action(async (str, options) => {
+        const res = await getPackage(str, options.version ?? '*', !!options.all);
+        console.log(res);
+    })
 
 cmd.parse();
 

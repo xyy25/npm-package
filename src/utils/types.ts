@@ -1,6 +1,6 @@
 export type Dependencies = {
-    [id: string]: string
-}
+    [id: string]: string;
+};
 
 export type DepResult = {
     [id: string]: DepItem;
@@ -14,13 +14,43 @@ export type DepItem = {
 };
 
 export type DepItemWithId = {
-    id: string    
+    id: string;
 } & DepItem;
 
-export type DirectedDiagram = { // 表示依赖关系的有向图结构
-    map: DepItemWithId[], // 下标映射
-    borders: number[][] // 有向图的边
-}
+export type PackageJson = {
+    name: string,
+    version: string,
+    description: string,
+    main: string,
+    scripts: { [name: string]: string },
+    keywords: string[],
+    author: string,
+    license: string | ({ type: string, url: string })[],
+    dependencies?: { [id: string]: string },
+    devDependencies?: { [id: string]: string },
+    private?: boolean,
+    homepage?: string,
+    repository?: {
+        type: string,
+        url: string
+    },
+    engines?: {
+        node: string
+    },
+    bugs?: {
+        url: string
+    },
+    files?: string[],
+    types?: string,
+    bin?: { [name: string]: string },
+    gitHead?: string
+};
+
+export type DirectedDiagram = {
+    // 表示依赖关系的有向图结构
+    map: DepItemWithId[]; // 下标映射
+    borders: number[][]; // 有向图的边
+};
 
 /*
 有向图的表示方法：

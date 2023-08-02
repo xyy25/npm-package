@@ -78,6 +78,7 @@ function read(pkgRoot, dependencies, depth = Infinity) {
                 }
             }
             // 在本目录的node_modules未找到包，则转到上级目录继续
+            // 如果已到达根目录还是没找到，那说明该包的依赖未正确安装
             if (!pth || pth === path_1.sep || pth === (0, path_1.join)(path_1.sep, NODE_MODULES))
                 break;
             pth = pth.slice(0, pth.lastIndexOf(NODE_MODULES + path_1.sep) + NODE_MODULES.length);

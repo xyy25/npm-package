@@ -1,7 +1,7 @@
-import { DepResult, DepItem, DepItemWithId, DirectedDiagram } from './types';
+import { DepResult, DepItem, DepItemWithId, DirectedDiagram, PackageJson } from './types';
 import { join, sep } from 'path';
 
-export const readPackageJson = (fileUri: string): any => {
+export const readPackageJson = (fileUri: string): PackageJson => {
     return require(fileUri);
 }
 
@@ -16,11 +16,11 @@ export const toString = (depItem: DepItemWithId | DepItem, id?: string): string 
 export const find = (items: DepItemWithId[], item: DepItemWithId): number =>
     items.findIndex(e => toString(e) === toString(item));
     
-export const toDiagram = (rootPkg: any, depResult: DepResult): DirectedDiagram => {
+export const toDiagram = (depResult: DepResult, rootPkg?: any): DirectedDiagram => {
     const res: DirectedDiagram = {
         map: [{
-          id: rootPkg.name,
-          version: rootPkg.version,
+          id: rootPkg?.name ?? 'root',
+          version: rootPkg?.version ?? 'root',
           path: sep
         }], 
         borders: [[]]

@@ -27,11 +27,12 @@ const toString = (depItem, id) => {
 exports.toString = toString;
 const find = (items, item) => items.findIndex(e => (0, exports.toString)(e) === (0, exports.toString)(item));
 exports.find = find;
-const toDiagram = (rootPkg, depResult) => {
+const toDiagram = (depResult, rootPkg) => {
+    var _a, _b;
     const res = {
         map: [{
-                id: rootPkg.name,
-                version: rootPkg.version,
+                id: (_a = rootPkg === null || rootPkg === void 0 ? void 0 : rootPkg.name) !== null && _a !== void 0 ? _a : 'root',
+                version: (_b = rootPkg === null || rootPkg === void 0 ? void 0 : rootPkg.version) !== null && _b !== void 0 ? _b : 'root',
                 path: path_1.sep
             }],
         borders: [[]]

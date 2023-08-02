@@ -12,40 +12,45 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.requireRecur = exports.getPackage = void 0;
+exports.getPackageRecur = exports.getPackage = void 0;
 const axios_1 = __importDefault(require("axios"));
 const semver_1 = __importDefault(require("semver"));
 const npmApi = axios_1.default.create({
-    baseURL: 'https://registry.npmjs.org',
-    proxy: {
-        protocol: 'http', host: '127.0.0.1', port: 7890
-    }
+    baseURL: 'https://registry.npmjs.org'
 });
-const getPackage = (pkgName, version) => __awaiter(void 0, void 0, void 0, function* () {
+const getPackage = (pkgName, range, all = false) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
     const reqURI = `${encodeURIComponent(pkgName)}`;
     const res = yield npmApi.get(reqURI).catch(console.error);
     if (!res || res.status !== 200)
         return null;
     const { versions } = res.data;
     const available = Object.keys(versions);
-    const maxSat = semver_1.default.maxSatisfying(available, version);
-    return maxSat ? versions[maxSat] : null;
+    if (!all) {
+        const maxSat = (_a = semver_1.default.maxSatisfying(available, range)) !== null && _a !== void 0 ? _a : '';
+        return (_b = versions[maxSat]) !== null && _b !== void 0 ? _b : null;
+    }
+    else {
+        return Object.fromEntries(Object.entries(versions).filter((e) => semver_1.default.satisfies(e[0], range)));
+    }
 });
 exports.getPackage = getPackage;
-const requireRecur = (pkgs, depth = Infinity, parent) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+const getPackageRecur = (pkgs, depth = Infinity, parent) => __awaiter(void 0, void 0, void 0, function* () {
+    var _c;
     const pkgIds = Object.keys(pkgs);
     if (depth <= 0 || !pkgIds) {
         return {};
     }
     const reqList = {};
-    pkgIds.forEach(id => reqList[id] = {
+    pkgIds.forEach((id) => (reqList[id] = {
         version: pkgs[id],
         dependencies: {},
-        subDependencies: {}
-    });
+        subDependencies: {},
+    }));
     const mod = parent !== null && parent !== void 0 ? parent : reqList;
-    const queue = Object.keys(pkgs).map(e => { return { id: e, ver: pkgs[e], depth: 1 }; });
+    const queue = Object.keys(pkgs).map((e) => {
+        return { id: e, ver: pkgs[e], depth: 1 };
+    });
     while (queue.length) {
         const p = queue.shift();
         if (!p)
@@ -53,7 +58,7 @@ const requireRecur = (pkgs, depth = Infinity, parent) => __awaiter(void 0, void 
         const { id, ver: verRange } = p;
         const pkg = yield (0, exports.getPackage)(id, verRange).catch(console.error);
         if (pkg) {
-            const depends = (_a = pkg.dependencies) !== null && _a !== void 0 ? _a : {};
+            const depends = (_c = pkg.dependencies) !== null && _c !== void 0 ? _c : {};
             const unsatisfiedDepends = {};
             reqList[id].dependencies = depends;
             for (const n of Object.keys(depends)) {
@@ -76,10 +81,10 @@ const requireRecur = (pkgs, depth = Infinity, parent) => __awaiter(void 0, void 
             // if(unsatis.length) {
             //     console.log('-'.repeat(20), unsatis, '-'.repeat(20));
             // }
-            reqList[id].subDependencies = yield (0, exports.requireRecur)(unsatisfiedDepends, depth - p.depth, reqList);
+            reqList[id].subDependencies = yield (0, exports.getPackageRecur)(unsatisfiedDepends, depth - p.depth, reqList);
         }
         console.log(queue.length);
     }
     return reqList;
 });
-exports.requireRecur = requireRecur;
+exports.getPackageRecur = getPackageRecur;
