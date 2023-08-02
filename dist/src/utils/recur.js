@@ -40,33 +40,64 @@ function count(pkgRoot, depth = Infinity) {
     return res;
 }
 exports.count = count;
+class QueueItem {
+    constructor(id, // 包名
+    range, // 需要的版本范围
+    by, // 包的需求所属
+    type, // 包的依赖类型
+    optional, // 当前包是否为可选
+    depth, // 当前深度
+    path, target) {
+        this.id = id;
+        this.range = range;
+        this.by = by;
+        this.type = type;
+        this.optional = optional;
+        this.depth = depth;
+        this.path = path;
+        this.target = target;
+    }
+}
+;
 // 广度优先搜索node_modules的主函数
-function read(pkgRoot, dependencies, depth = Infinity, pkgCount) {
+function read(pkgRoot, depth = Infinity, norm = true, // 包含dependencies
+dev = true, // 包含devDependencies
+peer = true, // 包含peerDependencies
+pkgCount) {
+    const abs = (...path) => (0, path_1.join)(pkgRoot, ...path);
     if (depth <= 0 ||
         !fs_1.default.existsSync(pkgRoot) ||
-        !Object.keys(dependencies).length) {
+        !fs_1.default.existsSync(abs(PACKAGE_JSON))) {
         return {};
     }
-    const abs = (...path) => (0, path_1.join)(pkgRoot, ...path);
+    const rootPkgJson = (0, _1.readPackageJson)(abs(PACKAGE_JSON));
+    const { dependencies: rootDeps, devDependencies: rootDevDeps, peerDependencies: rootPeerDeps, peerDependenciesMeta: rootPeerMeta } = rootPkgJson;
+    const allDeps = {
+        norm: norm && rootDeps ? rootDeps : {},
+        dev: dev && rootDevDeps ? rootDevDeps : {},
+        peer: peer && rootPeerDeps ? rootPeerDeps : {}
+    };
+    if (!Object.keys(allDeps).length) {
+        return {};
+    }
     // 建立哈希集合，把已经解析过的包登记起来，避免重复计算子依赖
     const hash = new Set();
     const res = {};
-    let notfound = 0;
+    let notFound = 0, optionalNotMeet = 0;
     const bar = pkgCount !== undefined ?
         new progress_1.default(':current/:total [:bar] Q[:queue] :nowComplete', {
             total: pkgCount,
             width: 40
         }) : null;
-    const queue = Object.entries(dependencies).map((e) => {
-        return {
-            id: e[0],
-            range: e[1],
-            by: 'ROOT',
-            depth: 1,
-            path: (0, path_1.join)(path_1.sep, NODE_MODULES),
-            target: res,
-        };
-    });
+    // 广度优先搜索队列
+    const queue = [];
+    Object.entries(allDeps).forEach((scope) => queue.push(...Object.entries(scope[1]).map(e => {
+        var _a, _b;
+        return new QueueItem(e[0], e[1], 'ROOT', scope[0], {
+            norm: false, dev: false,
+            peer: (_b = (_a = rootPeerMeta === null || rootPeerMeta === void 0 ? void 0 : rootPeerMeta[e[0]]) === null || _a === void 0 ? void 0 : _a.optional) !== null && _b !== void 0 ? _b : false
+        }[scope[0]], 1, (0, path_1.join)(path_1.sep, NODE_MODULES), res);
+    })));
     while (queue.length) {
         const p = queue.shift();
         if (!p)
@@ -81,6 +112,7 @@ function read(pkgRoot, dependencies, depth = Infinity, pkgCount) {
             if (fs_1.default.existsSync(abs(pkgPath)) &&
                 fs_1.default.existsSync(abs(pkgJsonPath))) {
                 const pkg = (0, _1.readPackageJson)(abs(pkgJsonPath));
+                const { dependencies: pkgDeps, peerDependencies: pkgPeerDeps, peerDependenciesMeta: pkgPeerMeta } = pkg;
                 if (pkg && (range === 'latest' ||
                     (0, semver_1.satisfies)(pkg.version, range))) {
                     const item = {
@@ -94,20 +126,13 @@ function read(pkgRoot, dependencies, depth = Infinity, pkgCount) {
                     // 如果该包的依赖未登记入哈希
                     if (!hash.has(itemStr)) {
                         // 如果当前搜索深度未超标，则计算它的子依赖
-                        if (p.depth <= depth &&
-                            pkg.dependencies &&
-                            Object.keys(pkg.dependencies).length) {
+                        if (p.depth <= depth && (pkgDeps && Object.keys(pkgDeps).length ||
+                            pkgPeerDeps && Object.keys(pkgPeerDeps).length)) {
                             p.target[id].requires = {};
-                            const newTasks = Object.entries(pkg.dependencies).map((e) => {
-                                return {
-                                    id: e[0],
-                                    range: e[1],
-                                    by: itemStr,
-                                    depth: p.depth + 1,
-                                    path: (0, path_1.join)(pkgPath, NODE_MODULES),
-                                    target: p.target[id].requires,
-                                };
-                            });
+                            let newTasks = [];
+                            const q = (e, type, optional) => new QueueItem(e[0], e[1], itemStr, type, optional, p.depth + 1, (0, path_1.join)(pkgPath, NODE_MODULES), p.target[id].requires);
+                            pkgDeps && newTasks.push(...Object.entries(pkgDeps).map((e) => q(e, 'norm', false)));
+                            pkgPeerDeps && newTasks.push(...Object.entries(pkgPeerDeps).map((e) => { var _a, _b; return q(e, 'peer', (_b = (_a = pkgPeerMeta === null || pkgPeerMeta === void 0 ? void 0 : pkgPeerMeta[e[0]]) === null || _a === void 0 ? void 0 : _a.optional) !== null && _b !== void 0 ? _b : false); }));
                             queue.push(...newTasks);
                             //console.log(newTasks);
                             //console.log('ADDED', itemStr);
@@ -122,9 +147,14 @@ function read(pkgRoot, dependencies, depth = Infinity, pkgCount) {
                 }
             }
             if (!pth || pth === (0, path_1.join)(path_1.sep, NODE_MODULES)) {
-                // 如果已到达根目录还是没找到，那说明该包的依赖未正确安装
-                console.error("PACKAGE", id, range, 'REQUIRED BY', by, "NOT FOUND. Have you installed it?");
-                notfound++;
+                // 如果已到达根目录还是没找到，那说明该包的依赖未安装
+                if (p.optional) {
+                    optionalNotMeet++;
+                }
+                else {
+                    console.error("PACKAGE", id, range, 'REQUIRED BY', by, "NOT FOUND. Have you installed it?");
+                    notFound++;
+                }
                 break;
             }
             else {
@@ -134,8 +164,10 @@ function read(pkgRoot, dependencies, depth = Infinity, pkgCount) {
         }
     }
     console.log('\nAnalyzed', hash.size, 'packages.');
-    if (notfound)
-        console.warn(notfound, 'packages not found.');
+    if (optionalNotMeet)
+        console.log(optionalNotMeet, 'optional packages not found.');
+    if (notFound)
+        console.warn(notFound, 'packages not found.');
     return res;
 }
 exports.default = read;

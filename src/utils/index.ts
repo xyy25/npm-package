@@ -16,7 +16,7 @@ export const toString = (depItem: DepItemWithId | DepItem, id?: string): string 
 export const find = (items: DepItemWithId[], item: DepItemWithId): number =>
     items.findIndex(e => toString(e) === toString(item));
     
-export const toDiagram = (depResult: DepResult, rootPkg?: any): DirectedDiagram => {
+export const toDiagram = (depResult: DepResult, rootPkg?: PackageJson): DirectedDiagram => {
     const res: DirectedDiagram = {
         map: [{
           id: rootPkg?.name ?? 'root',

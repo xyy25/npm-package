@@ -26,8 +26,12 @@ export type PackageJson = {
     keywords: string[],
     author: string,
     license: string | ({ type: string, url: string })[],
-    dependencies?: { [id: string]: string },
-    devDependencies?: { [id: string]: string },
+    dependencies?: Dependencies,
+    devDependencies?: Dependencies,
+    peerDependencies?: Dependencies,
+    peerDependenciesMeta?: {
+        [id: string]: any
+    }
     private?: boolean,
     homepage?: string,
     repository?: {
