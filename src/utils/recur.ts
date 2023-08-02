@@ -220,7 +220,7 @@ function read(
 
     console.log('\nAnalyzed', hash.size, 'packages.');
     // 检查哈希表集合hash中的记录与detect结果的相差
-    if(pkgList) {
+    if(norm && dev && peer && pkgList) {
         const notInHash = pkgList.filter(e => !hash.has(e)).sort();
         const notInList = [...hash].filter(e => !pkgList.includes(e)).sort();
         if(notInHash.length) {
@@ -249,7 +249,7 @@ function read(
         console.log(optionalNotMeet.length, 'optional package(s) not meet.');
     }
     if(notFound.length) {
-        console.warn(notFound.length, 'package(s) requested not found:');
+        console.warn(notFound.length, 'package(s) required but not found:');
         notFound.forEach(e => console.warn('-', e));
         console.warn('Have you installed it?');
     }
