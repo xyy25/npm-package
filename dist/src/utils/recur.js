@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.count = void 0;
+exports.detect = void 0;
 const path_1 = require("path");
 const semver_1 = require("semver");
 const fs_1 = __importDefault(require("fs"));
@@ -11,35 +11,45 @@ const _1 = require(".");
 const progress_1 = __importDefault(require("progress"));
 const NODE_MODULES = 'node_modules';
 const PACKAGE_JSON = 'package.json';
-// 深度递归搜索当前NODE_MODULES文件夹中包的总数量
-function count(pkgRoot, depth = Infinity) {
+// 深度递归搜索当前NODE_MODULES文件夹中包的存在数量
+function detect(pkgRoot, depth = Infinity) {
     const abs = (...path) => (0, path_1.join)(pkgRoot, ...path);
     if (depth <= 0 ||
         !fs_1.default.existsSync(pkgRoot) ||
         !fs_1.default.existsSync(abs(NODE_MODULES))) {
-        return 0;
+        return [];
     }
-    let res = 0;
-    const countPkg = (pkgPath) => res += 1 + count(abs(pkgPath), depth - 1);
+    const res = new Set();
+    const countPkg = (pkgPath) => {
+        var _a;
+        const ver = (_a = (0, _1.readPackageJson)(abs((0, path_1.join)(pkgPath, PACKAGE_JSON)))) === null || _a === void 0 ? void 0 : _a.version;
+        const pkgStr = pkgPath + (ver ? '@' + ver : '');
+        res.add(pkgStr);
+        detect(abs(pkgPath), depth - 1)
+            .forEach(e => res.add((0, path_1.join)(pkgPath, e)));
+    };
     for (const pkg of fs_1.default.readdirSync(abs(NODE_MODULES))) {
-        const childPath = (0, path_1.join)(NODE_MODULES, pkg);
+        const childPath = (0, path_1.join)(path_1.sep, NODE_MODULES, pkg);
         if (!fs_1.default.lstatSync(abs(childPath)).isDirectory() ||
             pkg.startsWith('.')) {
             continue;
         }
         else if (pkg.startsWith('@')) {
             const areaPath = childPath;
-            for (const areaPkg of fs_1.default.readdirSync(abs(areaPath))) {
-                countPkg((0, path_1.join)(areaPath, areaPkg));
+            const areaPkgs = fs_1.default.readdirSync(abs(areaPath));
+            for (const areaPkg of areaPkgs) {
+                const areaPkgPath = (0, path_1.join)(areaPath, areaPkg);
+                if (fs_1.default.lstatSync(abs(areaPkgPath)).isDirectory())
+                    countPkg(areaPkgPath);
             }
         }
         else {
             countPkg(childPath);
         }
     }
-    return res;
+    return [...res];
 }
-exports.count = count;
+exports.detect = detect;
 class QueueItem {
     constructor(id, // 包名
     range, // 需要的版本范围
@@ -63,7 +73,7 @@ class QueueItem {
 function read(pkgRoot, depth = Infinity, norm = true, // 包含dependencies
 dev = true, // 包含devDependencies
 peer = true, // 包含peerDependencies
-pkgCount) {
+pkgList) {
     const abs = (...path) => (0, path_1.join)(pkgRoot, ...path);
     if (depth <= 0 ||
         !fs_1.default.existsSync(pkgRoot) ||
@@ -84,9 +94,9 @@ pkgCount) {
     const hash = new Set();
     const res = {};
     let notFound = 0, optionalNotMeet = 0;
-    const bar = pkgCount !== undefined ?
+    const bar = pkgList !== undefined ?
         new progress_1.default(':current/:total [:bar] Q[:queue] :nowComplete', {
-            total: pkgCount,
+            total: pkgList.length,
             width: 40
         }) : null;
     // 广度优先搜索队列
@@ -164,6 +174,24 @@ pkgCount) {
         }
     }
     console.log('\nAnalyzed', hash.size, 'packages.');
+    // 检查哈希表集合中的记录与detect结果的相差
+    if (pkgList && hash.size != pkgList.length) {
+        const notInHash = pkgList.filter(e => !hash.has(e)).sort();
+        const notInList = [...hash].filter(e => !pkgList.includes(e)).sort();
+        if (notInHash.length) {
+            // 如果有元素存在于detect结果却不存在于哈希集合中
+            // 说明这些元素没有被通过依赖搜索覆盖到，有可能它们并不被任何包依赖
+            console.warn('The following', notInHash.length, 'package(s) detected in node_modules are existing but not analyzed.');
+            console.warn('Maybe they are not required by anyone?');
+            notInHash.forEach(name => console.log('-', name));
+        }
+        if (notInList.length) {
+            // 如果有元素存在于哈希集合却不存在于detect结果中
+            // 说明这些元素可能是detect搜索方法的漏网之鱼
+            console.warn('The following', notInList.length, 'package(s) analyzed in node_modules are not detected.');
+            notInList.forEach(name => console.log('-', name));
+        }
+    }
     if (optionalNotMeet)
         console.log(optionalNotMeet, 'optional packages not found.');
     if (notFound)

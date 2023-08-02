@@ -58,8 +58,8 @@ cmd.command('analyze').description('Analyze node_modules recursively.')
     let depth = parseInt(options.depth); // 最大深度设置，默认为Infinity
     depth = Number.isNaN(depth) ? Infinity : depth;
     try {
-        const pkgCount = (0, recur_1.count)(pkgRoot, depth);
-        console.log('Detected', pkgCount, 'packages in the target directory.');
+        const pkgEx = (0, recur_1.detect)(pkgRoot, depth);
+        console.log('Detected', pkgEx.length, 'packages in the target directory.');
         yield new Promise((res) => setTimeout(res, 1000));
         const { scope } = options;
         const scopes = scope === 'norm' ? [true, false, false] :
@@ -67,7 +67,7 @@ cmd.command('analyze').description('Analyze node_modules recursively.')
                 scope === 'peer' ? [false, false, true] :
                     [true, true, true];
         console.log(pkgRoot, scopes, depth);
-        let res = (0, recur_1.default)(pkgRoot, depth, scopes[0], scopes[1], scopes[2], pkgCount);
+        let res = (0, recur_1.default)(pkgRoot, depth, scopes[0], scopes[1], scopes[2], pkgEx);
         if (options.diagram) {
             const pkgJson = (0, utils_1.readPackageJson)(path_1.default.join(pkgRoot, 'package.json'));
             res = (0, utils_1.toDiagram)(res, pkgJson);
@@ -89,18 +89,22 @@ cmd.command('analyze').description('Analyze node_modules recursively.')
         console.error(e);
     }
 }));
-cmd.command('count')
+cmd.command('detect')
     .description('Recursively count the number of packages exists in the target package node_modules.')
     .argument('<string>', 'The root dir of the package that needs to count.')
     .option('-d, --depth <depth>', 'Maximum depth of recursive searching, otherwise set it to Infinity.', 'NaN')
+    .option('--show', 'Show all detected packages on the console.', false)
     .action((str, options) => {
     const cwd = process.cwd(); // 命令执行路径
     const pkgRoot = path_1.default.join(cwd, str); // 包的根目录
     let depth = parseInt(options.depth); // 最大深度设置，默认为Infinity
     depth = Number.isNaN(depth) ? Infinity : depth;
     try {
-        const res = (0, recur_1.count)(pkgRoot, depth);
-        console.log('CURRENT PACKAGES: ', res);
+        const res = (0, recur_1.detect)(pkgRoot, depth);
+        if (options.show) {
+            res.forEach(e => console.log('-', e));
+        }
+        console.log('CURRENT PACKAGES: ', res.length);
     }
     catch (e) {
         console.error(e);

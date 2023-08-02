@@ -8,24 +8,29 @@ import ProgressBar from 'progress';
 const NODE_MODULES = 'node_modules';
 const PACKAGE_JSON = 'package.json';
 
-// 深度递归搜索当前NODE_MODULES文件夹中包的总数量
-export function count(
+// 深度递归搜索当前NODE_MODULES文件夹中包的存在数量
+export function detect(
     pkgRoot: string,
     depth: number = Infinity
-): number {
+): string[] {
     const abs = (...path: string[]): string => join(pkgRoot, ...path);
     if(
         depth <= 0 || 
         !fs.existsSync(pkgRoot) || 
         !fs.existsSync(abs(NODE_MODULES))
-    ) { return 0; }
-    let res = 0;
+    ) { return []; }
+    const res: Set<string> = new Set();
 
-    const countPkg = (pkgPath: string) => 
-        res += 1 + count(abs(pkgPath), depth - 1);
+    const countPkg = (pkgPath: string) =>  {
+        const ver = readPackageJson(abs(join(pkgPath, PACKAGE_JSON)))?.version;
+        const pkgStr = pkgPath + (ver ? '@' + ver : '');
+        res.add(pkgStr);
+        detect(abs(pkgPath), depth - 1)
+            .forEach(e => res.add(join(pkgPath, e)));
+    }
 
     for(const pkg of fs.readdirSync(abs(NODE_MODULES))) {
-        const childPath = join(NODE_MODULES, pkg)
+        const childPath = join(sep, NODE_MODULES, pkg)
         if(
             !fs.lstatSync(abs(childPath)).isDirectory() ||
             pkg.startsWith('.')
@@ -33,15 +38,18 @@ export function count(
             continue;
         } else if(pkg.startsWith('@')) {
             const areaPath = childPath;
-            for(const areaPkg of fs.readdirSync(abs(areaPath))) {
-                countPkg(join(areaPath, areaPkg));
+            const areaPkgs = fs.readdirSync(abs(areaPath));
+            for(const areaPkg of areaPkgs) {
+                const areaPkgPath = join(areaPath, areaPkg);
+                if(fs.lstatSync(abs(areaPkgPath)).isDirectory())
+                countPkg(areaPkgPath);
             }
         } else {
             countPkg(childPath);
         }
     }
 
-    return res;
+    return [...res];
 }
 
 type DependencyType = 'norm' | 'dev' | 'peer';
@@ -65,7 +73,7 @@ function read(
     norm: boolean = true, // 包含dependencies
     dev: boolean = true, // 包含devDependencies
     peer: boolean = true, // 包含peerDependencies
-    pkgCount?: number
+    pkgList?: string[]
 ): DepResult {
     const abs = (...path: string[]): string => join(pkgRoot, ...path);
     if (
@@ -95,9 +103,9 @@ function read(
     const res: DepResult = {};
     let notFound = 0, optionalNotMeet = 0;
 
-    const bar = pkgCount !== undefined ?
+    const bar = pkgList !== undefined ?
         new ProgressBar(':current/:total [:bar] Q[:queue] :nowComplete', {
-            total: pkgCount,
+            total: pkgList.length,
             width: 40
         }) : null; 
 
@@ -202,7 +210,34 @@ function read(
             }
         }
     }
+
     console.log('\nAnalyzed', hash.size, 'packages.');
+    // 检查哈希表集合中的记录与detect结果的相差
+    if(pkgList && hash.size != pkgList.length) {
+        const notInHash = pkgList.filter(e => !hash.has(e)).sort();
+        const notInList = [...hash].filter(e => !pkgList.includes(e)).sort();
+        if(notInHash.length) {
+            // 如果有元素存在于detect结果却不存在于哈希集合中
+            // 说明这些元素没有被通过依赖搜索覆盖到，有可能它们并不被任何包依赖
+            console.warn(
+                'The following', 
+                notInHash.length ,
+                'package(s) detected in node_modules are existing but not analyzed.'
+            );
+            console.warn('Maybe they are not required by anyone?');
+            notInHash.forEach(name => console.log('-', name));
+        }
+        if(notInList.length) {
+            // 如果有元素存在于哈希集合却不存在于detect结果中
+            // 说明这些元素可能是detect搜索方法的漏网之鱼
+            console.warn(
+                'The following', 
+                notInList.length ,
+                'package(s) analyzed in node_modules are not detected.'
+            );
+            notInList.forEach(name => console.log('-', name));
+        }
+    }
     if(optionalNotMeet) console.log(optionalNotMeet, 'optional packages not found.')
     if(notFound) console.warn(notFound, 'packages not found.');
     return res;
