@@ -132,7 +132,6 @@ function read(pkgRoot, dependencies, depth = Infinity, pkgCount) {
             }
         }
     }
-    bar === null || bar === void 0 ? void 0 : bar.interrupt('');
     console.log('\nAnalyzed', hash.size, 'packages.');
     if (notfound)
         console.warn(notfound, 'packages not found.');

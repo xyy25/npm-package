@@ -167,7 +167,6 @@ function read(
             }
         }
     }
-    bar?.interrupt('');
     console.log('\nAnalyzed', hash.size, 'packages.');
     if(notfound) console.warn(notfound, 'packages not found.');
     return res;

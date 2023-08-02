@@ -4,7 +4,6 @@ import fs from 'fs';
 import { readPackageJson, toDiagram } from './utils';
 import { getPackage } from './utils/npmUtils';
 import readRecur, { count } from './utils/recur'; 
-import ProgressBar from 'progress';
 
 const cmd = new Command();
 
