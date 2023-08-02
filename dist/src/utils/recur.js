@@ -81,7 +81,8 @@ function read(pkgRoot, dependencies, depth = Infinity, pkgCount) {
             if (fs_1.default.existsSync(abs(pkgPath)) &&
                 fs_1.default.existsSync(abs(pkgJsonPath))) {
                 const pkg = (0, _1.readPackageJson)(abs(pkgJsonPath));
-                if (pkg && (0, semver_1.satisfies)(pkg.version, range)) {
+                if (pkg && (range === 'latest' ||
+                    (0, semver_1.satisfies)(pkg.version, range))) {
                     const item = {
                         range,
                         version: pkg.version,

@@ -106,7 +106,10 @@ function read(
             ) {
                 const pkg = readPackageJson(abs(pkgJsonPath));
 
-                if (pkg && satisfies(pkg.version, range)) {
+                if (pkg && (
+                    range === 'latest' ||
+                    satisfies(pkg.version, range)
+                )) {
                     const item: DepItem = {
                         range,
                         version: pkg.version,
