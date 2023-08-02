@@ -1,6 +1,7 @@
 node_modules/
 test-pkg/node_modules/
-test-pkg2/
+test-pkgs/
+outputs/
 .git/
 .config/
 .1024.nix
@@ -8,4 +9,3 @@ test-pkg2/
 .1024feature*
 .nfs*
 ssh/
-res.json
