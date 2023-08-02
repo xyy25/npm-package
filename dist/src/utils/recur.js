@@ -81,30 +81,38 @@ pkgList) {
         return {};
     }
     const rootPkgJson = (0, _1.readPackageJson)(abs(PACKAGE_JSON));
-    const { dependencies: rootDeps, devDependencies: rootDevDeps, peerDependencies: rootPeerDeps, peerDependenciesMeta: rootPeerMeta } = rootPkgJson;
+    const { dependencies: rootDeps, // 普通依赖
+    devDependencies: rootDevDeps, // 开发依赖
+    peerDependencies: rootPeerDeps, // 同级依赖
+    optionalDependencies: rootOptDeps, // 可选依赖
+    peerDependenciesMeta: rootPeerMeta // 同级依赖属性
+     } = rootPkgJson;
     const allDeps = {
         norm: norm && rootDeps ? rootDeps : {},
+        optional: norm && rootOptDeps ? rootOptDeps : {},
         dev: dev && rootDevDeps ? rootDevDeps : {},
-        peer: peer && rootPeerDeps ? rootPeerDeps : {}
+        peer: peer && rootPeerDeps ? rootPeerDeps : {},
     };
     if (!Object.keys(allDeps).length) {
         return {};
     }
+    const res = {}; // 结果
     // 建立哈希集合，把已经解析过的包登记起来，避免重复计算子依赖
     const hash = new Set();
-    const res = {};
-    let notFound = 0, optionalNotMeet = 0;
+    // 统计未安装的包和可选包
+    let notFound = [], optionalNotMeet = [];
+    // 初始化控制台进度条
     const bar = pkgList !== undefined ?
-        new progress_1.default(':current/:total [:bar] Q[:queue] :nowComplete', {
+        new progress_1.default('Analyzing Q[:queue] :current/:total [:bar]', {
             total: pkgList.length,
-            width: 40
+            clear: true
         }) : null;
     // 广度优先搜索队列
     const queue = [];
     Object.entries(allDeps).forEach((scope) => queue.push(...Object.entries(scope[1]).map(e => {
         var _a, _b;
         return new QueueItem(e[0], e[1], 'ROOT', scope[0], {
-            norm: false, dev: false,
+            norm: false, optional: true, dev: false,
             peer: (_b = (_a = rootPeerMeta === null || rootPeerMeta === void 0 ? void 0 : rootPeerMeta[e[0]]) === null || _a === void 0 ? void 0 : _a.optional) !== null && _b !== void 0 ? _b : false
         }[scope[0]], 1, (0, path_1.join)(path_1.sep, NODE_MODULES), res);
     })));
@@ -122,7 +130,7 @@ pkgList) {
             if (fs_1.default.existsSync(abs(pkgPath)) &&
                 fs_1.default.existsSync(abs(pkgJsonPath))) {
                 const pkg = (0, _1.readPackageJson)(abs(pkgJsonPath));
-                const { dependencies: pkgDeps, peerDependencies: pkgPeerDeps, peerDependenciesMeta: pkgPeerMeta } = pkg;
+                const { dependencies: pkgDeps, optionalDependencies: pkgOptDeps, peerDependencies: pkgPeerDeps, peerDependenciesMeta: pkgPeerMeta } = pkg;
                 if (pkg && (range === 'latest' ||
                     (0, semver_1.satisfies)(pkg.version, range))) {
                     const item = {
@@ -133,15 +141,17 @@ pkgList) {
                     p.target[id] = item;
                     const itemStr = (0, _1.toString)(item, id);
                     // console.log('FOUND', itemStr);
-                    // 如果该包的依赖未登记入哈希
+                    // 如果该包的依赖未登记入哈希集合
                     if (!hash.has(itemStr)) {
                         // 如果当前搜索深度未超标，则计算它的子依赖
                         if (p.depth <= depth && (pkgDeps && Object.keys(pkgDeps).length ||
+                            pkgOptDeps && Object.keys(pkgOptDeps).length ||
                             pkgPeerDeps && Object.keys(pkgPeerDeps).length)) {
                             p.target[id].requires = {};
                             let newTasks = [];
                             const q = (e, type, optional) => new QueueItem(e[0], e[1], itemStr, type, optional, p.depth + 1, (0, path_1.join)(pkgPath, NODE_MODULES), p.target[id].requires);
                             pkgDeps && newTasks.push(...Object.entries(pkgDeps).map((e) => q(e, 'norm', false)));
+                            pkgOptDeps && newTasks.push(...Object.entries(pkgOptDeps).map((e) => q(e, 'optional', true)));
                             pkgPeerDeps && newTasks.push(...Object.entries(pkgPeerDeps).map((e) => { var _a, _b; return q(e, 'peer', (_b = (_a = pkgPeerMeta === null || pkgPeerMeta === void 0 ? void 0 : pkgPeerMeta[e[0]]) === null || _a === void 0 ? void 0 : _a.optional) !== null && _b !== void 0 ? _b : false); }));
                             queue.push(...newTasks);
                             //console.log(newTasks);
@@ -156,15 +166,10 @@ pkgList) {
                     break;
                 }
             }
-            if (!pth || pth === (0, path_1.join)(path_1.sep, NODE_MODULES)) {
-                // 如果已到达根目录还是没找到，那说明该包的依赖未安装
-                if (p.optional) {
-                    optionalNotMeet++;
-                }
-                else {
-                    console.error("PACKAGE", id, range, 'REQUIRED BY', by, "NOT FOUND. Have you installed it?");
-                    notFound++;
-                }
+            if (!pth || pth === path_1.sep || pth === (0, path_1.join)(path_1.sep, NODE_MODULES)) {
+                // 如果已到达根目录还是没找到，说明该依赖未安装
+                (p.optional ? optionalNotMeet : notFound)
+                    .push(`${id} ${range} REQUIRED BY ${by}`);
                 break;
             }
             else {
@@ -174,16 +179,16 @@ pkgList) {
         }
     }
     console.log('\nAnalyzed', hash.size, 'packages.');
-    // 检查哈希表集合中的记录与detect结果的相差
-    if (pkgList && hash.size != pkgList.length) {
+    // 检查哈希表集合hash中的记录与detect结果的相差
+    if (pkgList) {
         const notInHash = pkgList.filter(e => !hash.has(e)).sort();
         const notInList = [...hash].filter(e => !pkgList.includes(e)).sort();
         if (notInHash.length) {
             // 如果有元素存在于detect结果却不存在于哈希集合中
             // 说明这些元素没有被通过依赖搜索覆盖到，有可能它们并不被任何包依赖
             console.warn('The following', notInHash.length, 'package(s) detected in node_modules are existing but not analyzed.');
-            console.warn('Maybe they are not required by anyone?');
             notInHash.forEach(name => console.log('-', name));
+            console.warn('Maybe they are not required by anyone?');
         }
         if (notInList.length) {
             // 如果有元素存在于哈希集合却不存在于detect结果中
@@ -192,10 +197,14 @@ pkgList) {
             notInList.forEach(name => console.log('-', name));
         }
     }
-    if (optionalNotMeet)
-        console.log(optionalNotMeet, 'optional packages not found.');
-    if (notFound)
-        console.warn(notFound, 'packages not found.');
+    if (optionalNotMeet.length) {
+        console.log(optionalNotMeet.length, 'optional package(s) not meet.');
+    }
+    if (notFound.length) {
+        console.warn(notFound.length, 'package(s) requested not found:');
+        notFound.forEach(e => console.warn('-', e));
+        console.warn('Have you installed it?');
+    }
     return res;
 }
 exports.default = read;

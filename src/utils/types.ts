@@ -29,6 +29,7 @@ export type PackageJson = {
     dependencies?: Dependencies,
     devDependencies?: Dependencies,
     peerDependencies?: Dependencies,
+    optionalDependencies?: Dependencies,
     peerDependenciesMeta?: {
         [id: string]: any
     }
