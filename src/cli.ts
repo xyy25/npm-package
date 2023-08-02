@@ -4,6 +4,7 @@ import fs from 'fs';
 import { readPackageJson, toDiagram } from './utils';
 import { getPackage } from './utils/npmUtils';
 import readRecur, { count } from './utils/recur'; 
+import ProgressBar from 'progress';
 
 const cmd = new Command();
 
@@ -16,13 +17,18 @@ cmd.command('analyze').description('Analyze node_modules recursively.')
     .option('-j, --json, --out-json [fileName]', 'Output result as JSON file, otherwise will print the result on the console.')
     .option('-d, --depth <depth>', 'Maximum depth of recursive searching, otherwise set it to Infinity.', 'NaN')
     .option('--diagram', 'Auto convert result to DirectedDiagram data structure.')
-    .action((str, options) => {
+    .action(async (str, options) => {
         const cwd = process.cwd(); // 命令执行路径
         const pkgRoot = path.join(cwd, str); // 包的根目录
         let depth = parseInt(options.depth); // 最大深度设置，默认为Infinity
         depth = Number.isNaN(depth) ? Infinity : depth; 
 
         try {
+            const pkgCount = count(pkgRoot, depth);
+            console.log('Detected', pkgCount, 'packages in the target directory.');
+            
+            await new Promise((res) => setTimeout(res, 1000));
+
             const pkgJson = readPackageJson(path.join(cwd, str, 'package.json'));
             const { dependencies, devDependencies } = pkgJson;
             const allDeps = {
@@ -31,7 +37,7 @@ cmd.command('analyze').description('Analyze node_modules recursively.')
             };
 
             console.log(pkgRoot, allDeps, depth);
-            let res: any = readRecur(pkgRoot, allDeps, depth);
+            let res: any = readRecur(pkgRoot, allDeps, depth, pkgCount);
             if(options.diagram) {
                 res = toDiagram(res, pkgJson);
             }

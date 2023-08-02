@@ -50,17 +50,20 @@ cmd.command('analyze').description('Analyze node_modules recursively.')
     .option('-j, --json, --out-json [fileName]', 'Output result as JSON file, otherwise will print the result on the console.')
     .option('-d, --depth <depth>', 'Maximum depth of recursive searching, otherwise set it to Infinity.', 'NaN')
     .option('--diagram', 'Auto convert result to DirectedDiagram data structure.')
-    .action((str, options) => {
+    .action((str, options) => __awaiter(void 0, void 0, void 0, function* () {
     const cwd = process.cwd(); // 命令执行路径
     const pkgRoot = path_1.default.join(cwd, str); // 包的根目录
     let depth = parseInt(options.depth); // 最大深度设置，默认为Infinity
     depth = Number.isNaN(depth) ? Infinity : depth;
     try {
+        const pkgCount = (0, recur_1.count)(pkgRoot, depth);
+        console.log('Detected', pkgCount, 'packages in the target directory.');
+        yield new Promise((res) => setTimeout(res, 1000));
         const pkgJson = (0, utils_1.readPackageJson)(path_1.default.join(cwd, str, 'package.json'));
         const { dependencies, devDependencies } = pkgJson;
         const allDeps = Object.assign(Object.assign({}, (dependencies !== null && dependencies !== void 0 ? dependencies : {})), (devDependencies !== null && devDependencies !== void 0 ? devDependencies : {}));
         console.log(pkgRoot, allDeps, depth);
-        let res = (0, recur_1.default)(pkgRoot, allDeps, depth);
+        let res = (0, recur_1.default)(pkgRoot, allDeps, depth, pkgCount);
         if (options.diagram) {
             res = (0, utils_1.toDiagram)(res, pkgJson);
         }
@@ -77,7 +80,7 @@ cmd.command('analyze').description('Analyze node_modules recursively.')
     catch (e) {
         console.error(e);
     }
-});
+}));
 cmd.command('count')
     .description('Recursively count the number of packages exists in the target package node_modules.')
     .argument('<string>', 'The root dir of the package that needs to count.')

@@ -3,6 +3,7 @@ import { satisfies } from 'semver';
 import { Dependencies, DepResult, DepItem } from './types';
 import fs from 'fs';
 import { readPackageJson, toString } from '.';
+import ProgressBar from 'progress';
 
 const NODE_MODULES = 'node_modules';
 const PACKAGE_JSON = 'package.json';
@@ -24,15 +25,19 @@ export function count(
         res += 1 + count(abs(pkgPath), depth - 1);
 
     for(const pkg of fs.readdirSync(abs(NODE_MODULES))) {
-        if(!fs.lstatSync(abs(join(NODE_MODULES, pkg))).isDirectory()) {
+        const childPath = join(NODE_MODULES, pkg)
+        if(
+            !fs.lstatSync(abs(childPath)).isDirectory() ||
+            pkg.startsWith('.')
+        ) {
             continue;
         } else if(pkg.startsWith('@')) {
-            const areaPath = join(NODE_MODULES, pkg);
+            const areaPath = childPath;
             for(const areaPkg of fs.readdirSync(abs(areaPath))) {
                 countPkg(join(areaPath, areaPkg));
             }
         } else {
-            countPkg(join(NODE_MODULES, pkg));
+            countPkg(childPath);
         }
     }
 
@@ -43,7 +48,8 @@ export function count(
 function read(
     pkgRoot: string,
     dependencies: Dependencies,
-    depth: number = Infinity
+    depth: number = Infinity,
+    pkgCount?: number
 ): DepResult {
     if (
         depth <= 0 || 
@@ -54,11 +60,19 @@ function read(
     // 建立哈希集合，把已经解析过的包登记起来，避免重复计算子依赖
     const hash: Set<string> = new Set();
     const res: DepResult = {};
+    let notfound = 0;
+
+    const bar = pkgCount !== undefined ?
+        new ProgressBar(':current/:total [:bar] Q[:queue] :nowComplete', {
+            total: pkgCount,
+            width: 40
+        }) : null; 
 
     // 广度优先搜索队列
     type QueueItem = {
         id: string; // 包名
         range: string; // 需要的版本范围
+        by: string; // 包的需求所属
         depth: number; // 当前深度
         path: string;
         target: DepResult;
@@ -67,6 +81,7 @@ function read(
         return {
             id: e[0],
             range: e[1],
+            by: 'ROOT',
             depth: 1,
             path: join(sep, NODE_MODULES),
             target: res,
@@ -76,7 +91,7 @@ function read(
     while (queue.length) {
         const p = queue.shift();
         if (!p) break;
-        const { id, range } = p;
+        const { id, range, by } = p;
 
         let pth = p.path;
 
@@ -84,7 +99,7 @@ function read(
         while (true) {
             const pkgPath = join(pth, id);
             const pkgJsonPath = join(pkgPath, PACKAGE_JSON);
-            console.log('current', id, range, pth);
+            // console.log('current', id, range, pth);
             if (
                 fs.existsSync(abs(pkgPath)) &&
                 fs.existsSync(abs(pkgJsonPath))
@@ -100,49 +115,61 @@ function read(
                     p.target[id] = item;
 
                     const itemStr = toString(item, id);
-                    console.log('FOUND', itemStr);
-                    if (hash.has(itemStr)) {
-                        break;
-                    }
-                    // 如果该包有未登记的依赖，且当前搜索深度未超标，则计算它的子依赖
-                    if (
-                        p.depth <= depth &&
-                        pkg.dependencies &&
-                        Object.keys(pkg.dependencies).length &&
-                        !hash.has(itemStr)
-                    ) {
-                        p.target[id].requires = {};
-                        const newTasks = Object.entries(pkg.dependencies).map(
-                            (e: any) => {
-                                return {
-                                    id: e[0],
-                                    range: e[1],
-                                    depth: p.depth + 1,
-                                    path: join(pkgPath, NODE_MODULES),
-                                    target: p.target[id].requires as DepResult,
-                                };
-                            }
-                        );
-                        queue.push(...newTasks);
-                        //console.log(newTasks);
+                    // console.log('FOUND', itemStr);
+
+                    // 如果该包的依赖未登记入哈希
+                    if(!hash.has(itemStr)) {
+                        // 如果当前搜索深度未超标，则计算它的子依赖
+                        if(
+                            p.depth <= depth &&
+                            pkg.dependencies &&
+                            Object.keys(pkg.dependencies).length
+                        ) {
+                            p.target[id].requires = {};
+                            const newTasks = Object.entries(pkg.dependencies).map(
+                                (e: any) => {
+                                    return {
+                                        id: e[0],
+                                        range: e[1],
+                                        by: itemStr,
+                                        depth: p.depth + 1,
+                                        path: join(pkgPath, NODE_MODULES),
+                                        target: p.target[id].requires as DepResult,
+                                    };
+                                }
+                            );
+                            queue.push(...newTasks);
+                            //console.log(newTasks);
+                            
+                            //console.log('ADDED', itemStr);
+                        }
+                        bar?.tick({
+                            'queue': queue.length,
+                            'nowComplete': `${id} ${range}`
+                        })
                         hash.add(itemStr);
-                        console.log('ADDED', itemStr);
-                        break;
                     }
-                    //console.log(hash);
+                    break;
                 }
             }
-            // 在本目录的node_modules未找到包，则转到上级目录继续
-            // 如果已到达根目录还是没找到，那说明该包的依赖未正确安装
-            if (!pth || pth === sep || pth === join(sep, NODE_MODULES)) break;
-            pth = pth.slice(
-                0,
-                pth.lastIndexOf(NODE_MODULES + sep) + NODE_MODULES.length
-            );
-        }
 
-        console.log('current QUEUE', queue.length);
+            if(!pth || pth === join(sep, NODE_MODULES)) {
+                // 如果已到达根目录还是没找到，那说明该包的依赖未正确安装
+                console.error("PACKAGE", id, range, 'REQUIRED BY', by, "NOT FOUND. Have you installed it?")
+                notfound++;
+                break;
+            } else {
+                // 在本目录的node_modules未找到包，则转到上级目录继续
+                pth = pth.slice(
+                    0,
+                    pth.lastIndexOf(NODE_MODULES + sep) + NODE_MODULES.length
+                );
+            }
+        }
     }
+    bar?.interrupt('');
+    console.log('\nAnalyzed', hash.size, 'packages.');
+    if(notfound) console.warn(notfound, 'packages not found.');
     return res;
 }
 
