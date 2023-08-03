@@ -29,24 +29,29 @@ const find = (items, item) => items.findIndex(e => (0, exports.toString)(e) === 
 exports.find = find;
 const toDiagram = (depResult, rootPkg) => {
     var _a, _b;
-    const res = {
-        map: [{
-                id: (_a = rootPkg === null || rootPkg === void 0 ? void 0 : rootPkg.name) !== null && _a !== void 0 ? _a : 'root',
-                version: (_b = rootPkg === null || rootPkg === void 0 ? void 0 : rootPkg.version) !== null && _b !== void 0 ? _b : 'root',
-                path: path_1.sep
-            }],
-        borders: [[]]
-    };
-    const dfs = (dep, parentIndex = 0) => {
+    const res = [{
+            id: (_a = rootPkg === null || rootPkg === void 0 ? void 0 : rootPkg.name) !== null && _a !== void 0 ? _a : 'root',
+            version: (_b = rootPkg === null || rootPkg === void 0 ? void 0 : rootPkg.version) !== null && _b !== void 0 ? _b : 'root',
+            path: path_1.sep,
+            requiring: [],
+            requiredBy: []
+        }];
+    const dfs = (dep, originIndex = 0) => {
         for (const [id, item] of Object.entries(dep)) {
             const { requires, range } = item, rest = __rest(item, ["requires", "range"]);
-            const newItem = Object.assign({ id }, rest);
-            let index = (0, exports.find)(res.map, newItem);
+            const newItem = Object.assign(Object.assign({ id }, rest), { requiring: [], requiredBy: [originIndex] });
+            // 在纪录中查找该顶点
+            let index = (0, exports.find)(res, newItem);
             if (index === -1) {
-                index = res.map.push(newItem) - 1;
-                res.borders.push([]);
+                // 如果顶点不存在，则插入新顶点
+                index = res.push(newItem) - 1;
             }
-            res.borders[parentIndex].push(index);
+            else {
+                // 如果顶点已存在，则在结点的被依赖（入边）属性中登记起始顶点
+                res[index].requiredBy.push(originIndex);
+            }
+            // 起始顶点的依赖（出边）属性中登记该顶点
+            res[originIndex].requiring.push(index);
             if (requires) {
                 dfs(requires, index);
             }

@@ -13,30 +13,38 @@ export const toString = (depItem: DepItemWithId | DepItem, id?: string): string 
     return join(depItem.path, id + '@' + depItem.version);
 }
     
-export const find = (items: DepItemWithId[], item: DepItemWithId): number =>
+export const find = (items: DirectedDiagram, item: DepItemWithId): number =>
     items.findIndex(e => toString(e) === toString(item));
     
 export const toDiagram = (depResult: DepResult, rootPkg?: PackageJson): DirectedDiagram => {
-    const res: DirectedDiagram = {
-        map: [{
-          id: rootPkg?.name ?? 'root',
-          version: rootPkg?.version ?? 'root',
-          path: sep
-        }], 
-        borders: [[]]
-    };
+    const res: DirectedDiagram = [{
+        id: rootPkg?.name ?? 'root',
+        version: rootPkg?.version ?? 'root',
+        path: sep,
+        requiring: [],
+        requiredBy: []
+    }];
     
-    const dfs = (dep: DepResult, parentIndex: number = 0) => {
+    const dfs = (dep: DepResult, originIndex: number = 0) => {
         for(const [id, item] of Object.entries(dep)) {
             const { requires, range, ...rest } = item;
-            const newItem = { id, ...rest };
+            const newItem = { 
+                id, ...rest, 
+                requiring: [], 
+                requiredBy: [originIndex]
+            };
             
-            let index = find(res.map, newItem);
+            // 在纪录中查找该顶点
+            let index = find(res, newItem);
             if(index === -1) {
-                index = res.map.push(newItem) - 1;
-                res.borders.push([]);
+                // 如果顶点不存在，则插入新顶点
+                index = res.push(newItem) - 1;
+            } else {
+                // 如果顶点已存在，则在结点的被依赖（入边）属性中登记起始顶点
+                res[index].requiredBy.push(originIndex);
             }
-            res.borders[parentIndex].push(index);
+            // 起始顶点的依赖（出边）属性中登记该顶点
+            res[originIndex].requiring.push(index);
                 
             if(requires) {
                 dfs(requires, index);
