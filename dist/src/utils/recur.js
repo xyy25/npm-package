@@ -104,8 +104,10 @@ pkgList) {
     const res = {}; // 结果
     // 建立哈希集合，把已经解析过的包登记起来，避免重复计算子依赖
     const hash = new Set();
-    // 统计未安装的包和可选包
-    let notFound = [], optionalNotMeet = [];
+    // 统计未安装的包、可选依赖包、版本不符合要求的包
+    let notFound = [];
+    let optionalNotMeet = [];
+    let rangeInvalid = [];
     // 初始化控制台进度条
     const bar = pkgList !== undefined ?
         new progress_1.default(`Q${green(':queue')}` + ' ' +
@@ -140,8 +142,7 @@ pkgList) {
                 fs_1.default.existsSync(abs(pkgJsonPath))) {
                 const pkg = (0, _1.readPackageJson)(abs(pkgJsonPath));
                 const { dependencies: pkgDeps, optionalDependencies: pkgOptDeps, peerDependencies: pkgPeerDeps, peerDependenciesMeta: pkgPeerMeta } = pkg;
-                if (pkg && (range === 'latest' ||
-                    (0, semver_1.satisfies)(pkg.version, range))) {
+                if (pkg) {
                     const item = {
                         range,
                         version: pkg.version,
@@ -150,6 +151,10 @@ pkgList) {
                     p.target[id] = item;
                     const itemStr = (0, _1.toString)(item, id);
                     // console.log('FOUND', itemStr);
+                    if (range !== 'latest' && !(0, semver_1.satisfies)(pkg.version, range)) {
+                        // 如果该包版本不符合range要求
+                        rangeInvalid.push(`${id} REQUIRED ${range} BUT ${pkg.version} BY ${by}`);
+                    }
                     // 如果该包的依赖未登记入哈希集合
                     if (!hash.has(itemStr)) {
                         // 如果当前搜索深度未超标，则计算它的子依赖
@@ -176,9 +181,10 @@ pkgList) {
                 }
             }
             if (!pth || pth === path_1.sep || pth === (0, path_1.join)(path_1.sep, NODE_MODULES)) {
+                const type = p.type === 'norm' ? '' : p.type.toUpperCase();
                 // 如果已到达根目录还是没找到，说明该依赖未安装
                 (p.optional ? optionalNotMeet : notFound)
-                    .push(`${id} ${range} REQUIRED BY ${by}`);
+                    .push(`${id} ${range} ${type} REQUIRED BY ${by}`);
                 break;
             }
             else {
@@ -198,6 +204,7 @@ pkgList) {
             if (depth < Infinity) {
                 const coverage = ((1 - notInHash.length / pkgList.length) * 100).toFixed(2);
                 console.log(desc.coverage
+                    .replace('%d', yellowBright(depth))
                     .replace('%cv', yellowBright(coverage + '%'))
                     .replace('%len', yellow(notInHash.length)));
             }
@@ -217,6 +224,12 @@ pkgList) {
     }
     if (optionalNotMeet.length) {
         console.log(desc.optNotMeet.replace("%d", yellow(optionalNotMeet.length)));
+    }
+    if (rangeInvalid.length) {
+        console.warn(orange(desc.rangeInvalid
+            .replace("%d", yellowBright(rangeInvalid.length))
+            .replace("%rangeInvalid2", bgMagenta(desc.rangeInvalid2))));
+        rangeInvalid.forEach(e => console.warn('-', green(e)));
     }
     if (notFound.length) {
         console.warn(orange(desc.pkgNotFound

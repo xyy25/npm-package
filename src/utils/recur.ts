@@ -108,8 +108,10 @@ function read(
     const res: DepResult = {}; // 结果
     // 建立哈希集合，把已经解析过的包登记起来，避免重复计算子依赖
     const hash: Set<string> = new Set();
-    // 统计未安装的包和可选包
-    let notFound: string[] = [], optionalNotMeet: string[] = [];
+    // 统计未安装的包、可选依赖包、版本不符合要求的包
+    let notFound: string[] = [];
+    let optionalNotMeet: string[] = [];
+    let rangeInvalid: string[] = [];
 
     // 初始化控制台进度条
     const bar = pkgList !== undefined ?
@@ -157,10 +159,7 @@ function read(
                     peerDependenciesMeta: pkgPeerMeta
                 } = pkg;
 
-                if (pkg && (
-                    range === 'latest' ||
-                    satisfies(pkg.version, range)
-                )) {
+                if (pkg) {
                     const item: DepItem = {
                         range,
                         version: pkg.version,
@@ -170,6 +169,11 @@ function read(
 
                     const itemStr = toString(item, id);
                     // console.log('FOUND', itemStr);
+
+                    if (range !== 'latest' && !satisfies(pkg.version, range)) {
+                        // 如果该包版本不符合range要求
+                        rangeInvalid.push(`${id} REQUIRED ${range} BUT ${pkg.version} BY ${by}`);
+                    }
 
                     // 如果该包的依赖未登记入哈希集合
                     if(!hash.has(itemStr)) {
@@ -214,9 +218,10 @@ function read(
             }
 
             if(!pth || pth === sep || pth === join(sep, NODE_MODULES)) {
+                const type = p.type === 'norm' ? '' : p.type.toUpperCase();
                 // 如果已到达根目录还是没找到，说明该依赖未安装
                 (p.optional ? optionalNotMeet : notFound)
-                    .push(`${id} ${range} REQUIRED BY ${by}`);
+                    .push(`${id} ${range} ${type} REQUIRED BY ${by}`);
                 break;
             } else {
                 // 在本目录的node_modules未找到包，则转到上级目录继续
@@ -239,11 +244,11 @@ function read(
             if(depth < Infinity) {
                 const coverage = ((1 - notInHash.length / pkgList.length) * 100).toFixed(2);
                 console.log(desc.coverage
+                    .replace('%d', yellowBright(depth))
                     .replace('%cv', yellowBright(coverage + '%'))
                     .replace('%len', yellow(notInHash.length))
                 );
             } else {
-                
                 // 如果搜索深度小于Infinity，有可能因为它们并不被任何包依赖
                 console.warn(orange(desc.notInHash.replace("%len", yellow(notInHash.length))));
                 notInHash.forEach(e => console.log('-', green(e)));
@@ -259,6 +264,13 @@ function read(
     }
     if(optionalNotMeet.length) {
         console.log(desc.optNotMeet.replace("%d", yellow(optionalNotMeet.length)));
+    }
+    if(rangeInvalid.length) {
+        console.warn(orange(desc.rangeInvalid
+            .replace("%d", yellowBright(rangeInvalid.length))
+            .replace("%rangeInvalid2", bgMagenta(desc.rangeInvalid2))
+        ));
+        rangeInvalid.forEach(e => console.warn('-', green(e)));
     }
     if(notFound.length) {
         console.warn(orange(desc.pkgNotFound

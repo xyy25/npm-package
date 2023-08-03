@@ -60,11 +60,13 @@
         "utils/recur.ts": {
             "nowComplete": "Now",
             "analyzed": "Analyzed %d packages.",
-            "coverage": "Coverage: %cv. %len package(s) are not analyzed.",
+            "coverage": "Depth level: %d, Coverage: %cv. %len package(s) are not analyzed.",
             "notInHash": "The following %len package(s) detected in node_modules are existing but not analyzed.",
             "notInHash2": "Maybe they are not required by anyone?",
             "notInList": "The following %len package(s) analyzed in node_modules are not detected.",
             "optNotMeet": "%d optional package(s) not meet.",
+            "rangeInvalid": "The following %len package(s) are found their versions are %rangeInvalid2 to the required range.",
+            "rangeInvalid2": "INVALID",
             "pkgNotFound": "%d package(s) required but %pkgNotFound2:",
             "pkgNotFound2": "NOT FOUND",
             "pkgNotFound3": "Have you installed them?"
