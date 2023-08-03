@@ -119,7 +119,7 @@ function read(
             `[:bar]` + ' ' +
             desc.nowComplete + ': ' + cyan(':nowComplete'), {
             total: pkgList.length,
-            complete: yellowBright('■'),
+            complete: yellowBright('▇'),
             incomplete: black(' ')
         }) : null; 
 
