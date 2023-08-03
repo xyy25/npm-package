@@ -2,7 +2,7 @@ import { join, sep } from 'path';
 import { satisfies } from 'semver';
 import { DepResult, DepItem } from './types';
 import fs from 'fs';
-import { readPackageJson, toString } from '.';
+import { limit, readPackageJson, toString } from '.';
 import chalk from 'chalk';
 import ProgressBar from 'progress';
 import { logs } from "../lang/zh-CN.json";
@@ -115,15 +115,14 @@ function analyze(
     let rangeInvalid: string[] = [];
 
     // 初始化控制台进度条
+    const outLength = process.stdout.columns;
     const bar = pkgList !== undefined ?
         new ProgressBar(
-            `Q${green(':queue')}` + ' ' +
-            `${yellowBright(':current')}/${yellow(':total')}` + ' ' +
-            `[:bar]` + ' ' +
-            desc.nowComplete + ': ' + cyan(':nowComplete'), {
-            total: pkgList.length,
-            complete: yellowBright('▇'),
-            incomplete: black(' ')
+            `Q${green(':queue')} ${yellowBright(':current')}/${yellow(':total')}` +
+            ` [:bar] ` + (outLength >= 100 ? ':nowComplete' : ''), {
+                total: pkgList.length,
+                complete: yellowBright('▇'),
+                incomplete: black(' ')
         }) : null; 
 
     // 广度优先搜索队列
@@ -208,9 +207,11 @@ function analyze(
                             //console.log(newTasks);
                             //console.log('ADDED', itemStr);
                         }
+                        const outLength = process.stdout.columns;
                         bar?.tick({
                             'queue': queue.length,
-                            'nowComplete': `${id} ${range}`
+                            'nowComplete': outLength <= 100 ? '' : 
+                                (desc.nowComplete + ': ' + cyan(limit(`${range} ${id}`, outLength * 0.2)))
                         })
                         hash.add(itemStr);
                     }

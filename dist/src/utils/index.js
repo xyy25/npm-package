@@ -11,7 +11,7 @@ var __rest = (this && this.__rest) || function (s, e) {
     return t;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.stringPlus = exports.compareVersionExpr = exports.compareVersion = exports.toDiagram = exports.find = exports.toString = exports.countMatches = exports.readPackageJson = void 0;
+exports.stringPlus = exports.compareVersionExpr = exports.compareVersion = exports.limit = exports.toDiagram = exports.find = exports.toString = exports.countMatches = exports.readPackageJson = void 0;
 const path_1 = require("path");
 const readPackageJson = (fileUri) => {
     return require(fileUri);
@@ -56,6 +56,8 @@ const toDiagram = (depResult, rootPkg) => {
     return res;
 };
 exports.toDiagram = toDiagram;
+const limit = (str, length) => str.slice(0, Math.min(str.length, Math.floor(length)) - 3) + '...';
+exports.limit = limit;
 const compareVersion = (versionA, versionB) => {
     const [arr1, arr2] = [versionA, versionB].map(v => v.split('.'));
     const [len1, len2] = [arr1.length, arr2.length];

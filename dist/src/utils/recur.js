@@ -110,11 +110,10 @@ pkgList) {
     let optionalNotMeet = [];
     let rangeInvalid = [];
     // 初始化控制台进度条
+    const outLength = process.stdout.columns;
     const bar = pkgList !== undefined ?
-        new progress_1.default(`Q${green(':queue')}` + ' ' +
-            `${yellowBright(':current')}/${yellow(':total')}` + ' ' +
-            `[:bar]` + ' ' +
-            desc.nowComplete + ': ' + cyan(':nowComplete'), {
+        new progress_1.default(`Q${green(':queue')} ${yellowBright(':current')}/${yellow(':total')}` +
+            ` [:bar] ` + (outLength >= 100 ? ':nowComplete' : ''), {
             total: pkgList.length,
             complete: yellowBright('▇'),
             incomplete: black(' ')
@@ -172,9 +171,11 @@ pkgList) {
                             //console.log(newTasks);
                             //console.log('ADDED', itemStr);
                         }
+                        const outLength = process.stdout.columns;
                         bar === null || bar === void 0 ? void 0 : bar.tick({
                             'queue': queue.length,
-                            'nowComplete': `${id} ${range}`
+                            'nowComplete': outLength <= 100 ? '' :
+                                (desc.nowComplete + ': ' + cyan((0, _1.limit)(`${range} ${id}`, outLength * 0.2)))
                         });
                         hash.add(itemStr);
                     }

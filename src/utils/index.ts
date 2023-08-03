@@ -48,6 +48,9 @@ export const toDiagram = (depResult: DepResult, rootPkg?: PackageJson): Directed
     return res;
 }
 
+export const limit = (str: string, length: number): string => 
+    str.slice(0, Math.min(str.length, Math.floor(length)) - 3) + '...';
+
 export const compareVersion = (versionA: string, versionB: string): -1 | 0 | 1 => {
     const [arr1, arr2] = [versionA, versionB].map(v => v.split('.'));
     const [len1, len2] = [arr1.length, arr2.length];
