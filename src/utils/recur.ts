@@ -112,14 +112,13 @@ function read(
     // 初始化控制台进度条
     const bar = pkgList !== undefined ?
         new ProgressBar(
-            `Analyzing Q[${green(':queue')}]` + ' ' +
+            `Q${green(':queue')}` + ' ' +
             `${yellowBright(':current')}/${yellow(':total')}` + ' ' +
-            + `[:bar]`
-            + `Now Complete: ${cyan(':nowComplete')}`, {
+            `[:bar]` + ' ' +
+            'Now: ' + cyan(':nowComplete'), {
             total: pkgList.length,
             complete: yellowBright('▇'),
-            incomplete: black(' '),
-            clear: true
+            incomplete: black(' ')
         }) : null; 
 
     // 广度优先搜索队列

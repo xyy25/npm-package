@@ -106,14 +106,13 @@ pkgList) {
     let notFound = [], optionalNotMeet = [];
     // 初始化控制台进度条
     const bar = pkgList !== undefined ?
-        new progress_1.default(`Analyzing Q[${green(':queue')}]` + ' ' +
+        new progress_1.default(`Q${green(':queue')}` + ' ' +
             `${yellowBright(':current')}/${yellow(':total')}` + ' ' +
-            +`[:bar]`
-            + `Now Complete: ${cyan(':nowComplete')}`, {
+            `[:bar]` + ' ' +
+            'Now: ' + cyan(':nowComplete'), {
             total: pkgList.length,
             complete: yellowBright('▇'),
-            incomplete: black(' '),
-            clear: true
+            incomplete: black(' ')
         }) : null;
     // 广度优先搜索队列
     const queue = [];
