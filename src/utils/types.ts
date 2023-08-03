@@ -48,7 +48,12 @@ export type PackageJson = {
     files?: string[],
     types?: string,
     bin?: { [name: string]: string },
-    gitHead?: string
+    gitHead?: string,
+    xo?: {
+        rules: {
+            [name: string]: 'on' | 'off'
+        }
+    }
 };
 
 export type DirectedDiagram = {

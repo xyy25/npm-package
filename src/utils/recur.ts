@@ -181,7 +181,7 @@ function read(
                             p.target[id].requires = {};
 
                             let newTasks: QueueItem[] = [];
-                            const q = (e: any, type: any, optional: any) => new QueueItem(
+                            const q = (e: any, type: DependencyType, optional: boolean) => new QueueItem(
                                 e[0], e[1], itemStr, type, optional, 
                                 p.depth + 1, join(pkgPath, NODE_MODULES), 
                                 p.target[id].requires as DepResult

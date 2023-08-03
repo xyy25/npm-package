@@ -13,20 +13,27 @@ cmd.name('npmpkg-cli')
     .description('NPM Package Dependency Analyzer')
     .version('0.0.1');
 
+const scopeOption = new Option('-s, --scope <scope>', 'The scope dependencies to detect')
+        .choices(['all', 'norm', 'peer', 'dev'])
+        .default('all');
+const depthOption = new Option('-d, --depth <depth>', 'Maximum depth of recursive searching.')
+        .default(Infinity, 'to search all.')
+        .argParser((value) => { const r: number = parseInt(value); return Number.isNaN(r) ? Infinity : r; })
+const jsonOption = new Option( '-j, --json [fileName]', 
+            'Output result as JSON file, otherwise will print the result on the console.');
+const jsonPrettyOption = new Option('--pretty, --format', 'auto format JSON file to a more pretty looking.')
+
 cmd.command('analyze').description('Analyze node_modules recursively.')
     .argument('<string>', 'The root dir of the package that needs to analyze.')
-    .addOption(
-        new Option('-s, --scope <scope>', 'The scope dependencies to detect')
-        .choices(['all', 'norm', 'peer', 'dev'])
-        .default('all')
-    ).option('-j, --json, --out-json [fileName]', 'Output result as JSON file, otherwise will print the result on the console.')
-    .option('-d, --depth <depth>', 'Maximum depth of recursive searching, otherwise set it to Infinity.', 'NaN')
+    .addOption(scopeOption)
+    .addOption(depthOption)
+    .addOption(jsonOption)
+    .addOption(jsonPrettyOption)
     .option('--diagram', 'Auto convert result to DirectedDiagram data structure.')
     .action(async (str, options) => {
         const cwd = process.cwd(); // 命令执行路径
         const pkgRoot = path.join(cwd, str); // 包的根目录
-        let depth = parseInt(options.depth); // 最大深度设置，默认为Infinity
-        depth = Number.isNaN(depth) ? Infinity : depth; 
+        const { depth } = options; // 最大深度设置，默认为Infinity
 
         try {
             const pkgEx = detect(pkgRoot, depth);
@@ -54,7 +61,7 @@ cmd.command('analyze').description('Analyze node_modules recursively.')
                     outFileName += '.json';
                 }
                 const outFileUri = path.join(cwd, outFileName);
-                fs.writeFileSync(outFileUri, Buffer.from(JSON.stringify(res)));
+                fs.writeFileSync(outFileUri, Buffer.from(JSON.stringify(res, null, options.format ? "\t" : "")));
                 console.log(cyan(`Analyze result has been saved to ${yellowBright(outFileName)}.`));
             } else {
                 console.log(res);
@@ -67,13 +74,12 @@ cmd.command('analyze').description('Analyze node_modules recursively.')
 cmd.command('detect')
     .description('Recursively count the number of packages exists in the target package node_modules.')
     .argument('<string>', 'The root dir of the package that needs to count.')
-    .option('-d, --depth <depth>', 'Maximum depth of recursive searching, otherwise set it to Infinity.', 'NaN')
+    .addOption(depthOption)
     .option('--show', 'Show all detected packages on the console.', false)
     .action((str, options) => {
         const cwd = process.cwd(); // 命令执行路径
         const pkgRoot = path.join(cwd, str); // 包的根目录
-        let depth = parseInt(options.depth); // 最大深度设置，默认为Infinity
-        depth = Number.isNaN(depth) ? Infinity : depth; 
+        const { depth } = options;
 
         try {
             const res = detect(pkgRoot, depth);
