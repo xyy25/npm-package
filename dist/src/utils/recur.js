@@ -113,7 +113,7 @@ pkgList) {
             `[:bar]` + ' ' +
             desc.nowComplete + ': ' + cyan(':nowComplete'), {
             total: pkgList.length,
-            complete: yellowBright('▇'),
+            complete: yellowBright('■'),
             incomplete: black(' ')
         }) : null;
     // 广度优先搜索队列
