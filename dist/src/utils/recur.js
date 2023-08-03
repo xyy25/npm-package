@@ -15,7 +15,7 @@ const { 'utils/recur.ts': desc } = zh_CN_json_1.logs;
 const NODE_MODULES = 'node_modules';
 const PACKAGE_JSON = 'package.json';
 const orange = chalk_1.default.hex('#FFA500');
-const { green, cyan, yellow, yellowBright, bgMagenta, black } = chalk_1.default.cyan;
+const { green, cyan, yellow, yellowBright, bgMagenta, black } = chalk_1.default;
 // 深度递归搜索当前NODE_MODULES文件夹中包的存在数量
 function detect(pkgRoot, depth = Infinity) {
     const abs = (...path) => (0, path_1.join)(pkgRoot, ...path);

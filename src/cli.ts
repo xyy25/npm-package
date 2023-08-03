@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { readPackageJson, toDiagram } from './utils';
 import { getPackage } from './utils/npmUtils';
-import readRecur, { detect } from './utils/recur'; 
+import analyze, { detect } from './utils/recur'; 
 import chalk from 'chalk';
 import lang from './lang/zh-CN.json';
 
@@ -50,7 +50,7 @@ cmd.command('analyze').description(lang.commands.analyze.description)
                     [true, true, true]
 
             console.log(pkgRoot, scopes, depth);
-            let res: any = readRecur(pkgRoot, depth, scopes[0], scopes[1], scopes[2], pkgEx);
+            let res: any = analyze(pkgRoot, depth, scopes[0], scopes[1], scopes[2], pkgEx);
             if(options.diagram) {
                 const pkgJson = readPackageJson(path.join(pkgRoot, 'package.json'));
                 res = toDiagram(res, pkgJson);

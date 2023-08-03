@@ -11,9 +11,10 @@ const { 'utils/recur.ts': desc } = logs;
 const NODE_MODULES = 'node_modules';
 const PACKAGE_JSON = 'package.json';
 const orange = chalk.hex('#FFA500');
-const { green, cyan, yellow, yellowBright, bgMagenta, black } = chalk.cyan;
+const { green, cyan, yellow, yellowBright, bgMagenta, black } = chalk;
 
-// 深度递归搜索当前NODE_MODULES文件夹中包的存在数量
+// 递归扫描当前NODE_MODULES文件夹中依赖包的安装情况
+// 和analyze不同的地方在于：analyze是按照依赖的顺序分析，detect仅进行文件扫描
 export function detect(
     pkgRoot: string,
     depth: number = Infinity
@@ -72,7 +73,7 @@ class QueueItem {
 };
 
 // 广度优先搜索node_modules的主函数
-function read(
+function analyze(
     pkgRoot: string,
     depth: number = Infinity,
     norm: boolean = true, // 包含dependencies
@@ -283,7 +284,7 @@ function read(
     return res;
 }
 
-export default read;
+export default analyze;
 
 /*
 返回结构大概如下：
