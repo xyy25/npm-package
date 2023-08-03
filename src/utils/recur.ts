@@ -225,18 +225,24 @@ function read(
         const notInList = [...hash].filter(e => !pkgList.includes(e)).sort();
         if(notInHash.length) {
             // 如果有元素存在于detect结果却不存在于哈希集合中
-            // 说明这些元素没有被通过依赖搜索覆盖到，有可能它们并不被任何包依赖
-            console.warn(
-                'The following', 
-                notInHash.length ,
-                'package(s) detected in node_modules are existing but not analyzed.'
-            );
-            notInHash.forEach(name => console.log('-', name));
-            console.warn('Maybe they are not required by anyone?');
+            // 说明这些元素没有被通过依赖搜索覆盖到
+            if(depth < Infinity) {
+                const coverage = ((1 - notInHash.length / pkgList.length) * 100).toFixed(2);
+                console.log(`Coverage: ${coverage}%.`, notInHash.length, 'package(s) are not analyzed.');
+            } else {
+                // 如果搜索深度小于Infinity，有可能因为它们并不被任何包依赖
+                console.warn(
+                    'The following', 
+                    notInHash.length ,
+                    'package(s) detected in node_modules are existing but not analyzed.'
+                );
+                notInHash.forEach(name => console.log('-', name));
+                console.warn('Maybe they are not required by anyone?');
+            }
         }
         if(notInList.length) {
             // 如果有元素存在于哈希集合却不存在于detect结果中
-            // 说明这些元素可能是detect搜索方法的漏网之鱼
+            // 说明这些元素可能是detect搜索方法的漏网之鱼，可能是detect的深度过低
             console.warn(
                 'The following', 
                 notInList.length ,
