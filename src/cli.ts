@@ -4,7 +4,9 @@ import fs from 'fs';
 import { readPackageJson, toDiagram } from './utils';
 import { getPackage } from './utils/npmUtils';
 import readRecur, { detect } from './utils/recur'; 
+import chalk from 'chalk';
 
+const { cyan, green, yellowBright } = chalk;
 const cmd = new Command();
 
 cmd.name('npmpkg-cli')
@@ -53,7 +55,7 @@ cmd.command('analyze').description('Analyze node_modules recursively.')
                 }
                 const outFileUri = path.join(cwd, outFileName);
                 fs.writeFileSync(outFileUri, Buffer.from(JSON.stringify(res)));
-                console.log(`Analyze result has been saved to ${outFileName}.`);
+                console.log(cyan(`Analyze result has been saved to ${yellowBright(outFileName)}.`));
             } else {
                 console.log(res);
             }
@@ -76,9 +78,9 @@ cmd.command('detect')
         try {
             const res = detect(pkgRoot, depth);
             if(options.show) {
-                res.forEach(e => console.log('-', e));
+                res.forEach(e => console.log('-', green(e)));
             }
-            console.log('CURRENT PACKAGES: ', res.length);
+            console.log(cyan('CURRENT PACKAGES: '), res.length);
         } catch (e) {
             console.error(e);
         }

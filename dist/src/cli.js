@@ -41,6 +41,8 @@ const fs_1 = __importDefault(require("fs"));
 const utils_1 = require("./utils");
 const npmUtils_1 = require("./utils/npmUtils");
 const recur_1 = __importStar(require("./utils/recur"));
+const chalk_1 = __importDefault(require("chalk"));
+const { cyan, green, yellowBright } = chalk_1.default;
 const cmd = new commander_1.Command();
 cmd.name('npmpkg-cli')
     .description('NPM Package Dependency Analyzer')
@@ -79,7 +81,7 @@ cmd.command('analyze').description('Analyze node_modules recursively.')
             }
             const outFileUri = path_1.default.join(cwd, outFileName);
             fs_1.default.writeFileSync(outFileUri, Buffer.from(JSON.stringify(res)));
-            console.log(`Analyze result has been saved to ${outFileName}.`);
+            console.log(cyan(`Analyze result has been saved to ${yellowBright(outFileName)}.`));
         }
         else {
             console.log(res);
@@ -102,9 +104,9 @@ cmd.command('detect')
     try {
         const res = (0, recur_1.detect)(pkgRoot, depth);
         if (options.show) {
-            res.forEach(e => console.log('-', e));
+            res.forEach(e => console.log('-', green(e)));
         }
-        console.log('CURRENT PACKAGES: ', res.length);
+        console.log(cyan('CURRENT PACKAGES: '), res.length);
     }
     catch (e) {
         console.error(e);
