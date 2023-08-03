@@ -16,7 +16,8 @@ const NODE_MODULES = 'node_modules';
 const PACKAGE_JSON = 'package.json';
 const orange = chalk_1.default.hex('#FFA500');
 const { green, cyan, yellow, yellowBright, bgMagenta, black } = chalk_1.default;
-// 深度递归搜索当前NODE_MODULES文件夹中包的存在数量
+// 递归扫描当前NODE_MODULES文件夹中依赖包的安装情况
+// 和analyze不同的地方在于：analyze是按照依赖的顺序分析，detect仅进行文件扫描
 function detect(pkgRoot, depth = Infinity) {
     const abs = (...path) => (0, path_1.join)(pkgRoot, ...path);
     if (depth <= 0 ||
@@ -75,7 +76,7 @@ class QueueItem {
 }
 ;
 // 广度优先搜索node_modules的主函数
-function read(pkgRoot, depth = Infinity, norm = true, // 包含dependencies
+function analyze(pkgRoot, depth = Infinity, norm = true, // 包含dependencies
 dev = true, // 包含devDependencies
 peer = true, // 包含peerDependencies
 pkgList) {
@@ -240,7 +241,7 @@ pkgList) {
     }
     return res;
 }
-exports.default = read;
+exports.default = analyze;
 /*
 返回结构大概如下：
 {
