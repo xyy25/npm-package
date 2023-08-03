@@ -1,0 +1,73 @@
+{
+    "description": "NPM Package Dependency Analyzer",
+    "commands": {
+        "analyze": {
+            "argument": [
+                { "description": "The root dir of the package that needs to analyze." }
+            ],
+            "description": "Recursively analyze node_modules by dependency analysis.",
+            "options": {
+                "scope": {
+                    "description": "The scope of dependencies to detect."
+                },
+                "depth": {
+                    "default": "To search all.",
+                    "description": "Maximum depth of recursive searching."
+                },
+                "json": {
+                    "description": "Output result as JSON file, otherwise will print the result on the console."
+                },
+                "format": {
+                    "description": "Auto format JSON file to a more pretty looking."
+                },
+                "diagram": {
+                    "description": "Auto convert result to DirectedDiagram data structure."
+                }
+            }
+        },
+        "detect": {
+            "description": "Recursively scan and detect the packages exists in the target package node_modules.",
+            "argument": [
+                { "description": "The root dir of the package that needs to detect." }
+            ],
+            "options": {
+                "show": {
+                    "description": "Show all detected packages on the console."
+                }
+            }
+        },
+        "get": {
+            "description": "Get the information of the package from 'registry.npmjs.org'.",
+            "argument": [
+                { "description": "The name or id of the package." }
+            ],
+            "options": {
+                "version": {
+                    "description": "The version range of the package."
+                },
+                "all": {
+                    "description": "Auto get all versions of the package which satisfy the version range described by the option -v, otherwise will get the latest."
+                }
+            }
+        }
+    },
+    "logs": {
+        "cli.ts": {
+            "detected": "Detected %s packages in the target directory.",
+            "jsonSaved": "Analyze result has been saved to %s.",
+            "detectPkg": "CURRENT PACKAGES:"
+        },
+        "utils/recur.ts": {
+            "nowComplete": "Now",
+            "analyzed": "Analyzed %d packages.",
+            "coverage": "Coverage: %cv. %len package(s) are not analyzed.",
+            "notInHash": "The following %len package(s) detected in node_modules are existing but not analyzed.",
+            "notInHash2": "Maybe they are not required by anyone?",
+            "notInList": "The following %len package(s) analyzed in node_modules are not detected.",
+            "optNotMeet": "%d optional package(s) not meet.",
+            "pkgNotFound": "%d package(s) required but %pkgNotFound2:",
+            "pkgNotFound2": "NOT FOUND",
+            "pkgNotFound3": "Have you installed them?"
+        }
+    }
+}

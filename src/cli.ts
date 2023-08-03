@@ -5,31 +5,31 @@ import { readPackageJson, toDiagram } from './utils';
 import { getPackage } from './utils/npmUtils';
 import readRecur, { detect } from './utils/recur'; 
 import chalk from 'chalk';
+import lang from './lang/zh-CN.json';
 
-const { cyan, green, yellowBright } = chalk;
+const { cyan, green, yellow, yellowBright } = chalk;
 const cmd = new Command();
 
 cmd.name('npmpkg-cli')
-    .description('NPM Package Dependency Analyzer')
+    .description(lang.description)
     .version('0.0.1');
 
-const scopeOption = new Option('-s, --scope <scope>', 'The scope dependencies to detect')
+const scopeOption = new Option('-s, --scope <scope>', lang.commands.analyze.options.scope.description)
         .choices(['all', 'norm', 'peer', 'dev'])
         .default('all');
-const depthOption = new Option('-d, --depth <depth>', 'Maximum depth of recursive searching.')
-        .default(Infinity, 'to search all.')
+const depthOption = new Option('-d, --depth <depth>', lang.commands.analyze.options.depth.description)
+        .default(Infinity, lang.commands.analyze.options.depth.default)
         .argParser((value) => { const r: number = parseInt(value); return Number.isNaN(r) ? Infinity : r; })
-const jsonOption = new Option( '-j, --json [fileName]', 
-            'Output result as JSON file, otherwise will print the result on the console.');
-const jsonPrettyOption = new Option('--pretty, --format', 'auto format JSON file to a more pretty looking.')
+const jsonOption = new Option( '-j, --json [fileName]', lang.commands.analyze.options.json.description);
+const jsonPrettyOption = new Option('--pretty, --format', lang.commands.analyze.options.format.description)
 
-cmd.command('analyze').description('Analyze node_modules recursively.')
-    .argument('<string>', 'The root dir of the package that needs to analyze.')
+cmd.command('analyze').description(lang.commands.analyze.description)
+    .argument('<string>', lang.commands.analyze.argument[0].description)
     .addOption(scopeOption)
     .addOption(depthOption)
     .addOption(jsonOption)
     .addOption(jsonPrettyOption)
-    .option('--diagram', 'Auto convert result to DirectedDiagram data structure.')
+    .option('--diagram', lang.commands.analyze.options.diagram.description)
     .action(async (str, options) => {
         const cwd = process.cwd(); // 命令执行路径
         const pkgRoot = path.join(cwd, str); // 包的根目录
@@ -37,7 +37,8 @@ cmd.command('analyze').description('Analyze node_modules recursively.')
 
         try {
             const pkgEx = detect(pkgRoot, depth);
-            console.log('Detected', pkgEx.length, 'packages in the target directory.');
+            const desc = lang.logs['cli.ts'];
+            console.log(cyan(desc.detected.replace("%s", yellow(pkgEx.length))));
 
             await new Promise((res) => setTimeout(res, 1000));
 
@@ -62,7 +63,7 @@ cmd.command('analyze').description('Analyze node_modules recursively.')
                 }
                 const outFileUri = path.join(cwd, outFileName);
                 fs.writeFileSync(outFileUri, Buffer.from(JSON.stringify(res, null, options.format ? "\t" : "")));
-                console.log(cyan(`Analyze result has been saved to ${yellowBright(outFileName)}.`));
+                console.log(cyan(desc.jsonSaved.replace('%s', yellowBright(outFileName))));
             } else {
                 console.log(res);
             }
@@ -72,10 +73,10 @@ cmd.command('analyze').description('Analyze node_modules recursively.')
     });
 
 cmd.command('detect')
-    .description('Recursively count the number of packages exists in the target package node_modules.')
-    .argument('<string>', 'The root dir of the package that needs to count.')
+    .description(lang.commands.detect.description)
+    .argument('<string>', lang.commands.detect.argument[0].description)
     .addOption(depthOption)
-    .option('--show', 'Show all detected packages on the console.', false)
+    .option('--show', lang.commands.detect.options.show.description, false)
     .action((str, options) => {
         const cwd = process.cwd(); // 命令执行路径
         const pkgRoot = path.join(cwd, str); // 包的根目录
@@ -86,17 +87,17 @@ cmd.command('detect')
             if(options.show) {
                 res.forEach(e => console.log('-', green(e)));
             }
-            console.log(cyan('CURRENT PACKAGES: '), res.length);
+            console.log(cyan(lang.logs["cli.ts"].detectPkg), res.length);
         } catch (e) {
             console.error(e);
         }
     })
 
 cmd.command('get')
-    .description('Get the information of the package from registry.npmjs.org')
-    .argument('<string>', 'The name or id of the package.')
-    .option('-v, --version <string>', 'The version range of the package.')
-    .option('-a, --all', 'Auto get all versions of the package which satisfy the version range described by the option -v, otherwise will get the latest.')
+    .description(lang.commands.get.description)
+    .argument('<string>', lang.commands.get.argument[0].description)
+    .option('-v, --version <string>', lang.commands.get.options.version.description)
+    .option('-a, --all', lang.commands.get.options.all.description)
     .action(async (str, options) => {
         const res = await getPackage(str, options.version ?? '*', !!options.all);
         console.log(res);

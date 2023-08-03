@@ -5,7 +5,9 @@ import fs from 'fs';
 import { readPackageJson, toString } from '.';
 import chalk from 'chalk';
 import ProgressBar from 'progress';
+import { logs } from "../lang/zh-CN.json";
 
+const { 'utils/recur.ts': desc } = logs;
 const NODE_MODULES = 'node_modules';
 const PACKAGE_JSON = 'package.json';
 const orange = chalk.hex('#FFA500');
@@ -115,7 +117,7 @@ function read(
             `Q${green(':queue')}` + ' ' +
             `${yellowBright(':current')}/${yellow(':total')}` + ' ' +
             `[:bar]` + ' ' +
-            'Now: ' + cyan(':nowComplete'), {
+            desc.nowComplete + ': ' + cyan(':nowComplete'), {
             total: pkgList.length,
             complete: yellowBright('▇'),
             incomplete: black(' ')
@@ -226,7 +228,7 @@ function read(
         }
     }
 
-    console.log(cyan('\nAnalyzed'), hash.size, cyan('packages.'));
+    console.log(cyan('\n' + desc.analyzed.replace("%d", yellowBright(hash.size))));
     // 检查哈希表集合hash中的记录与detect结果的相差
     if(norm && dev && peer && pkgList) {
         const notInHash = pkgList.filter(e => !hash.has(e)).sort();
@@ -236,41 +238,35 @@ function read(
             // 说明这些元素没有被通过依赖搜索覆盖到
             if(depth < Infinity) {
                 const coverage = ((1 - notInHash.length / pkgList.length) * 100).toFixed(2);
-                console.log(
-                    `Coverage: ${yellowBright(coverage + '%')}.`, 
-                    notInHash.length,
-                    'package(s) are not analyzed.'
+                console.log(desc.coverage
+                    .replace('%cv', yellowBright(coverage + '%'))
+                    .replace('%len', yellow(notInHash.length))
                 );
             } else {
                 
                 // 如果搜索深度小于Infinity，有可能因为它们并不被任何包依赖
-                console.warn(
-                    orange('The following'), 
-                    notInHash.length ,
-                    orange('package(s) detected in node_modules are existing but not analyzed.')
-                );
+                console.warn(orange(desc.notInHash.replace("%len", yellow(notInHash.length))));
                 notInHash.forEach(e => console.log('-', green(e)));
-                console.warn(orange('Maybe they are not required by anyone?'));
+                console.warn(orange(desc.notInHash2));
             }
         }
         if(notInList.length) {
             // 如果有元素存在于哈希集合却不存在于detect结果中
             // 说明这些元素可能是detect搜索方法的漏网之鱼，可能是detect的深度过低
-            console.warn(
-                orange('The following'), 
-                notInList.length ,
-                orange('package(s) analyzed in node_modules are not detected.')
-            );
+            console.warn(orange(desc.notInList.replace("%len", yellow(notInList.length))));
             notInList.forEach(e => console.log('-', green(e)));
         }
     }
     if(optionalNotMeet.length) {
-        console.log(optionalNotMeet.length, 'optional package(s) not meet.');
+        console.log(desc.optNotMeet.replace("%d", yellow(optionalNotMeet.length)));
     }
     if(notFound.length) {
-        console.warn(notFound.length, orange(`package(s) required but ${bgMagenta('NOT FOUND')}:`));
+        console.warn(orange(desc.pkgNotFound
+            .replace("%d", yellowBright(notFound.length))
+            .replace("%pkgNotFound2", bgMagenta(desc.pkgNotFound2))
+        ));
         notFound.forEach(e => console.warn('-', green(e)));
-        console.warn(orange('Have you installed them?'));
+        console.warn(orange(desc.pkgNotFound3));
     }
     return res;
 }

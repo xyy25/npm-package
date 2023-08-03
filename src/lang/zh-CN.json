@@ -1,0 +1,73 @@
+{
+    "description": "NPM包依赖分析器",
+    "commands": {
+        "analyze": {
+            "argument": [
+                { "description": "所需分析的根目录." }
+            ],
+            "description": "基于依赖关系递归分析当前目录下的node_modules.", 
+            "options": {
+                "scope": {
+                    "description": "设置依赖包的scope."
+                },
+                "depth": {
+                    "default": "不设深度.",
+                    "description": "设置最大递归深度."
+                },
+                "json": {
+                    "description": "将结果输出为JSON文件, 否则打印至命令行."
+                },
+                "format": {
+                    "description": "是否自动格式化JSON文件."
+                },
+                "diagram": {
+                    "description": "是否将结果转化为DirectedDiagram有向图结构."
+                }
+            }
+        },
+        "detect": {
+            "description": "基于文件递归扫描当前目录下的node_modules.",
+            "argument": [
+                { "description": "所需扫描的根目录." }
+            ],
+            "options" : {
+                "show": {
+                    "description": "扫描完后将所有探测到的包打印到命令行."
+                }
+            }
+        },
+        "get": {
+            "description": "从'registry.npmjs.org'获取包的信息.",
+            "argument": [
+                { "description": "包名或id." }
+            ],
+            "options": {
+                "version": {
+                    "description": "获取的特定版本范围（遵循semver）."
+                },
+                "all": {
+                    "description": "获取所有符合-v选项指定版本范围的包, 否则自动获取符合范围的最新版本."
+                }
+            }
+        }
+    },
+    "logs": {
+        "cli.ts": {
+            "detected": "检测到 %s 个依赖包.",
+            "jsonSaved": "分析结果已保存至 %s.",
+            "detectPkg": "检测到的依赖包数:"
+        },
+        "utils/recur.ts": {
+            "nowComplete": "当前",
+            "analyzed": "已分析 %d 个依赖包.",
+            "coverage": "覆盖率: %cv. %len 个包尚未分析到.",
+            "notInHash": "以下 %len 个依赖包在node_modules中存在且被扫描, 但没有被依赖分析检测到.",
+            "notInHash2": "这些包有可能未被使用?",
+            "notInList": "以下 %len 个依赖包在node_modules被依赖分析检测到, 但未被文件扫描到.",
+            "optNotMeet": "发现 %d 个可选依赖包没有下载.",
+            "pkgNotFound": "发现 %d 个依赖包%pkgNotFound2:",
+            "pkgNotFound2": "未找到",
+            "pkgNotFound3": "请确认所有依赖包是否安装完整."
+        }
+    }
+}
