@@ -4,8 +4,8 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "start": "node dist/index.js",
-    "test": "node dist/index.js analyze test-pkg --json=outputs/res --diagram"
+    "start": "ts-node index.ts || node dist/index.js",
+    "test": "ts-node index.ts analyze test-pkg --json --pretty --diagram || node dist/index.js analyze test-pkg --json --pretty --diagram"
   },
   "keywords": [],
   "author": "",

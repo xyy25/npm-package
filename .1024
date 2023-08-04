@@ -1,2 +1,2 @@
 compile_command: "tsc"
-run_command: "node dist/index.js analyze test-pkg --json=outputs/res --diagram"
+run_command: "ts-node index.ts analyze test-pkg --json --pretty --diagram"
