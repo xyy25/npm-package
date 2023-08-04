@@ -1,0 +1,56 @@
+#topo {
+    border: 1px solid #ccc;
+    user-select: none;
+}
+
+#topo text {
+    font-family: 'monaco';
+    /*和js里保持一致*/
+    fill: #1a2c3f;
+    text-anchor: middle;
+}
+
+#topo .node-other {
+    text-anchor: start;
+}
+
+#topo .health1 {
+    stroke: #92e1a2;
+}
+
+#topo .health2 {
+    stroke: orange;
+}
+
+#topo .health3 {
+    stroke: red;
+}
+
+#topo #cloud,
+#topo #database {
+    fill: #ccc;
+}
+
+#topo .link {
+    stroke: black;
+}
+
+#topo .node-title {
+    font-size: 14px;
+}
+
+#topo .node-code circle {
+    fill: green;
+}
+
+#topo .node-code text {
+    fill: #fff;
+}
+
+#topo .node-bg {
+    fill: #fff;
+}
+
+#topo .arrow {
+    fill: black;
+}
