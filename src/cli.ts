@@ -79,13 +79,13 @@ cmd.command('analyze').description(lang.commands.analyze.description)
                 }
             }
 
-            if(options.json) { // 输出JSON文件设置
+            if(options.json && Object.keys(res).length) { // 输出JSON文件设置
                 // 自动创建outputs文件夹
                 if(!fs.existsSync(path.join(cwd, 'outputs'))) {
                     fs.mkdirSync(path.join(cwd, 'outputs'));
                 }
                 let outFileName = options.json === true ? 
-                    path.join('outputs', path.basename(str)) : options.json;
+                    path.join('outputs', 'res-' + pkgJson.name) : options.json;
                 if(!outFileName.endsWith('.json')) {
                     outFileName += '.json';
                 }
