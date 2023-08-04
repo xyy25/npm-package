@@ -41,6 +41,20 @@ export type PackageJson = {
     }
 };
 
+export type DepEval = {
+    result: DepResult, // 分析结果
+    scope: { // 分析范围是否包含主目录包所指定的：
+        norm: boolean, // 普通依赖(dependencies、optionalDepdencies)
+        dev: boolean, // 开发依赖(devDependencies)
+        peer: boolean // 同级依赖(peerDependencies)
+    },
+    depth: number, // 分析递归深度
+    analyzed: Set<string>, // 已分析的包列表
+    notFound: string[], // 未找到且必需的依赖包列表
+    rangeInvalid: string[], // 版本不合要求的包列表
+    optionalNotMeet: string[] // 可选且未安装的包列表
+}
+
 export type DepResult = {
     [id: string]: DepItem;
 };

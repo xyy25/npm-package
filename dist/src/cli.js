@@ -44,6 +44,7 @@ const recur_1 = __importStar(require("./utils/recur"));
 const chalk_1 = __importDefault(require("chalk"));
 const zh_CN_json_1 = __importDefault(require("./lang/zh-CN.json"));
 const { cyan, green, yellow, yellowBright } = chalk_1.default;
+const error = chalk_1.default.bgBlack.bold.red;
 const cmd = new commander_1.Command();
 cmd.name('npmpkg-cli')
     .description(zh_CN_json_1.default.description)
@@ -68,6 +69,15 @@ cmd.command('analyze').description(zh_CN_json_1.default.commands.analyze.descrip
     const pkgRoot = path_1.default.join(cwd, str); // 包的根目录
     const { depth } = options; // 最大深度设置，默认为Infinity
     try {
+        if (!fs_1.default.existsSync(pkgRoot)) { // 目录不存在
+            console.error(error(zh_CN_json_1.default.commons.error + ':', zh_CN_json_1.default.logs['cli.ts'].dirNotExist));
+            return;
+        }
+        const pkgJson = (0, utils_1.readPackageJson)(path_1.default.join(pkgRoot, 'package.json'));
+        if (!pkgJson) { // package.json不存在
+            console.error(error(zh_CN_json_1.default.commons.error + ":", zh_CN_json_1.default.logs['cli.ts'].pkgJsonNotExist.replace('%s', str)));
+            return;
+        }
         const pkgEx = (0, recur_1.detect)(pkgRoot, depth);
         const desc = zh_CN_json_1.default.logs['cli.ts'];
         console.log(cyan(desc.detected.replace("%s", yellow(pkgEx.length))));
@@ -78,13 +88,24 @@ cmd.command('analyze').description(zh_CN_json_1.default.commands.analyze.descrip
                 scope === 'peer' ? [false, false, true] :
                     [true, true, true];
         console.log(pkgRoot, scopes, depth);
-        let res = (0, recur_1.default)(pkgRoot, depth, scopes[0], scopes[1], scopes[2], pkgEx);
+        const depEval = (0, recur_1.default)(pkgRoot, depth, scopes[0], scopes[1], scopes[2], pkgEx.length);
+        // 评估分析结果并打印至控制台，该函数返回没有被依赖的包
+        const notRequired = (0, recur_1.evaluate)(depEval, pkgEx);
+        let res = depEval.result;
         if (options.diagram) {
-            const pkgJson = (0, utils_1.readPackageJson)(path_1.default.join(pkgRoot, 'package.json'));
             res = (0, utils_1.toDiagram)(res, pkgJson);
+            // 如果未设置最大深度，有向图结构会自动附加上存在于node_modules中但没有被依赖覆盖到的包
+            if (depth === Infinity) {
+                res.push(...notRequired.map(e => (0, utils_1.toDepItemWithId)(e)));
+            }
         }
         if (options.json) { // 输出JSON文件设置
-            let outFileName = options.json === true ? str : options.json;
+            // 自动创建outputs文件夹
+            if (!fs_1.default.existsSync(path_1.default.join(cwd, 'outputs'))) {
+                fs_1.default.mkdirSync(path_1.default.join(cwd, 'outputs'));
+            }
+            let outFileName = options.json === true ?
+                path_1.default.join('outputs', str) : options.json;
             if (!outFileName.endsWith('.json')) {
                 outFileName += '.json';
             }
@@ -110,6 +131,11 @@ cmd.command('detect')
     const pkgRoot = path_1.default.join(cwd, str); // 包的根目录
     const { depth } = options;
     try {
+        const dirEx = fs_1.default.existsSync(pkgRoot);
+        if (!dirEx) {
+            console.error(error(zh_CN_json_1.default.commons.error + ':', zh_CN_json_1.default.logs['cli.ts'].dirNotExist));
+            return;
+        }
         const res = (0, recur_1.detect)(pkgRoot, depth);
         if (options.show) {
             res.forEach(e => console.log('-', green(e)));

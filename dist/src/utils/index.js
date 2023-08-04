@@ -11,10 +11,15 @@ var __rest = (this && this.__rest) || function (s, e) {
     return t;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.stringPlus = exports.compareVersionExpr = exports.compareVersion = exports.limit = exports.toDiagram = exports.find = exports.toString = exports.countMatches = exports.readPackageJson = void 0;
+exports.stringPlus = exports.compareVersionExpr = exports.compareVersion = exports.toDepItemWithId = exports.toDiagram = exports.find = exports.splitAt = exports.limit = exports.toString = exports.countMatches = exports.readPackageJson = void 0;
 const path_1 = require("path");
 const readPackageJson = (fileUri) => {
-    return require(fileUri);
+    try {
+        return require(fileUri);
+    }
+    catch (e) {
+        return null;
+    }
 };
 exports.readPackageJson = readPackageJson;
 const countMatches = (str, matcher) => { var _a, _b; return (_b = (_a = str.match(new RegExp(matcher, "g"))) === null || _a === void 0 ? void 0 : _a.length) !== null && _b !== void 0 ? _b : 0; };
@@ -25,6 +30,11 @@ const toString = (depItem, id) => {
     return (0, path_1.join)(depItem.path, id + '@' + depItem.version);
 };
 exports.toString = toString;
+const limit = (str, length) => str.slice(0, Math.min(str.length, Math.floor(length)) - 3) + '...';
+exports.limit = limit;
+const splitAt = (str, pos) => pos < 0 ? ['', str] : pos >= str.length ? [str, ''] :
+    [str.slice(0, pos), str.slice(pos)];
+exports.splitAt = splitAt;
 const find = (items, item) => items.findIndex(e => (0, exports.toString)(e) === (0, exports.toString)(item));
 exports.find = find;
 const toDiagram = (depResult, rootPkg) => {
@@ -61,8 +71,34 @@ const toDiagram = (depResult, rootPkg) => {
     return res;
 };
 exports.toDiagram = toDiagram;
-const limit = (str, length) => str.slice(0, Math.min(str.length, Math.floor(length)) - 3) + '...';
-exports.limit = limit;
+const toDepItemWithId = (itemStr) => {
+    var _a, _b, _c, _d;
+    const splitPathId = (itemUri, version, pos) => {
+        const [path, id] = (0, exports.splitAt)(itemUri, pos);
+        return { id: id.slice(1), version, path, requiring: [], requiredBy: [] };
+    };
+    const atPos = itemStr.lastIndexOf('@');
+    const [pre, post] = (0, exports.splitAt)(itemStr, atPos);
+    let sepAfterAt = (_b = (_a = post.match(/\/|\\/g)) === null || _a === void 0 ? void 0 : _a.length) !== null && _b !== void 0 ? _b : 0;
+    if (sepAfterAt) { // 应对没有@版本的异常状态（虽然几乎用不到）
+        if (sepAfterAt > 1) {
+            const lastSep = atPos + post.lastIndexOf(path_1.sep);
+            return splitPathId(itemStr, '', lastSep);
+        }
+        return splitPathId(itemStr, '', atPos - 1);
+    }
+    const areaAtPos = pre.lastIndexOf('@');
+    if (areaAtPos < 0) {
+        return splitPathId(pre, post.slice(1), pre.lastIndexOf(path_1.sep));
+    }
+    const [preArea, postArea] = (0, exports.splitAt)(pre, areaAtPos);
+    sepAfterAt = (_d = (_c = postArea.match(/\/|\\/g)) === null || _c === void 0 ? void 0 : _c.length) !== null && _d !== void 0 ? _d : 0;
+    if (sepAfterAt > 1) {
+        return splitPathId(pre, post.slice(1), pre.lastIndexOf(path_1.sep));
+    }
+    return splitPathId(pre, post.slice(1), areaAtPos - 1);
+};
+exports.toDepItemWithId = toDepItemWithId;
 const compareVersion = (versionA, versionB) => {
     const [arr1, arr2] = [versionA, versionB].map(v => v.split('.'));
     const [len1, len2] = [arr1.length, arr2.length];

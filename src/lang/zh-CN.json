@@ -51,8 +51,13 @@
             }
         }
     },
+    "commons": {
+        "error": "错误"
+    },
     "logs": {
         "cli.ts": {
+            "dirNotExist": "目录不存在!",
+            "pkgJsonNotExist": "%s根目录下的package.json文件不存在!",
             "detected": "检测到 %s 个依赖包.",
             "jsonSaved": "分析结果已保存至%s.",
             "detectPkg": "检测到的依赖包数:"

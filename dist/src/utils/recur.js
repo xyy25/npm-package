@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.detect = void 0;
+exports.evaluate = exports.detect = void 0;
 const path_1 = require("path");
 const semver_1 = require("semver");
 const fs_1 = __importDefault(require("fs"));
@@ -26,36 +26,88 @@ function detect(pkgRoot, depth = Infinity) {
         return [];
     }
     const res = new Set();
-    const countPkg = (pkgPath) => {
-        var _a;
-        const ver = (_a = (0, _1.readPackageJson)(abs((0, path_1.join)(pkgPath, PACKAGE_JSON)))) === null || _a === void 0 ? void 0 : _a.version;
-        const pkgStr = pkgPath + (ver ? '@' + ver : '');
+    const countPkg = (modPath, pkgId) => {
+        var _a, _b;
+        const ver = (_b = (_a = (0, _1.readPackageJson)(abs(modPath, pkgId, PACKAGE_JSON))) === null || _a === void 0 ? void 0 : _a.version) !== null && _b !== void 0 ? _b : '';
+        const pkgStr = (0, _1.toString)({ version: ver, path: modPath }, pkgId);
         res.add(pkgStr);
-        detect(abs(pkgPath), depth - 1)
-            .forEach(e => res.add((0, path_1.join)(pkgPath, e)));
+        detect(abs(modPath, pkgId), depth - 1)
+            .forEach(e => res.add((0, path_1.join)(modPath, pkgId, e)));
     };
-    for (const pkg of fs_1.default.readdirSync(abs(NODE_MODULES))) {
-        const childPath = (0, path_1.join)(path_1.sep, NODE_MODULES, pkg);
-        if (!fs_1.default.lstatSync(abs(childPath)).isDirectory() ||
-            pkg.startsWith('.')) {
+    for (const pkgId of fs_1.default.readdirSync(abs(NODE_MODULES))) {
+        const modPath = (0, path_1.join)(path_1.sep, NODE_MODULES);
+        if (!fs_1.default.lstatSync(abs(modPath, pkgId)).isDirectory() ||
+            pkgId.startsWith('.')) {
             continue;
         }
-        else if (pkg.startsWith('@')) {
-            const areaPath = childPath;
+        else if (pkgId.startsWith('@')) {
+            const areaPath = (0, path_1.join)(modPath, pkgId);
             const areaPkgs = fs_1.default.readdirSync(abs(areaPath));
-            for (const areaPkg of areaPkgs) {
-                const areaPkgPath = (0, path_1.join)(areaPath, areaPkg);
-                if (fs_1.default.lstatSync(abs(areaPkgPath)).isDirectory())
-                    countPkg(areaPkgPath);
+            for (const areaPkgId of areaPkgs) {
+                if (fs_1.default.lstatSync(abs(areaPath, areaPkgId)).isDirectory())
+                    countPkg(areaPath, areaPkgId);
             }
         }
         else {
-            countPkg(childPath);
+            countPkg(modPath, pkgId);
         }
     }
     return [...res];
 }
 exports.detect = detect;
+function evaluate(depEval, pkgList) {
+    const notRequired = [];
+    const { depth, analyzed: hash, notFound, rangeInvalid, optionalNotMeet, scope: { norm, dev, peer } } = depEval;
+    // 检查哈希表集合hash中的记录与detect结果的相差
+    if (norm && dev && peer && pkgList) {
+        const notInHash = pkgList.filter(e => !hash.has(e)).sort();
+        const notInList = [...hash].filter(e => !pkgList.includes(e)).sort();
+        if (notInHash.length) {
+            // 如果有元素存在于detect结果却不存在于哈希集合中
+            // 说明这些元素没有被通过依赖搜索覆盖到
+            if (depth < Infinity) {
+                const coverage = ((1 - notInHash.length / pkgList.length) * 100).toFixed(2);
+                console.log(desc.coverage
+                    .replace('%d', yellowBright(depth))
+                    .replace('%cv', yellowBright(coverage + '%'))
+                    .replace('%len', yellow(notInHash.length)));
+            }
+            else {
+                // 如果搜索深度小于Infinity，有可能因为它们并不被任何包依赖
+                console.warn(orange(desc.notInHash.replace("%len", yellow(notInHash.length))));
+                notInHash.forEach(e => console.log('-', green(e)));
+                console.warn(orange(desc.notInHash2));
+            }
+            notRequired.push(...notInHash);
+            // notRequired.push(...notInHash.map(e => {
+            // }));
+        }
+        if (notInList.length) {
+            // 如果有元素存在于哈希集合却不存在于detect结果中
+            // 说明这些元素可能是detect搜索方法的漏网之鱼，可能是detect的深度过低
+            console.warn(orange(desc.notInList.replace("%len", yellow(notInList.length))));
+            notInList.forEach(e => console.log('-', green(e)));
+        }
+    }
+    if (optionalNotMeet.length) {
+        console.log(desc.optNotMeet.replace("%d", yellow(optionalNotMeet.length)));
+    }
+    if (rangeInvalid.length) {
+        console.warn(orange(desc.rangeInvalid
+            .replace("%d", yellowBright(rangeInvalid.length))
+            .replace("%rangeInvalid2", bgMagenta(desc.rangeInvalid2))));
+        rangeInvalid.forEach(e => console.warn('-', green(e)));
+    }
+    if (notFound.length) {
+        console.warn(orange(desc.pkgNotFound
+            .replace("%d", yellowBright(notFound.length))
+            .replace("%pkgNotFound2", bgMagenta(desc.pkgNotFound2))));
+        notFound.forEach(e => console.warn('-', green(e)));
+        console.warn(orange(desc.pkgNotFound3));
+    }
+    return notRequired;
+}
+exports.evaluate = evaluate;
 class QueueItem {
     constructor(id, // 包名
     range, // 需要的版本范围
@@ -79,14 +131,25 @@ class QueueItem {
 function analyze(pkgRoot, depth = Infinity, norm = true, // 包含dependencies
 dev = true, // 包含devDependencies
 peer = true, // 包含peerDependencies
-pkgList) {
+pkgCount) {
     const abs = (...path) => (0, path_1.join)(pkgRoot, ...path);
+    const depEval = {
+        result: {}, depth,
+        scope: { norm, dev, peer },
+        analyzed: new Set(),
+        notFound: [],
+        rangeInvalid: [],
+        optionalNotMeet: []
+    };
     if (depth <= 0 ||
         !fs_1.default.existsSync(pkgRoot) ||
         !fs_1.default.existsSync(abs(PACKAGE_JSON))) {
-        return {};
+        return depEval;
     }
     const rootPkgJson = (0, _1.readPackageJson)(abs(PACKAGE_JSON));
+    if (!rootPkgJson) {
+        return depEval;
+    }
     const { dependencies: rootDeps, // 普通依赖
     devDependencies: rootDevDeps, // 开发依赖
     peerDependencies: rootPeerDeps, // 同级依赖
@@ -100,21 +163,21 @@ pkgList) {
         peer: peer && rootPeerDeps ? rootPeerDeps : {},
     };
     if (!Object.keys(allDeps).length) {
-        return {};
+        return depEval;
     }
-    const res = {}; // 结果
+    const { 
+    // 分析结果
+    result: res, 
     // 建立哈希集合，把已经解析过的包登记起来，避免重复计算子依赖
-    const hash = new Set();
-    // 统计未安装的包、可选依赖包、版本不符合要求的包
-    let notFound = [];
-    let optionalNotMeet = [];
-    let rangeInvalid = [];
+    analyzed: hash, 
+    // 统计未找到的包、版本不符合要求的包、可选且未安装的包
+    notFound, rangeInvalid, optionalNotMeet } = depEval;
     // 初始化控制台进度条
     const outLength = process.stdout.columns;
-    const bar = pkgList !== undefined ?
+    const bar = pkgCount !== undefined ?
         new progress_1.default(`Q${green(':queue')} ${yellowBright(':current')}/${yellow(':total')}` +
             ` [:bar] ` + (outLength >= 100 ? ':nowComplete' : ''), {
-            total: pkgList.length,
+            total: pkgCount,
             complete: yellowBright('▇'),
             incomplete: black(' ')
         }) : null;
@@ -141,46 +204,47 @@ pkgList) {
             if (fs_1.default.existsSync(abs(pkgPath)) &&
                 fs_1.default.existsSync(abs(pkgJsonPath))) {
                 const pkg = (0, _1.readPackageJson)(abs(pkgJsonPath));
-                const { dependencies: pkgDeps, optionalDependencies: pkgOptDeps, peerDependencies: pkgPeerDeps, peerDependenciesMeta: pkgPeerMeta } = pkg;
-                if (pkg) {
-                    const item = {
-                        range,
-                        version: pkg.version,
-                        path: pth,
-                    };
-                    p.target[id] = item;
-                    const itemStr = (0, _1.toString)(item, id);
-                    // console.log('FOUND', itemStr);
-                    if (range !== 'latest' && !(0, semver_1.satisfies)(pkg.version, range)) {
-                        // 如果该包版本不符合range要求
-                        rangeInvalid.push(`${id} REQUIRED ${range} BUT ${pkg.version} BY ${by}`);
-                    }
-                    // 如果该包的依赖未登记入哈希集合
-                    if (!hash.has(itemStr)) {
-                        // 如果当前搜索深度未超标，则计算它的子依赖
-                        if (p.depth <= depth && (pkgDeps && Object.keys(pkgDeps).length ||
-                            pkgOptDeps && Object.keys(pkgOptDeps).length ||
-                            pkgPeerDeps && Object.keys(pkgPeerDeps).length)) {
-                            p.target[id].requires = {};
-                            let newTasks = [];
-                            const q = (e, type, optional) => new QueueItem(e[0], e[1], itemStr, type, optional, p.depth + 1, (0, path_1.join)(pkgPath, NODE_MODULES), p.target[id].requires);
-                            pkgDeps && newTasks.push(...Object.entries(pkgDeps).map((e) => q(e, 'norm', false)));
-                            pkgOptDeps && newTasks.push(...Object.entries(pkgOptDeps).map((e) => q(e, 'optional', true)));
-                            pkgPeerDeps && newTasks.push(...Object.entries(pkgPeerDeps).map((e) => { var _a, _b; return q(e, 'peer', (_b = (_a = pkgPeerMeta === null || pkgPeerMeta === void 0 ? void 0 : pkgPeerMeta[e[0]]) === null || _a === void 0 ? void 0 : _a.optional) !== null && _b !== void 0 ? _b : false); }));
-                            queue.push(...newTasks);
-                            //console.log(newTasks);
-                            //console.log('ADDED', itemStr);
-                        }
-                        const outLength = process.stdout.columns;
-                        bar === null || bar === void 0 ? void 0 : bar.tick({
-                            'queue': queue.length,
-                            'nowComplete': outLength <= 100 ? '' :
-                                (desc.nowComplete + ': ' + cyan((0, _1.limit)(`${range} ${id}`, outLength * 0.2)))
-                        });
-                        hash.add(itemStr);
-                    }
-                    break;
+                if (!pkg) {
+                    continue;
                 }
+                const { dependencies: pkgDeps, optionalDependencies: pkgOptDeps, peerDependencies: pkgPeerDeps, peerDependenciesMeta: pkgPeerMeta } = pkg;
+                const item = {
+                    range,
+                    version: pkg.version,
+                    path: pth,
+                };
+                p.target[id] = item;
+                const itemStr = (0, _1.toString)(item, id);
+                // console.log('FOUND', itemStr);
+                if (range !== 'latest' && !(0, semver_1.satisfies)(pkg.version, range)) {
+                    // 如果该包版本不符合range要求
+                    rangeInvalid.push(`${id} REQUIRED ${range} BUT ${pkg.version} BY ${by}`);
+                }
+                // 如果该包的依赖未登记入哈希集合
+                if (!hash.has(itemStr)) {
+                    // 如果当前搜索深度未超标，则计算它的子依赖
+                    if (p.depth <= depth && (pkgDeps && Object.keys(pkgDeps).length ||
+                        pkgOptDeps && Object.keys(pkgOptDeps).length ||
+                        pkgPeerDeps && Object.keys(pkgPeerDeps).length)) {
+                        p.target[id].requires = {};
+                        let newTasks = [];
+                        const q = (e, type, optional) => new QueueItem(e[0], e[1], itemStr, type, optional, p.depth + 1, (0, path_1.join)(pkgPath, NODE_MODULES), p.target[id].requires);
+                        pkgDeps && newTasks.push(...Object.entries(pkgDeps).map((e) => q(e, 'norm', false)));
+                        pkgOptDeps && newTasks.push(...Object.entries(pkgOptDeps).map((e) => q(e, 'optional', true)));
+                        pkgPeerDeps && newTasks.push(...Object.entries(pkgPeerDeps).map((e) => { var _a, _b; return q(e, 'peer', (_b = (_a = pkgPeerMeta === null || pkgPeerMeta === void 0 ? void 0 : pkgPeerMeta[e[0]]) === null || _a === void 0 ? void 0 : _a.optional) !== null && _b !== void 0 ? _b : false); }));
+                        queue.push(...newTasks);
+                        //console.log(newTasks);
+                        //console.log('ADDED', itemStr);
+                    }
+                    const outLength = process.stdout.columns;
+                    bar === null || bar === void 0 ? void 0 : bar.tick({
+                        'queue': queue.length,
+                        'nowComplete': outLength <= 100 ? '' :
+                            (desc.nowComplete + ': ' + cyan((0, _1.limit)(`${range} ${id}`, outLength * 0.2)))
+                    });
+                    hash.add(itemStr);
+                }
+                break;
             }
             if (!pth || pth === path_1.sep || pth === (0, path_1.join)(path_1.sep, NODE_MODULES)) {
                 const type = p.type === 'norm' ? '' : p.type.toUpperCase();
@@ -196,51 +260,7 @@ pkgList) {
         }
     }
     console.log(cyan('\n' + desc.analyzed.replace("%d", yellowBright(hash.size))));
-    // 检查哈希表集合hash中的记录与detect结果的相差
-    if (norm && dev && peer && pkgList) {
-        const notInHash = pkgList.filter(e => !hash.has(e)).sort();
-        const notInList = [...hash].filter(e => !pkgList.includes(e)).sort();
-        if (notInHash.length) {
-            // 如果有元素存在于detect结果却不存在于哈希集合中
-            // 说明这些元素没有被通过依赖搜索覆盖到
-            if (depth < Infinity) {
-                const coverage = ((1 - notInHash.length / pkgList.length) * 100).toFixed(2);
-                console.log(desc.coverage
-                    .replace('%d', yellowBright(depth))
-                    .replace('%cv', yellowBright(coverage + '%'))
-                    .replace('%len', yellow(notInHash.length)));
-            }
-            else {
-                // 如果搜索深度小于Infinity，有可能因为它们并不被任何包依赖
-                console.warn(orange(desc.notInHash.replace("%len", yellow(notInHash.length))));
-                notInHash.forEach(e => console.log('-', green(e)));
-                console.warn(orange(desc.notInHash2));
-            }
-        }
-        if (notInList.length) {
-            // 如果有元素存在于哈希集合却不存在于detect结果中
-            // 说明这些元素可能是detect搜索方法的漏网之鱼，可能是detect的深度过低
-            console.warn(orange(desc.notInList.replace("%len", yellow(notInList.length))));
-            notInList.forEach(e => console.log('-', green(e)));
-        }
-    }
-    if (optionalNotMeet.length) {
-        console.log(desc.optNotMeet.replace("%d", yellow(optionalNotMeet.length)));
-    }
-    if (rangeInvalid.length) {
-        console.warn(orange(desc.rangeInvalid
-            .replace("%d", yellowBright(rangeInvalid.length))
-            .replace("%rangeInvalid2", bgMagenta(desc.rangeInvalid2))));
-        rangeInvalid.forEach(e => console.warn('-', green(e)));
-    }
-    if (notFound.length) {
-        console.warn(orange(desc.pkgNotFound
-            .replace("%d", yellowBright(notFound.length))
-            .replace("%pkgNotFound2", bgMagenta(desc.pkgNotFound2))));
-        notFound.forEach(e => console.warn('-', green(e)));
-        console.warn(orange(desc.pkgNotFound3));
-    }
-    return res;
+    return depEval;
 }
 exports.default = analyze;
 /*

@@ -1,8 +1,8 @@
 import { DepResult, DepItem, DepItemWithId, DirectedDiagram, PackageJson } from './types';
 import { join, sep } from 'path';
 
-export const readPackageJson = (fileUri: string): PackageJson => {
-    return require(fileUri);
+export const readPackageJson = (fileUri: string): PackageJson | null => {
+    try { return require(fileUri); } catch(e: any) { return null; }
 }
 
 export const countMatches = (str: string, matcher: RegExp | string): number => 
@@ -12,6 +12,13 @@ export const toString = (depItem: DepItemWithId | DepItem, id?: string): string 
     if((id = id ?? (depItem as DepItemWithId).id) === undefined) return '';
     return join(depItem.path, id + '@' + depItem.version);
 }
+
+export const limit = (str: string, length: number): string => 
+    str.slice(0, Math.min(str.length, Math.floor(length)) - 3) + '...';
+
+export const splitAt = (str: string, pos: number): [string, string] =>
+    pos < 0 ? ['', str] : pos >= str.length ? [str, ''] : 
+        [str.slice(0, pos), str.slice(pos)];
     
 export const find = (items: DirectedDiagram, item: DepItemWithId): number =>
     items.findIndex(e => toString(e) === toString(item));
@@ -56,8 +63,32 @@ export const toDiagram = (depResult: DepResult, rootPkg?: PackageJson): Directed
     return res;
 }
 
-export const limit = (str: string, length: number): string => 
-    str.slice(0, Math.min(str.length, Math.floor(length)) - 3) + '...';
+export const toDepItemWithId = (itemStr: string): DepItemWithId => {
+    const splitPathId = (itemUri: string, version: string, pos: number): DepItemWithId => {
+        const [path, id] = splitAt(itemUri, pos);
+        return { id: id.slice(1), version, path, requiring: [], requiredBy: [] }
+    }
+    const atPos = itemStr.lastIndexOf('@');
+    const [pre, post] = splitAt(itemStr, atPos);
+    let sepAfterAt = post.match(/\/|\\/g)?.length ?? 0;
+    if(sepAfterAt) { // 应对没有@版本的异常状态（虽然几乎用不到）
+        if(sepAfterAt > 1) {
+            const lastSep = atPos + post.lastIndexOf(sep);
+            return splitPathId(itemStr, '', lastSep);
+        }
+        return splitPathId(itemStr, '', atPos - 1);
+    }
+    const areaAtPos = pre.lastIndexOf('@');
+    if(areaAtPos < 0) {
+        return splitPathId(pre, post.slice(1), pre.lastIndexOf(sep));
+    }
+    const [preArea, postArea] = splitAt(pre, areaAtPos);
+    sepAfterAt = postArea.match(/\/|\\/g)?.length ?? 0;
+    if(sepAfterAt > 1) {
+        return splitPathId(pre, post.slice(1), pre.lastIndexOf(sep));
+    }
+    return splitPathId(pre, post.slice(1), areaAtPos - 1);
+}
 
 export const compareVersion = (versionA: string, versionB: string): -1 | 0 | 1 => {
     const [arr1, arr2] = [versionA, versionB].map(v => v.split('.'));

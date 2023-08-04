@@ -51,8 +51,13 @@
             }
         }
     },
+    "commons": {
+        "error": "ERROR"
+    },
     "logs": {
         "cli.ts": {
+            "dirNotExist": "The target directory does not exist.",
+            "pkgJsonNotExist": "The root package.json of %s does not exist.",
             "detected": "Detected %s packages in the target directory.",
             "jsonSaved": "Analyze result has been saved to %s.",
             "detectPkg": "CURRENT PACKAGES:"
