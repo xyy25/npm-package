@@ -85,7 +85,7 @@ cmd.command('analyze').description(lang.commands.analyze.description)
                     fs.mkdirSync(path.join(cwd, 'outputs'));
                 }
                 let outFileName = options.json === true ? 
-                    path.join('outputs', str) : options.json;
+                    path.join('outputs', path.basename(str)) : options.json;
                 if(!outFileName.endsWith('.json')) {
                     outFileName += '.json';
                 }
