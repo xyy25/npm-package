@@ -2,8 +2,7 @@ const fontSize = 15;
 const symbolSize = 15;
 const padding = 5;
 const that = this
-
-class Topo {
+export default class Topo {
     constructor(svg, data) {
         this.data = data;
         this.edges = data.reduce(
