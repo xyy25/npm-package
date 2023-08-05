@@ -13,10 +13,7 @@ const chart = (svg, data) => {
     
     // 根据数据生成有向图的顶点和边信息
     diag.nodes = data.map((e, i) => {return {
-        dataIndex: i, vx: 0, vy: 0, x: 0, y: 0, data: e, 
-        // 初始化有向图时，只显示根顶点、直接顶点、游离顶点
-        showNode: !i || e.requiredBy.includes(0) || !e.requiredBy.length,
-        showRequiring: !i
+        dataIndex: i, vx: 0, vy: 0, x: 0, y: 0, data: e
     }});
     diag.links = data.reduce(
         (o, c, i) => o.concat(
@@ -29,11 +26,15 @@ const chart = (svg, data) => {
     // 计算由根顶点到所有顶点的依赖路径
     const requirePaths = getPaths(0, nodes, e => e.data.requiring);
 
-    console.log(links, nodes);
-
     let vsbNodes = []; // 实际显示的顶点
     let vsbLinks = []; // 实际显示的边
 
+    const resetNodes = () => nodes.forEach(e => {
+        const { requiredBy } = e.data;
+        // 初始化有向图时，只显示根顶点、直接顶点、游离顶点
+        e.showNode = !e.dataIndex || requiredBy.includes(0) || !requiredBy.length;
+        e.showRequiring = !e.dataIndex;
+    })
     // 根据showNode和showRequiring更新实际显示
     const updateNodes = () => { 
         const shown = e => e.showNode;
@@ -62,13 +63,13 @@ const chart = (svg, data) => {
     // svg层绑定zoom事件，同时释放zoom双击事件
     svg.call(zoom).on("dblclick.zoom", () => {});
 
-
-    // 文字描述
+    // 左上角文字描述
     const desc = svg
         .append("g")
         .append("text")
+        .attr("id", "desc")
         .attr("x", - width / 2 + 100)
-        .attr("y", - height / 2 + 100)
+        .attr("y", - height / 2 - 100)
         .style('font-size', 24);
 
     // 边的组
@@ -78,34 +79,36 @@ const chart = (svg, data) => {
     
     defs(g);
 
-
+    resetNodes();
     updateNodes();
     updateLinks();
+
+    console.log(links, nodes);
 
     // 创建力导模拟仿真器
     const simulation = d3
         .forceSimulation(vsbNodes)
-        .force("link", d3.forceLink(vsbLinks).distance(100).strength(0.1)) // 拉扯力
+        .force("link", d3.forceLink(vsbLinks).distance(150).strength(0.25)) // 拉扯力
         .force("charge", d3.forceManyBody().strength(-200)) // 排斥力
         .force("collide", d3.forceCollide(10).strength(-2)) // 碰撞力
         .force("x", d3.forceX().strength(0.1))
         .force("y", d3.forceY().strength(0.1));
 
     // 顶点类型判断数组
-    // [判断方法, 顶点类型名, fill（填充）颜色, stroke（边）颜色, 标签颜色, ...(可以继续附加一些值)]，下标越大优先级越高
+    // [判断方法, 顶点类型名, 自定义类名（在chart.scss中定义）, ...(可以继续附加一些值)]，下标越大优先级越高
     const nodeType = [
-        [() => true, "默认顶点", "#ff0", null], // 未展开边的默认顶点
-        [(d) => d.showRequiring, "中转顶点", "#fff", "#000"], // 已展开边，有入边有出边的顶点，即有依赖且被依赖的包
-        [(d) => !d.data.requiring.length, "终点顶点", "#000", "#fff"], // 无出边的顶点，即无依赖的包
-        [(d, i) => i && !d.data.requiredBy.length, "游离顶点", "#bbb", null, "#bbb"], // 除根以外无入边的顶点，即不被依赖的包
-        [(d, i) => d.data.requiredBy.includes(0), "直接顶点", null, "#c84"], // 根顶点的相邻顶点，即被项目直接依赖的包
-        [(d, i) => !i, "根顶点", null, "#eac"], // 下标为0的顶点，代表根目录的项目包
+        [() => true, "默认顶点", "default-node"], // 未展开边的默认顶点
+        [(d) => d.showRequiring, "中转顶点", "transit-node"], // 已展开边，有入边有出边的顶点，即有依赖且被依赖的包
+        [(d) => !d.data.requiring.length, "终点顶点", "terminal-node"], // 无出边的顶点，即无依赖的包
+        [(d, i) => i && !d.data.requiredBy.length, "游离顶点", "free-node"], // 除根以外无入边的顶点，即不被依赖的包
+        [(d, i) => d.data.requiredBy.includes(0), "直接顶点", "direct-node"], // 根顶点的相邻顶点，即被项目直接依赖的包
+        [(d, i) => !i, "根顶点", "root-node"], // 下标为0的顶点，代表根目录的项目包
     ];
     // 根据判断数组获取顶点类型所映射的属性值的函数，d, i是必要传参，vi是属性值所在的数组下标
-    // 如nodeType现有的属性值中，fill下标为2，stroke为3
-    const getType = (d, i, vi) => nodeType.reduce(
-        (o, e) => e[0](d, i) && e[vi] ? e[vi] : o, nodeType[0][vi]
-    );
+    // 如nodeType现有的属性值中，append类名
+    const getTypeAppend = (d, vi) => nodeType.reduce(
+        (o, e) => e[0](d, d.dataIndex) && e[vi] ? o.concat(e[vi]) : o, []
+    ).join(" ");
 
     let link = linkg.selectAll("line");
     let label = nodeg.selectAll("text");
@@ -131,7 +134,8 @@ const chart = (svg, data) => {
         const all = vsbNodes.filter(
             n => !excludes.includes(n) && n.dataIndex && 
                 !nodes[0].data.requiring.includes(n.dataIndex)
-        ); // 根顶点和其相邻顶点无法隐藏
+        ); 
+        // 根顶点和其相邻顶点无法隐藏
         if(!all.includes(e)) return;
         console.log('all', all);
 
@@ -177,7 +181,6 @@ const chart = (svg, data) => {
         linkEnter
             .attr("from", (d) => d.source.dataIndex)
             .attr("to", (d) => d.target.dataIndex)
-            .attr("stroke", "#999")
             .attr("stroke-opacity", 0.6)
             .attr('marker-end', 'url(#marker)');
 
@@ -192,9 +195,7 @@ const chart = (svg, data) => {
             )
         labelEnter
             .attr("index", (d) => d.dataIndex)
-            .style("font-family", "monaco")
-            .style("font-weight", (d) => d.dataIndex ? 400 : 800)
-            .style("font-size", (d) => d.dataIndex ? 12 : 14)
+            .attr("class", (d) => getTypeAppend(d, 2))
             .text(d => d.data.id + '@' + d.data.version)
             .call(drag(simulation))
         
@@ -207,12 +208,11 @@ const chart = (svg, data) => {
                 update => update, 
                 exit => exit.remove()
             )
-            .attr("fill", (d) => getType(d, d.dataIndex, 2))
-            .attr("stroke", (d) => getType(d, d.dataIndex, 3))
+            .attr("class", (d) => getTypeAppend(d, 2))
         circleEnter
             .attr("index", (d) => d.dataIndex)
             .attr("r", (d) => d.dataIndex ? 3.5 : 5) // 根顶点半径为5px，否则3.5px
-            .attr("stroke-width", (d) => d.dataIndex ? 1.5 : 2) // 根顶点边粗为2px，否则1.5px
+            // 根顶点边粗为2px，否则1.5px
             .call(drag(simulation))
             .on("click", function(e) { // 鼠标点击顶点事件
                 console.log('点击顶点', e.dataIndex, e);
@@ -231,42 +231,50 @@ const chart = (svg, data) => {
                     .call(appendLine, `依赖: ${e.data.requiring.length}个包`);
 
                 // 将该顶点的出边和其目标顶点（依赖包）显示为橙色
-                const toSel = e.data.requiring.map(ri => `[index="${ri}"]`);
-                if(toSel.length) {
-                    circle.filter(toSel.join(',')).attr('fill', 'orange');
-                    label.filter(toSel.join(',')).attr('fill', 'orange');
-                    link.filter(`[from="${e.dataIndex}"]`).attr('stroke', '#d72');
-                }
+                const { requiring: outs, requiredBy: ins } = e.data;
+                const outFtr = d => outs.includes(d.dataIndex);
+                const inFtr = d => ins.includes(d.dataIndex);
+
+                circle.filter(outFtr).classed('out-node', true);
+                label.filter(outFtr).classed('out-node', true);
+                link.filter(`[from="${e.dataIndex}"]`).classed('out-link', '#d72');
+
                 // 将该顶点的入边和其源头顶点（被依赖包）显示为绿色
-                const fromSel = e.data.requiredBy.map(ri => `[index="${ri}"]`);
-                if(fromSel.length) {
-                    circle.filter(fromSel.join(',')).attr('fill', 'green');
-                    label.filter(fromSel.join(',')).attr('fill', 'green');
-                    link.filter(`[to="${e.dataIndex}"]`).attr('stroke', '#2d2');
-                }
+                circle.filter(inFtr).classed('in-node', true);
+                label.filter(inFtr).classed('in-node', true);
+                link.filter(`[to="${e.dataIndex}"]`).classed('in-link', true);
+
                 // 将根顶点到该顶点最短路径上的所有顶点和边（最短依赖路径）显示为青色
-                const path = requirePaths[e.dataIndex];
-                const pathSel = path.map(ri => `[index="${ri}"]`);
+                const paths = requirePaths[e.dataIndex];
+                const pathSel = paths.map(ri => `[index="${ri}"]`);
                 if(pathSel.length) {
-                    circle.filter(pathSel.join(',')).attr('fill', 'cyan');
-                    label.filter(pathSel.join(',')).attr('fill', 'blue');
-                    const linkSel = path.map(
-                        (e, i) => i ? `[from="${path[i - 1]}"][to="${e}"]` : undefined
+                    circle.filter(pathSel.join(',')).classed('path-node', true);
+                    label.filter(pathSel.join(',')).classed('path-node', true);
+                    const linkSel = paths.map(
+                        (e, i) => i ? `[from="${paths[i - 1]}"][to="${e}"]` : undefined
                     );
                     linkSel.shift();
-                    if(linkSel.length) link.filter(linkSel.join(',')).attr('stroke', 'cyan');
+                    if(linkSel.length) link.filter(linkSel.join(',')).classed('path-link', true);
                 }
+
+                // 弱化所有上述之外顶点的存在感
+                const allUp = paths.concat(ins, outs);
+                const exptFtr = d => !allUp.includes(d.dataIndex);
+                circle.filter(exptFtr).classed('except-node', true);
+                label.filter(exptFtr).classed('except-node', true);
+
                 // 将该顶点显示为红色
-                d3.select(this).attr('stroke', 'red');
-                label.filter(`[index="${e.dataIndex}"]`).attr('fill', 'red');
+                d3.select(this).classed('focus-node', true);
+                label.filter(`[index="${e.dataIndex}"]`).classed('focus-node', true);
             })
             .on("mouseout", function(e) {  // 鼠标离开某个顶点
                 desc.text('');
-                d3.select(this).attr('stroke', (d) => getType(d, d.dataIndex, 3));
+                d3.select(this).attr('stroke', null);
 
-                label.attr('fill', null);
-                circle.attr('fill', (d) => getType(d, d.dataIndex, 2));
-                link.attr('stroke', '#999');
+                const getClass = d => getTypeAppend(d, 2);
+                label.attr('class', getClass);
+                circle.attr('class', getClass);
+                link.attr('class', '');
             })
         
         if(!root) root = nodeg.selectAll('[index="0"]');
@@ -274,9 +282,16 @@ const chart = (svg, data) => {
         // 右键菜单事件
         const menuData = [
             { title: '隐藏顶点', action: (e) => (hide(e), update()) },
-            { title: '隐藏依赖', action: (e) => (hideBorders(e), update()) }
+            { title: '隐藏依赖', action: (e) => (hideBorders(e), update()) },
+            { title: '重置视图', action: () => (resetNodes(), update()) }
         ];
         circleEnter.on('contextmenu', d3.contextMenu(menuData));
+
+        // 悬停标签提示
+        circle.selectAll('title').remove();
+        circle.filter(d => !d.showRequiring)
+            .append('title')
+            .text('点击显示依赖');
             
         // 更新力导模拟
         simulation.nodes(vsbNodes);

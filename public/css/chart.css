@@ -1,0 +1,94 @@
+circle {
+  stroke-width: 1.5px;
+}
+
+text {
+  font-family: Monaco, sans-serif;
+  font-size: 11px;
+}
+
+line {
+  stroke: #999;
+}
+
+circle.default-node {
+  fill: rgb(231, 213, 127);
+  stroke: rgb(230, 244, 40);
+}
+
+circle.terminal-node {
+  fill: black;
+  stroke: none;
+}
+
+circle.transit-node {
+  fill: white;
+  stroke: black;
+}
+
+circle.direct-node {
+  stroke: #c84;
+}
+
+circle.root-node {
+  stroke-width: 2px;
+  stroke: rgb(174, 32, 77);
+}
+
+text.root-node {
+  font-weight: 800;
+  font-size: 14px;
+}
+
+circle.except-node {
+  stroke: #ddd;
+  fill: #ddd;
+}
+
+text.except-node {
+  fill: #ddd;
+}
+
+line.in-link {
+  stroke: green;
+}
+
+circle.in-node {
+  fill: green;
+}
+
+text.in-node {
+  fill: green;
+}
+
+line.out-link {
+  stroke: orange;
+}
+
+circle.out-node {
+  fill: orange;
+}
+
+text.out-node {
+  fill: orange;
+}
+
+line.path-link {
+  stroke: cyan;
+}
+
+circle.path-node {
+  fill: cyan;
+}
+
+text.path-node {
+  fill: blue;
+}
+
+circle.focus-node {
+  stroke: red;
+}
+
+text.focus-node {
+  fill: red;
+}/*# sourceMappingURL=chart.css.map */

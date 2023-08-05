@@ -13,23 +13,22 @@ function getAngle(x1, y1, x2, y2) {
 
 // 求无权有向图某个起始顶点到所有其他顶点的最短路径
 function getPaths(startIndex, nodes, getAdjacent) {
-    const visited = new Array(nodes.length).fill(false);
+    const dists = new Array(nodes.length).fill(Infinity);
     const paths = new Array(nodes.length).fill(null);
     const queue = [];
     const stNode = nodes[startIndex];
  
-    queue.push({ i: startIndex, v: stNode, p: [startIndex] });
+    queue.push({ i: startIndex, v: stNode, p: [startIndex], d: 0 });
     while(queue.length) {
-        const { i, v, p } = queue.shift();
-        visited[i] = true;
+        const { i, v, p, d } = queue.shift();
+        dists[i] = d;
         paths[i] = p;
 
         // 遍历相邻顶点
         for(const wi of getAdjacent(v)) {
-            if(visited[wi]) continue;
-            const w = nodes[wi];
-            
-            queue.push({ i: wi, v: w, p: [...p, wi] });
+            if(d >= dists[wi]) continue;
+
+            queue.push({ i: wi, v: nodes[wi], p: p.concat(wi), d: d + 1 });
         }
     }
 

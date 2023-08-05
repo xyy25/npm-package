@@ -1,0 +1,132 @@
+circle {
+    stroke-width: 1.5px;
+}
+
+text {
+    font-family: Monaco, sans-serif;
+    font-size: 11px;
+}
+
+line {
+    stroke: #999;
+}
+
+.default {
+    &-node {
+        @at-root circle#{&} {
+            fill: rgb(231, 213, 127);
+            stroke: rgb(230, 244, 40)
+        }
+    }
+}
+
+.terminal-node {
+    @at-root circle#{&} {
+        fill: black;
+        stroke: none;
+    }
+}
+
+.transit-node {
+    @at-root circle#{&} {
+        fill: white;
+        stroke: black;
+    }
+}
+
+.direct-node {
+    @at-root circle#{&} {
+        stroke: #c84;
+    }
+}
+
+.root-node {
+    @at-root {
+        circle#{&} {
+            stroke-width: 2px;
+            stroke: rgb(174, 32, 77);
+        }
+
+        text#{&} {
+            font-weight: 800;
+            font-size: 14px;
+        }
+    }
+}
+
+.except-node {
+    @at-root {
+        circle#{&} {
+            stroke: #ddd;
+            fill: #ddd;
+        }
+        text#{&} {
+            fill: #ddd;
+        }
+    }
+}
+
+.in {
+    &-link {
+        @at-root line#{&} {
+            stroke: green;
+        }
+    }
+    &-node {
+        @at-root {
+            circle#{&} {
+                fill: green;
+            }
+            text#{&} {
+                fill: green
+            }
+        }
+    }
+}
+
+.out{
+    &-link {
+        @at-root line#{&} {
+            stroke: orange;
+        }
+    }
+    &-node {
+        @at-root {
+            circle#{&} {
+                fill: orange;
+            }
+            text#{&} {
+                fill: orange;
+            }
+        }
+    }
+}
+
+.path{
+    &-link {
+        @at-root line#{&} {
+            stroke: cyan;
+        }
+    }
+    &-node {
+        @at-root {
+            circle#{&} {
+                fill: cyan;
+            }
+            text#{&} {
+                fill: blue;
+            }
+        }
+    }
+}
+
+.focus-node {
+    @at-root {
+        circle#{&} {
+            stroke: red;
+        }
+        text#{&} {
+            fill: red;
+        }
+    }
+}
