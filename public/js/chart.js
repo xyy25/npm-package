@@ -10,13 +10,19 @@ class Chart {
         this.initDiagram();
         this.initSimulation();
 
-        const { nodes, links } = this;
-
         this.resetNodes();
         this.updateNodes();
         this.updateLinks();
-
+        
+        const { nodes, links } = this;
         console.log(links, nodes);
+
+        this.options = {
+            highlightRequiring: true,
+            highlightRequiredBy: true,
+            highlightPath: true,
+            fading: true
+        }
 
         this.update();
     }
@@ -151,6 +157,33 @@ class Chart {
         //vsbLinks.push(...links.filter(e => !vsbLinks.includes(e) && shown(e)));
     };
 
+    // 右键菜单事件
+    updateOptions() {
+        const ct = this;
+        const { options: opt } = ct;
+        const menuData = [ 
+            { title: '隐藏依赖', action: (e) => (ct.hideBorders(e), ct.update()) },
+            { title: '重置视图', action: () => (ct.resetNodes(), ct.update()) },
+            { divider: true },
+            { title: '效果选项..', children: [
+                { 
+                    title: (opt.highlightRequiredBy ? '关闭' : '开启') + '入边高亮', 
+                    action: () => (opt.highlightRequiredBy = !opt.highlightRequiredBy, ct.updateOptions())
+                }, {
+                    title: (opt.highlightRequiring ? '关闭' : '开启') + '出边高亮',
+                    action: () => (opt.highlightRequiring = !opt.highlightRequiring, ct.updateOptions())
+                }, {
+                    title: (opt.highlightPath ? '关闭' : '开启') + '路径高亮',
+                    action: () => (opt.highlightPath = !opt.highlightPath, ct.updateOptions())
+                }, {
+                    title: (opt.fading ? '关闭' : '开启') + '背景淡化',
+                    action: () => (opt.fading = !opt.fading, ct.updateOptions())
+                }
+            ] }
+        ];
+        this.circle.on('contextmenu', d3.contextMenu(menuData));
+    }
+
     // 根据顶点的属性特征，获取顶点的样式类型名（可重叠）
     getNodeClass(node, vi) {
         const { requirePaths } = this;
@@ -178,8 +211,8 @@ class Chart {
         const linkType = [
             [() => true, "", "link"],
             [(l) => l.meta.optional, "", "optional-link"], // 可选依赖表示为虚线（chart.scss中定义）
-            [(l) => l.meta.type === "dev", "开发", null],
-            [(l) => l.meta.type === "peer", "同级", null]
+            [(l) => l.meta.type === "dev", "dev", null],
+            [(l) => l.meta.type === "peer", "peer", null]
         ];
 
         return linkType.reduce(
@@ -214,9 +247,11 @@ class Chart {
     showNode(index) {
         const { nodes, requirePaths } = this;
         if (index >= nodes.length) return;
-        requirePaths[index].forEach(i => { 
-            i === index ? (nodes[i].showNode = true) : this.showRequiring(i)
-        });
+        if(requirePaths[index]) {
+            requirePaths[index].forEach(i => { 
+                i === index ? (nodes[i].showNode = true) : this.showRequiring(i)
+            });
+        } else { nodes[i].showNode = true; }
     }
 
     // 显示顶点的所有相邻顶点，即该包的依赖
@@ -334,12 +369,7 @@ class Chart {
                 ct.hideLinkNote();
             })
         
-        // 右键菜单事件
-        const menuData = [
-            { title: '隐藏依赖', action: (e) => (ct.hideBorders(e), ct.update()) },
-            { title: '重置视图', action: () => (ct.resetNodes(), ct.update()) }
-        ];
-        circleEnter.on('contextmenu', d3.contextMenu(menuData));
+        this.updateOptions();
 
         // 悬停标签提示
         ct.circle.selectAll('title').remove();
@@ -362,7 +392,12 @@ class Chart {
     
     // 鼠标移动到某个顶点上时的事件
     mouseOverNode(eThis, node) { 
-        const { desc, circle, label, link, requirePaths } = this;
+        const { 
+            desc, circle, 
+            label, link, 
+            requirePaths, 
+            options: opt
+        } = this;
         desc
             .call(appendLine, `名称: ${node.data.id}\n`)
             .call(appendLine, `版本: ${node.data.version}\n`)
@@ -372,43 +407,48 @@ class Chart {
         console.log('悬停', node.dataIndex);
 
         const { requiring: outs, requiredBy: ins } = node.data;
-        const outFtr = d => outs.includes(d.dataIndex);
-        const inFtr = d => ins.includes(d.dataIndex);
         // 返回一个函数：判断一条边link是否在路径顶点集nodeSet上，用于过滤边
         const onPath = (nodeSet) => (link) =>
             nodeSet.includes(link.source.dataIndex) && 
             nodeSet.includes(link.target.dataIndex)
 
         // 将该顶点的出边和其目标顶点（依赖包）显示为橙色
-        circle.filter(outFtr).classed('out-node', true);
-        label.filter(outFtr).classed('out-node', true);
-        link.filter(d => d.source == node).classed('out-link', '#d72');
-
+        if(opt.highlightRequiring) {
+            const outFtr = d => outs.includes(d.dataIndex);
+            circle.filter(outFtr).classed('out-node', true);
+            label.filter(outFtr).classed('out-node', true);
+            link.filter(d => d.source == node).classed('out-link', '#d72');
+        }
         // 将该顶点的入边和其源头顶点（被依赖包）显示为绿色
-        circle.filter(inFtr).classed('in-node', true);
-        label.filter(inFtr).classed('in-node', true);
-        link.filter(d => d.target == node).classed('in-link', true);
-
+        if(opt.highlightRequiredBy) {
+            const inFtr = d => ins.includes(d.dataIndex);      
+            circle.filter(inFtr).classed('in-node', true);
+            label.filter(inFtr).classed('in-node', true);
+            link.filter(d => d.target == node).classed('in-link', true);
+        }
         // 将根顶点到该顶点最短路径上的所有顶点和边（最短依赖路径）显示为青色
         const paths = requirePaths[node.dataIndex];
-        if(paths && paths.length > 1) {
+        if(opt.highlightPath && paths && paths.length > 1) {
             const pathSel = paths.map(ri => `[index="${ri}"]`);
             circle.filter(pathSel.join(',')).classed('path-node', true);
             label.filter(pathSel.join(',')).classed('path-node', true);
             link.filter(onPath(paths)).classed('path-link', true);
         }
-        // 将所有依赖到该包的顶点与路径归入这个集
-        const fills = ins.reduce((o, c) => o.concat(requirePaths[c]), []);
-        link.filter(d => onPath(fills)(d) && !onPath(paths)(d))
-            .classed('focus-link', true);
+        // 将所有依赖到该包的顶点与路径归入这个集(备用)
+        // const fills = ins.reduce((o, c) => o.concat(requirePaths[c]), []);
+        // link.filter(d => onPath(fills)(d) && !onPath(paths)(d))
+        //     .classed('focus-link', true);
 
-        const allUp = fills.concat(ins, outs, paths ?? []);
+        const allUp = [].concat(ins, outs, paths ?? []);
         // 显示所有上述边的文字标签
         this.showLinkNote(link.filter(onPath(allUp)));
+
         // 弱化所有上述之外顶点的存在感
-        const exptFtr = d => !allUp.includes(d.dataIndex);
-        circle.filter(exptFtr).classed('except-node', true);
-        label.filter(exptFtr).classed('except-node', true);
+        if(opt.fading) {
+            const exptFtr = d => !allUp.includes(d.dataIndex);
+            circle.filter(exptFtr).classed('except-node', true);
+            label.filter(exptFtr).classed('except-node', true);
+        }
 
         // 将该顶点显示为红色
         d3.select(eThis).classed('focus-node', true);
