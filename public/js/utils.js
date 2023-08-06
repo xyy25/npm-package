@@ -11,24 +11,28 @@ function getAngle(x1, y1, x2, y2) {
     return Math.round((Math.asin(y / z) / Math.PI * 180));
 }
 
-// 求无权有向图某个起始顶点到所有其他顶点的最短路径
-function getPaths(startIndex, nodes, getAdjacent) {
+// 求无权有向图某个起始顶点到所有其他顶点的最短路径，如果无法通达，则路径为null
+// @return (number[] | null)[]
+function getPaths(startIndex, nodes, getAdjacent, filter = () => true, getId = i => i) {
     const dists = new Array(nodes.length).fill(Infinity);
     const paths = new Array(nodes.length).fill(null);
     const queue = [];
-    const stNode = nodes[startIndex];
+    const stNode = nodes[getId(startIndex)];
  
     queue.push({ i: startIndex, v: stNode, p: [startIndex], d: 0 });
     while(queue.length) {
         const { i, v, p, d } = queue.shift();
+        if(d >= dists[i]) continue;
         dists[i] = d;
         paths[i] = p;
+        if(!filter(v)) continue; // 边过滤器，如果不符合要求则不考虑其相邻顶点
 
         // 遍历相邻顶点
         for(const wi of getAdjacent(v)) {
-            if(d >= dists[wi]) continue;
+            const w = nodes[getId(wi)];
+            if(!w) continue;
 
-            queue.push({ i: wi, v: nodes[wi], p: p.concat(wi), d: d + 1 });
+            queue.push({ i: wi, v: w, p: p.concat(wi), d: d + 1 });
         }
     }
 

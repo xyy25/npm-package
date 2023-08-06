@@ -1,6 +1,6 @@
 import { join, sep } from 'path';
 import { satisfies } from 'semver';
-import { DepResult, DepItem, DepEval, DepItemWithId } from './types';
+import { DepResult, DepItem, DepEval, DependencyType } from './types';
 import fs from 'fs';
 import { limit, readPackageJson, toString } from '.';
 import chalk from 'chalk';
@@ -124,8 +124,6 @@ export function evaluate(
 
     return notRequired;
 }
-
-type DependencyType = 'norm' | 'dev' | 'peer' | 'optional';
 class QueueItem {
     constructor(
         public id: string, // 包名
@@ -242,11 +240,13 @@ function analyze(
                     peerDependencies: pkgPeerDeps,
                     peerDependenciesMeta: pkgPeerMeta
                 } = pkg;
-
+                
                 const item: DepItem = {
-                    range,
+                    range, 
                     version: pkg.version,
+                    type: p.type,
                     path: pth,
+                    optional: p.optional
                 };
                 p.target[id] = item;
 

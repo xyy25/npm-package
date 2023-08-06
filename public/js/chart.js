@@ -97,15 +97,15 @@ const chart = (svg, data) => {
     // 顶点类型判断数组
     // [判断方法, 顶点类型名, 自定义类名（在chart.scss中定义）, ...(可以继续附加一些值)]，下标越大优先级越高
     const nodeType = [
-        [() => true, "默认顶点", "default-node"], // 未展开边的默认顶点
-        [(d) => d.showRequiring, "中转顶点", "transit-node"], // 已展开边，有入边有出边的顶点，即有依赖且被依赖的包
-        [(d) => !d.data.requiring.length, "终点顶点", "terminal-node"], // 无出边的顶点，即无依赖的包
-        [(d, i) => i && !d.data.requiredBy.length, "游离顶点", "free-node"], // 除根以外无入边的顶点，即不被依赖的包
-        [(d, i) => d.data.requiredBy.includes(0), "直接顶点", "direct-node"], // 根顶点的相邻顶点，即被项目直接依赖的包
-        [(d, i) => !i, "根顶点", "root-node"], // 下标为0的顶点，代表根目录的项目包
+        [() => true, "", "default-node"], // 未展开边的默认顶点
+        [(d) => d.showRequiring && d.data.requiring.length, "", "transit-node"], // 已展开边，有入边有出边的顶点，即有依赖且被依赖的包
+        [(d) => !d.data.requiring.length, "", "terminal-node"], // 无出边的顶点，即无依赖的包
+        [(d, i) => requirePaths[i] === null, "未使用", "free-node"], // 无法通向根顶点的顶点，即不必要的包
+        [(d, i) => d.data.requiredBy.includes(0), "主依赖", "direct-node"], // 根顶点的相邻顶点，即被项目直接依赖的包
+        [(d, i) => !i, "主目录", "root-node"], // 根顶点，下标为0的顶点，代表根目录的项目包
     ];
     // 根据判断数组获取顶点类型所映射的属性值的函数，d, i是必要传参，vi是属性值所在的数组下标
-    // 如nodeType现有的属性值中，append类名
+    // 根据nodeType现有的属性值增加类名
     const getTypeAppend = (d, vi) => nodeType.reduce(
         (o, e) => e[0](d, d.dataIndex) && e[vi] ? o.concat(e[vi]) : o, []
     ).join(" ");
@@ -129,34 +129,36 @@ const chart = (svg, data) => {
             .attr("y", d => d.y - 5);
     });
 
-    // 隐藏顶点
-    const hide = (e, excludes = []) => {
+    // 隐藏顶点本身和其满足条件的依赖
+    const hideNode = (e, keepE = false, excludes = []) => {
         const all = vsbNodes.filter(
             n => !excludes.includes(n) && n.dataIndex && 
                 !nodes[0].data.requiring.includes(n.dataIndex)
         ); 
         // 根顶点和其相邻顶点无法隐藏
         if(!all.includes(e)) return;
-        console.log('all', all);
 
-        [e.showNode, e.showRequiring] = [false, false];
-        // 同时隐藏所有入边都被隐藏的顶点
+        if(!keepE) [e.showNode, e.showRequiring] = [false, false];
+        // 同时隐藏所有当前无法通向根顶点的顶点，防止额外游离顶点产生
+        const vsbPaths = () => getPaths(0, nodes, 
+            n => n.data.requiring, 
+            n => n.showNode && n.showRequiring);
         let rest;
         const filter = n => 
             (n.showNode || n.showRequiring) && 
-            n.data.requiredBy.length && 
-            n.data.requiredBy.every(r => !nodes[r].showRequiring);
+            requirePaths[n.dataIndex] !== null && 
+            vsbPaths()[n.dataIndex] === null;
         while((rest = all.filter(filter)).length)
-            console.log(rest.map(e => e.dataIndex)), rest.forEach(n => [n.showNode, n.showRequiring] = [false, false]);
+            console.log(vsbPaths()), rest.forEach(n => [n.showNode, n.showRequiring] = [false, false]);
     }
 
-    // 隐藏顶点的所有边
+    // 隐藏顶点的所有边，不隐藏顶点本身
     const hideBorders = (e) => {
         if(!e.dataIndex) return;
         e.showRequiring = false;
         vsbNodes
             .filter(n => e.data.requiring.includes(n.dataIndex))
-            .forEach(n => hide(n, [e]));
+            .forEach(n => hideNode(n, true, [e]));
     }
 
     const update = () => {
@@ -229,6 +231,7 @@ const chart = (svg, data) => {
                     .call(appendLine, `版本: ${e.data.version}\n`)
                     .call(appendLine, `目录: ${e.data.path}\n`)
                     .call(appendLine, `依赖: ${e.data.requiring.length}个包`);
+                console.log('悬停', e.dataIndex);
 
                 // 将该顶点的出边和其目标顶点（依赖包）显示为橙色
                 const { requiring: outs, requiredBy: ins } = e.data;
@@ -246,8 +249,8 @@ const chart = (svg, data) => {
 
                 // 将根顶点到该顶点最短路径上的所有顶点和边（最短依赖路径）显示为青色
                 const paths = requirePaths[e.dataIndex];
-                const pathSel = paths.map(ri => `[index="${ri}"]`);
-                if(pathSel.length) {
+                if(paths.length > 1) {
+                    const pathSel = paths.map(ri => `[index="${ri}"]`);
                     circle.filter(pathSel.join(',')).classed('path-node', true);
                     label.filter(pathSel.join(',')).classed('path-node', true);
                     const linkSel = paths.map(
@@ -281,7 +284,6 @@ const chart = (svg, data) => {
 
         // 右键菜单事件
         const menuData = [
-            { title: '隐藏顶点', action: (e) => (hide(e), update()) },
             { title: '隐藏依赖', action: (e) => (hideBorders(e), update()) },
             { title: '重置视图', action: () => (resetNodes(), update()) }
         ];
@@ -330,11 +332,12 @@ const drag = (simulation) => {
 }
 
 // 给文本增加一行
-const appendLine = (target, text, lineHeight = '1.2em') => {
+const appendLine = (target, text, className, lineHeight = '1.2em') => {
     target
         .append('tspan')
         .attr('x', target.attr('x'))
         .attr('dy', lineHeight)
+        .attr('class', className ?? '')
         .text(text);
 }
 

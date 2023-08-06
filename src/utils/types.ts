@@ -41,6 +41,8 @@ export type PackageJson = {
     }
 };
 
+export type DependencyType = 'norm' | 'dev' | 'peer' | 'optional';
+
 export type DepEval = {
     result: DepResult, // 分析结果
     scope: { // 分析范围是否包含主目录包所指定的：
@@ -60,22 +62,34 @@ export type DepResult = {
 };
 
 export type DepItem = {
-    version: string; // 该依赖包实际使用的版本（即在node_modules里存在的版本）
-    range?: string; // 该依赖包需要的版本范围
-    path: string; // 该依赖包安装的相对路径
-    requires?: DepResult; // 该依赖包的子依赖列表（若无依赖或已经计算过，则没有这条）
+    version: string; // 【顶点属性】该依赖包实际使用的版本（即在node_modules里存在的版本）
+    path: string; // 【顶点属性】该依赖包安装的相对路径
+    type: DependencyType; // 【边属性】该包的依赖类型
+    range: string; // 【边属性】该依赖包需要的版本范围
+    optional: boolean; // 【边属性】该依赖包是否必须
+    requires?: DepResult; // 【顶点属性】该依赖包的子依赖列表（若无依赖或已经计算过，则没有这条）
 };
 
-export type DepItemWithId = {
+// 顶点属性
+export type DiagramNode = {
     id: string;
-    requiring: number[],
-    requiredBy: number[]
-} & DepItem;
+    version: string;
+    path: string;
+    meta: LinkMeta[];
+    requiring: number[];
+    requiredBy: number[];
+};
 
+// 边属性
+export type LinkMeta = {
+    range: string;
+    type: DependencyType;
+    optional: boolean;
+}
 
 export type DirectedDiagram = 
     // 表示依赖关系的有向图结构
-    DepItemWithId[];
+    DiagramNode[];
 
 /*
 有向图的表示方法：

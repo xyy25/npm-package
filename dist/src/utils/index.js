@@ -1,18 +1,12 @@
 "use strict";
-var __rest = (this && this.__rest) || function (s, e) {
-    var t = {};
-    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
-        t[p] = s[p];
-    if (s != null && typeof Object.getOwnPropertySymbols === "function")
-        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
-            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
-                t[p[i]] = s[p[i]];
-        }
-    return t;
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.stringPlus = exports.compareVersionExpr = exports.compareVersion = exports.toDepItemWithId = exports.toDiagram = exports.find = exports.splitAt = exports.limit = exports.toString = exports.countMatches = exports.readPackageJson = void 0;
+exports.stringPlus = exports.compareVersionExpr = exports.compareVersion = exports.toDepItemWithId = exports.toDiagram = exports.find = exports.splitAt = exports.limit = exports.toString = exports.countMatches = exports.getREADME = exports.readPackageJson = void 0;
 const path_1 = require("path");
+const fs_1 = __importDefault(require("fs"));
+// 获取包根目录下的package.json对象
 const readPackageJson = (fileUri) => {
     try {
         return require(fileUri);
@@ -22,6 +16,19 @@ const readPackageJson = (fileUri) => {
     }
 };
 exports.readPackageJson = readPackageJson;
+// 获取包根目录下的README.md文件
+const getREADME = (id, path) => {
+    try {
+        const files = ['README.md', 'Readme.md', 'readme.md'];
+        const exists = files.filter(e => fs_1.default.existsSync((0, path_1.join)(path !== null && path !== void 0 ? path : '', id, e)) &&
+            fs_1.default.lstatSync((0, path_1.join)(path !== null && path !== void 0 ? path : '', id, e)).isFile());
+        return exists.length ? fs_1.default.readFileSync(exists[0]).toString() : null;
+    }
+    catch (e) {
+        return null;
+    }
+};
+exports.getREADME = getREADME;
 const countMatches = (str, matcher) => { var _a, _b; return (_b = (_a = str.match(new RegExp(matcher, "g"))) === null || _a === void 0 ? void 0 : _a.length) !== null && _b !== void 0 ? _b : 0; };
 exports.countMatches = countMatches;
 const toString = (depItem, id) => {
@@ -43,13 +50,18 @@ const toDiagram = (depResult, rootPkg) => {
             id: (_a = rootPkg === null || rootPkg === void 0 ? void 0 : rootPkg.name) !== null && _a !== void 0 ? _a : 'root',
             version: (_b = rootPkg === null || rootPkg === void 0 ? void 0 : rootPkg.version) !== null && _b !== void 0 ? _b : 'root',
             path: path_1.sep,
+            meta: [],
             requiring: [],
             requiredBy: []
         }];
     const dfs = (dep, originIndex = 0) => {
         for (const [id, item] of Object.entries(dep)) {
-            const { requires, range } = item, rest = __rest(item, ["requires", "range"]);
-            const newItem = Object.assign(Object.assign({ id }, rest), { requiring: [], requiredBy: [originIndex] });
+            const { requires, version, path, type, optional, range } = item;
+            const newItem = {
+                id, version, path,
+                meta: [], requiring: [],
+                requiredBy: [originIndex]
+            };
             // 在纪录中查找该顶点
             let index = (0, exports.find)(res, newItem);
             if (index === -1) {
@@ -62,6 +74,9 @@ const toDiagram = (depResult, rootPkg) => {
             }
             // 起始顶点的依赖（出边）属性中登记该顶点
             res[originIndex].requiring.push(index);
+            res[originIndex].meta.push({
+                range, type, optional
+            });
             if (requires) {
                 dfs(requires, index);
             }
@@ -75,7 +90,10 @@ const toDepItemWithId = (itemStr) => {
     var _a, _b, _c, _d;
     const splitPathId = (itemUri, version, pos) => {
         const [path, id] = (0, exports.splitAt)(itemUri, pos);
-        return { id: id.slice(1), version, path, requiring: [], requiredBy: [] };
+        return {
+            id: id.slice(1), version, path,
+            meta: [], requiring: [], requiredBy: []
+        };
     };
     const atPos = itemStr.lastIndexOf('@');
     const [pre, post] = (0, exports.splitAt)(itemStr, atPos);

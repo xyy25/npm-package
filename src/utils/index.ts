@@ -1,15 +1,34 @@
-import { DepResult, DepItem, DepItemWithId, DirectedDiagram, PackageJson } from './types';
+import { DepResult, DepItem, DiagramNode, DirectedDiagram, PackageJson } from './types';
 import { join, sep } from 'path';
+import fs from 'fs';
 
+// 获取包根目录下的package.json对象
 export const readPackageJson = (fileUri: string): PackageJson | null => {
     try { return require(fileUri); } catch(e: any) { return null; }
+}
+
+// 获取包根目录下的README.md文件
+export const getREADME = (id: string, path?: string): string | null => {
+    try {
+        const files = ['README.md', 'Readme.md', 'readme.md'];
+        const exists = files.filter(e => 
+            fs.existsSync(join(path ?? '', id, e)) &&
+            fs.lstatSync(join(path ?? '', id, e)).isFile()
+        );
+        
+        return exists.length ? fs.readFileSync(exists[0]).toString() : null; 
+    } catch(e: any) {
+        return null; 
+    }
 }
 
 export const countMatches = (str: string, matcher: RegExp | string): number => 
     str.match(new RegExp(matcher, "g"))?.length ?? 0;
 
-export const toString = (depItem: DepItemWithId | DepItem, id?: string): string => {
-    if((id = id ?? (depItem as DepItemWithId).id) === undefined) return '';
+type Item = { id?: string, version: string, path: string };
+
+export const toString = <T extends Item>(depItem: T, id?: string): string => {
+    if((id = id ?? depItem.id) === undefined) return '';
     return join(depItem.path, id + '@' + depItem.version);
 }
 
@@ -20,7 +39,7 @@ export const splitAt = (str: string, pos: number): [string, string] =>
     pos < 0 ? ['', str] : pos >= str.length ? [str, ''] : 
         [str.slice(0, pos), str.slice(pos)];
     
-export const find = (items: DirectedDiagram, item: DepItemWithId): number =>
+export const find = <T extends Item>(items: DirectedDiagram, item: T): number =>
     items.findIndex(e => toString(e) === toString(item));
     
 export const toDiagram = (depResult: DepResult, rootPkg?: PackageJson): DirectedDiagram => {
@@ -28,16 +47,17 @@ export const toDiagram = (depResult: DepResult, rootPkg?: PackageJson): Directed
         id: rootPkg?.name ?? 'root',
         version: rootPkg?.version ?? 'root',
         path: sep,
+        meta: [],
         requiring: [],
         requiredBy: []
     }];
     
     const dfs = (dep: DepResult, originIndex: number = 0) => {
         for(const [id, item] of Object.entries(dep)) {
-            const { requires, range, ...rest } = item;
-            const newItem = { 
-                id, ...rest, 
-                requiring: [], 
+            const { requires, version, path, type, optional, range } = item;
+            const newItem: DiagramNode = { 
+                id, version, path, 
+                meta: [], requiring: [], 
                 requiredBy: [originIndex]
             };
             
@@ -52,6 +72,9 @@ export const toDiagram = (depResult: DepResult, rootPkg?: PackageJson): Directed
             }
             // 起始顶点的依赖（出边）属性中登记该顶点
             res[originIndex].requiring.push(index);
+            res[originIndex].meta.push({
+                range, type, optional
+            });
                 
             if(requires) {
                 dfs(requires, index);
@@ -63,10 +86,13 @@ export const toDiagram = (depResult: DepResult, rootPkg?: PackageJson): Directed
     return res;
 }
 
-export const toDepItemWithId = (itemStr: string): DepItemWithId => {
-    const splitPathId = (itemUri: string, version: string, pos: number): DepItemWithId => {
+export const toDepItemWithId = (itemStr: string): DiagramNode => {
+    const splitPathId = (itemUri: string, version: string, pos: number): DiagramNode => {
         const [path, id] = splitAt(itemUri, pos);
-        return { id: id.slice(1), version, path, requiring: [], requiredBy: [] }
+        return { 
+            id: id.slice(1), version, path, 
+            meta: [], requiring: [], requiredBy: [] 
+        }
     }
     const atPos = itemStr.lastIndexOf('@');
     const [pre, post] = splitAt(itemStr, atPos);

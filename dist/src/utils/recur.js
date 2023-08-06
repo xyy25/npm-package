@@ -211,7 +211,9 @@ pkgCount) {
                 const item = {
                     range,
                     version: pkg.version,
+                    type: p.type,
                     path: pth,
+                    optional: p.optional
                 };
                 p.target[id] = item;
                 const itemStr = (0, _1.toString)(item, id);

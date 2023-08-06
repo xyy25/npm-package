@@ -99,13 +99,13 @@ cmd.command('analyze').description(zh_CN_json_1.default.commands.analyze.descrip
                 res.push(...notRequired.map(e => (0, utils_1.toDepItemWithId)(e)));
             }
         }
-        if (options.json) { // 输出JSON文件设置
+        if (options.json && Object.keys(res).length) { // 输出JSON文件设置
             // 自动创建outputs文件夹
             if (!fs_1.default.existsSync(path_1.default.join(cwd, 'outputs'))) {
                 fs_1.default.mkdirSync(path_1.default.join(cwd, 'outputs'));
             }
             let outFileName = options.json === true ?
-                path_1.default.join('outputs', str) : options.json;
+                path_1.default.join('outputs', 'res-' + pkgJson.name) : options.json;
             if (!outFileName.endsWith('.json')) {
                 outFileName += '.json';
             }
