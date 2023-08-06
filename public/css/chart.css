@@ -31,8 +31,12 @@ circle.terminal-node {
 }
 
 circle.free-node {
-  fill: grey;
-  stroke: #f7f3da;
+  fill: #f7f3da;
+  stroke: grey;
+}
+
+text.free-node {
+  fill: darkgrey;
 }
 
 circle.transit-node {

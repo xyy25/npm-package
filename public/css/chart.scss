@@ -49,9 +49,14 @@
 }
 
 .free-node {
-    @at-root circle#{&} {
-        fill: grey;
-        stroke: #f7f3da
+    @at-root {
+        circle#{&} {
+            fill: #f7f3da;
+            stroke: grey;
+        }
+        text#{&} {
+            fill: darkgrey;
+        }
     }
 }
 

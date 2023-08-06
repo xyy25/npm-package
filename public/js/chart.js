@@ -81,7 +81,7 @@ class Chart {
             .append("text")
             .attr("id", "desc")
             .attr("x", - width / 2 + 100)
-            .attr("y", - height / 2 - 100)
+            .attr("y", - height / 2 + 100)
             .style('font-size', 24);
 
         // 边的组
@@ -367,7 +367,8 @@ class Chart {
             .call(appendLine, `名称: ${node.data.id}\n`)
             .call(appendLine, `版本: ${node.data.version}\n`)
             .call(appendLine, `目录: ${node.data.path}\n`)
-            .call(appendLine, `依赖: ${node.data.requiring.length}个包`);
+            .call(appendLine, `依赖: ${node.data.requiring.length}个包`)
+            .call(appendLine, this.getNodeClass(node, 1));
         console.log('悬停', node.dataIndex);
 
         const { requiring: outs, requiredBy: ins } = node.data;
@@ -441,12 +442,12 @@ const drag = (simulation) => {
 }
 
 // 给文本增加一行
-const appendLine = (target, text, className, lineHeight = '1.2em') => {
+const appendLine = (target, text, style = '', lineHeight = '1.2em') => {
     target
         .append('tspan')
         .attr('x', target.attr('x'))
         .attr('dy', lineHeight)
-        .attr('class', className ?? '')
+        .attr('style', style)
         .text(text);
 }
 
