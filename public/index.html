@@ -16,7 +16,6 @@
     .node text {
         font: 12px sans-serif;
     }
-*/
 
     .link {
         fill: none;
@@ -24,6 +23,7 @@
         stroke-width: 4px;
         cursor: pointer;
     }
+*/
 
     .chartTooltip {
         position: absolute;
@@ -68,19 +68,16 @@
     <link rel="stylesheet" href="./css/chart.css" type="text/css" />
     <script src="./js/utils.js"></script>
     <script src="./js/chart.js"></script>
-    <script type="module">
-        import Topo from './js/topo.js';
-        console.log(Topo);
-
-        const debug = {
-            resNodes: null
+    <script>
+        const myGlobal = {
+            resNodes: null,
+            chart: null
         }
 
-        fetch('../outputs/res-test-pkg.json')
+        fetch('../outputs/res3.json')
             .then(response => response.json())
             .then(data => {
-                // item就是根目录下的依赖包，依赖存在item的children内
-                debug.resNodes = data;
+                myGlobal.resNodes = data;
 
                 /*初始化宽高*/
                 const ct = d3.select("#chart");
@@ -101,8 +98,7 @@
                     .attr("viewBox", [- width / 2, - height / 2, width, height])
                     .attr("style", "max-width: 100%; max-height: 100%;");
 
-                chart(svg, data);
-
+                myGlobal.chart = new Chart(svg, data);
             })
     </script>
 </body>

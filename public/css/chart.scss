@@ -1,22 +1,43 @@
-circle {
-    stroke-width: 1.5px;
-}
-
-text {
-    font-family: Monaco, sans-serif;
-    font-size: 11px;
-}
-
-line {
-    stroke: #999;
-}
-
-.default {
-    &-node {
-        @at-root circle#{&} {
-            fill: rgb(231, 213, 127);
-            stroke: rgb(230, 244, 40)
+.node {
+    @at-root {
+        circle#{&} {
+            stroke-width: 1.5px;
         }
+        text#{&} {
+            font-family: Monaco, sans-serif;
+            font-size: 11px;
+        }
+    }
+}
+
+.link {
+    @at-root {
+        line#{&} {
+            stroke: #999;
+        }
+        text#{&} {
+            fill: #999;
+            font-size: 10px;
+            font-weight: 600;
+            font-family: '方正准圆简体', sans-serif;
+            filter: 
+                drop-shadow(0 0 0.15px white)
+                drop-shadow(0 0 0.15px white)
+                drop-shadow(0 0 0.15px white)
+                drop-shadow(0 0 0.15px white)
+                drop-shadow(0 0 0.15px white)
+                drop-shadow(0 0 0.15px white)
+                drop-shadow(0 0 0.15px white)
+                drop-shadow(0 0 0.15px white)
+                drop-shadow(0 0 0.15px white);
+        }
+    }
+}
+
+.hidden-node {
+    @at-root circle#{&} {
+        fill: rgb(231, 213, 127);
+        stroke: rgb(230, 244, 40)
     }
 }
 
@@ -24,6 +45,13 @@ line {
     @at-root circle#{&} {
         fill: black;
         stroke: none;
+    }
+}
+
+.free-node {
+    @at-root circle#{&} {
+        fill: grey;
+        stroke: #f7f3da
     }
 }
 
@@ -66,10 +94,19 @@ line {
     }
 }
 
+line.optional-link {
+    stroke-dasharray: 8 2 2 2;
+}
+
 .in {
     &-link {
-        @at-root line#{&} {
-            stroke: green;
+        @at-root {
+            line#{&} {
+                stroke: green;
+            }
+            text#{&} {
+                fill: green;
+            }
         }
     }
     &-node {
@@ -78,7 +115,7 @@ line {
                 fill: green;
             }
             text#{&} {
-                fill: green
+                fill: green;
             }
         }
     }
@@ -86,8 +123,13 @@ line {
 
 .out{
     &-link {
-        @at-root line#{&} {
-            stroke: orange;
+        @at-root { 
+            line#{&} {
+                stroke: orange;
+            }
+            text#{&} {
+                fill: orange;
+            }
         }
     }
     &-node {
@@ -104,8 +146,13 @@ line {
 
 .path{
     &-link {
-        @at-root line#{&} {
-            stroke: cyan;
+        @at-root { 
+            line#{&} {
+                stroke: cyan;
+            }
+            text#{&} {
+                fill: cyan;
+            }
         }
     }
     &-node {
@@ -120,13 +167,20 @@ line {
     }
 }
 
-.focus-node {
-    @at-root {
-        circle#{&} {
-            stroke: red;
+.focus {
+    &-link {
+        @at-root line#{&} {
+            stroke: black;
         }
-        text#{&} {
-            fill: red;
+    }
+    &-node {
+        @at-root {
+            circle#{&} {
+                stroke: red;
+            }
+            text#{&} {
+                fill: red;
+            }
         }
     }
 }
