@@ -1,5 +1,20 @@
 $en-fonts: Monaco, Hack, Consolas;
 $cn-fonts: '方正准圆简体', '青鸟华光准圆', '有爱圆体 CN', '幼圆';
+@mixin backshade($clr: white) {
+    filter: drop-shadow(0 0 0.15px $clr) 
+            drop-shadow(0 0 0.15px $clr) 
+            drop-shadow(0 0 0.15px $clr)
+            drop-shadow(0 0 0.15px $clr)
+            drop-shadow(0 0 0.15px $clr)
+            drop-shadow(0 0 0.15px $clr)
+            drop-shadow(0 0 0.15px $clr)
+            drop-shadow(0 0 0.15px $clr)
+            drop-shadow(0 0 0.15px $clr);
+}
+
+.chinese-note {
+    writing-mode: tb-rl;
+}
 
 .node {
     @at-root {
@@ -23,16 +38,7 @@ $cn-fonts: '方正准圆简体', '青鸟华光准圆', '有爱圆体 CN', '幼�
             font-size: 10px;
             font-weight: 600;
             font-family: $cn-fonts, sans-serif;
-            filter: 
-                drop-shadow(0 0 0.15px white)
-                drop-shadow(0 0 0.15px white)
-                drop-shadow(0 0 0.15px white)
-                drop-shadow(0 0 0.15px white)
-                drop-shadow(0 0 0.15px white)
-                drop-shadow(0 0 0.15px white)
-                drop-shadow(0 0 0.15px white)
-                drop-shadow(0 0 0.15px white)
-                drop-shadow(0 0 0.15px white);
+            @include backshade();
         }
     }
 }
@@ -148,6 +154,30 @@ line.optional-link {
             text#{&} {
                 fill: rgb(204, 90, 14);
             }
+        }
+    }
+}
+
+.invalid-link {
+    @at-root {
+        line#{&} {
+            stroke: rgb(201, 109, 109);
+        }
+        text#{&} {
+            fill: rgb(172, 77, 107);
+            @include backshade(rgb(56, 45, 45));
+        }
+    }
+}
+
+.not-found-node {
+    @at-root {
+        circle#{&} {
+            stroke: rgb(58, 33, 40);
+            fill:rgb(124, 107, 107)
+        }
+        text#{&} {
+            fill: rgb(82, 15, 32);
         }
     }
 }

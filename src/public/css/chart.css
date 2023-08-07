@@ -1,4 +1,8 @@
 @charset "UTF-8";
+.chinese-note {
+  writing-mode: tb-rl;
+}
+
 circle.node {
   stroke-width: 1.5px;
 }
@@ -101,6 +105,24 @@ circle.out-node {
 
 text.out-node {
   fill: rgb(204, 90, 14);
+}
+
+line.invalid-link {
+  stroke: rgb(201, 109, 109);
+}
+
+text.invalid-link {
+  fill: rgb(172, 77, 107);
+  filter: drop-shadow(0 0 0.15px rgb(56, 45, 45)) drop-shadow(0 0 0.15px rgb(56, 45, 45)) drop-shadow(0 0 0.15px rgb(56, 45, 45)) drop-shadow(0 0 0.15px rgb(56, 45, 45)) drop-shadow(0 0 0.15px rgb(56, 45, 45)) drop-shadow(0 0 0.15px rgb(56, 45, 45)) drop-shadow(0 0 0.15px rgb(56, 45, 45)) drop-shadow(0 0 0.15px rgb(56, 45, 45)) drop-shadow(0 0 0.15px rgb(56, 45, 45));
+}
+
+circle.not-found-node {
+  stroke: rgb(58, 33, 40);
+  fill: rgb(124, 107, 107);
+}
+
+text.not-found-node {
+  fill: rgb(82, 15, 32);
 }
 
 line.path-link {
