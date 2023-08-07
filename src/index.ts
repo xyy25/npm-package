@@ -1,8 +1,7 @@
-import D3view from "./components/d3";
+import D3view from "./components/treeChart";
 
-// 这里用的还是先前的{[map][borders]}没改
-
-fetch('../res1.json')
+// 这里用的数据还是先前的{[map][borders]}没改
+fetch('../outputs/res1.json')
     .then(response => response.json())
     .then(data => {
         // 为所有节点加入children数组
