@@ -2,6 +2,7 @@ node_modules/
 test-pkg/node_modules/
 test-pkgs/
 outputs/
+src/public/res.json
 .git/
 .config/
 .1024.nix
