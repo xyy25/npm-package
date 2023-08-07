@@ -167,9 +167,9 @@ class Chart {
 
         this.simulation = d3
             .forceSimulation(ct.vsbNodes)
-            .force("link", d3.forceLink(ct.vsbLinks).distance(150).strength(0.25)) // 拉扯力
-            .force("charge", d3.forceManyBody().strength(-200)) // 排斥力
-            .force("collide", d3.forceCollide(10).strength(-2)) // 碰撞力
+            .force("link", d3.forceLink(ct.vsbLinks).distance(150).strength(0.4)) // 拉扯力
+            .force("charge", d3.forceManyBody().strength(d => -Math.log2(d.r) * 100)) // 排斥力
+            .force("collide", d3.forceCollide().radius(d => d.r + 2).strength(-1)) // 碰撞力
             .force("x", d3.forceX().strength(0.1))
             .force("y", d3.forceY().strength(0.1));
 
@@ -188,11 +188,15 @@ class Chart {
             .attr("dx", function() {
                 return - this.getBBox().width / 2;
             });
+        // 线的两端应该在结点圆的边上
+        const { sin, cos } = Math;
+        const proj = (d, cir, ofs, f) =>
+            (cir.r + ofs) * f(getAngleRad(d.source.x, d.source.y, d.target.x, d.target.y));
         this.link
-            .attr("x1", d => d.source.x)
-            .attr("y1", d => d.source.y)
-            .attr("x2", d => d.target.x)
-            .attr("y2", d => d.target.y);
+            .attr("x1", d => d.source.x + proj(d, d.source, 0, cos))
+            .attr("y1", d => d.source.y + proj(d, d.source, 0, sin))
+            .attr("x2", d => d.target.x - proj(d, d.target, -2, cos))
+            .attr("y2", d => d.target.y - proj(d, d.target, -2, sin));
         this.linkNote
             ?.attr('transform', d => d.getNoteTransform(d.rotate))
             .attr('textLength', limitLen);
@@ -419,10 +423,13 @@ class Chart {
             .text('点击显示依赖');
             
         // 更新力导模拟
+        const { log2, max } = Math;
+        const alpha = max(log2(1 + circleEnter.size()) * 0.1, 0.1);
+        console.log('alpha', alpha);
         this.options.simulationStop = false;
         simulation.nodes(vsbNodes);
         simulation.force('link').links(vsbLinks);
-        simulation.alpha(1).restart();
+        simulation.alpha(alpha).restart();
     }
     
     // 鼠标点击顶点事件

@@ -173,11 +173,11 @@ line.optional-link {
 .not-found-node {
     @at-root {
         circle#{&} {
-            stroke: rgb(58, 33, 40);
-            fill:rgb(124, 107, 107)
+            stroke: rgb(144, 114, 123);
+            fill:rgb(72, 57, 57)
         }
         text#{&} {
-            fill: rgb(82, 15, 32);
+            fill: rgb(135, 46, 68);
         }
     }
 }
