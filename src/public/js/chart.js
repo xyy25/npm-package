@@ -37,6 +37,10 @@ class Chart {
         this.svg = svg;
         this.data = data;
         this.init(initOptions);
+        this.scale = {
+            width: globalThis.innerWidth,
+            height: globalThis.innerWidth
+        }
     }
 
     init(initOptions) {
