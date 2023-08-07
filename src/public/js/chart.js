@@ -225,8 +225,8 @@ class Chart {
             [(l) => l.meta.optional, "", "optional-link"], // 可选依赖表示为虚线（chart.scss中定义）
             [(l) => l.meta.type === "dev", "开发", null],
             [(l) => l.meta.type === "peer", "同级", null],
-            [(l) => l.meta.invalid, (l) => l.meta.range, "invalid-link"],
-            [(l, s, t) => t.data.path === null, "未安装", "invalid-link"]
+            [(l) => !l.meta.optional && l.meta.invalid, (l) => l.meta.range, "invalid-link"],
+            [(l, _, t) => !l.meta.optional && t.data.path === null, "未安装", "invalid-link"]
         ];
 
         const { source: s,  target: t } = link;

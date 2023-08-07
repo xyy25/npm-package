@@ -1,2 +1,1 @@
-compile_command: "tsc"
-run_command: "ts-node index.ts analyze test-pkg --json --pretty --diagram"
+run_command: "ts-node index.ts analyze test-pkg"

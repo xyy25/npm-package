@@ -3,6 +3,10 @@ test-pkg/node_modules/
 test-pkgs/
 outputs/
 src/public/res.json
+tmp/
+nginx/
+log/
+run/
 .git/
 .config/
 .1024.nix
