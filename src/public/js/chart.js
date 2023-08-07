@@ -183,8 +183,11 @@ class Chart {
             .attr("cx", d => d.x)
             .attr("cy", d => d.y);
         this.label
-            .attr("x", d => d.x - 30)
-            .attr("y", d => d.y - 5);
+            .attr("x", d => d.x)
+            .attr("y", d => d.y)
+            .attr("dx", function() {
+                return - this.getBBox().width / 2;
+            });
         this.link
             .attr("x1", d => d.source.x)
             .attr("y1", d => d.source.y)
@@ -370,7 +373,9 @@ class Chart {
             )
         labelEnter
             .attr("index", (d) => d.dataIndex)
+            .each(d => d.r = (d.dataIndex ? 3.5 : 5) * (1 + d.data.requiring.length * 0.05))
             .attr("class", (d) => ct.getNodeClass(d, 2))
+            .attr('dy', d => -d.r - 2)
             .text(d => d.data.id + (
                 // 如果有同名包，则在标签上后缀版本
                 ct.nodes.filter(n => n.data.id === d.data.id).length >= 2 ?
@@ -387,9 +392,10 @@ class Chart {
                 exit => exit.remove()
             )
             .attr("class", (d) => ct.getNodeClass(d, 2))
-        circleEnter
+        circleEnter 
             .attr("index", (d) => d.dataIndex)
-            .attr("r", (d) => d.dataIndex ? 3.5 : 5) // 根顶点半径为5px，否则3.5px
+            // 根顶点半径为5px起步，否则3.5px
+            .attr("r", (d) => d.r)
             .call(drag(simulation))
             .on("click", function(e) { ct.clickNode(this, e) })
             .on("mouseover", function(e) { ct.mouseOverNode(this, e) })
