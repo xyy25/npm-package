@@ -25,11 +25,11 @@ export const getREADME = (id: string, path?: string): string | null => {
 export const countMatches = (str: string, matcher: RegExp | string): number => 
     str.match(new RegExp(matcher, "g"))?.length ?? 0;
 
-type Item = { id?: string, version: string, path: string };
+type Item = { id?: string, version: string, path: string | null };
 
 export const toString = <T extends Item>(depItem: T, id?: string): string => {
     if((id = id ?? depItem.id) === undefined) return '';
-    return join(depItem.path, id + '@' + depItem.version);
+    return join(depItem.path ?? '', id + '@' + depItem.version);
 }
 
 export const limit = (str: string, length: number): string => 
@@ -54,7 +54,10 @@ export const toDiagram = (depResult: DepResult, rootPkg?: PackageJson): Directed
     
     const dfs = (dep: DepResult, originIndex: number = 0) => {
         for(const [id, item] of Object.entries(dep)) {
-            const { requires, version, path, type, optional, range } = item;
+            const { 
+                requires, version, path, type, 
+                optional, range, invalid
+            } = item;
             const newItem: DiagramNode = { 
                 id, version, path, 
                 meta: [], requiring: [], 
@@ -73,7 +76,7 @@ export const toDiagram = (depResult: DepResult, rootPkg?: PackageJson): Directed
             // 起始顶点的依赖（出边）属性中登记该顶点
             res[originIndex].requiring.push(index);
             res[originIndex].meta.push({
-                range, type, optional
+                range, type, optional, invalid
             });
                 
             if(requires) {

@@ -12,10 +12,10 @@ class Link {
     };
 
     // 获取边上标签的位置
-    getNoteTransform() {
+    getNoteTransform(rotate = false) {
         const { source: s, target: t } = this;
         const p = getCenter(s.x, s.y, t.x, t.y);
-        let angle = getAngle(s.x, s.y, t.x, t.y);
+        let angle = getAngle(s.x, s.y, t.x, t.y, rotate);
         if (s.x > t.x && s.y < t.y || s.x < t.x && s.y > t.y) {
             angle = -angle;
         }
@@ -46,6 +46,7 @@ class Chart {
             highlightRequiredBy: true,
             highlightPath: true,
             fading: true,
+            simulationStop: false,
             ...initOptions
         }
         this.initData();
@@ -131,7 +132,7 @@ class Chart {
                 g.attr("transform", `translate(${x}, ${y}) scale(${k})`);
             });
 
-        // svg层绑定zoom事件，同时释放zoom双击事件
+        // 绑定zoom事件，同时释放zoom双击事件
         svg.call(zoom).on("dblclick.zoom", () => {});
 
         const [width, height] = 
@@ -173,6 +174,7 @@ class Chart {
 
     // 力导模拟每帧更新回调函数
     tick() {
+        if(this.options.simulationStop) return;
         this.circle
             .attr("cx", d => d.x)
             .attr("cy", d => d.y);
@@ -185,83 +187,57 @@ class Chart {
             .attr("x2", d => d.target.x)
             .attr("y2", d => d.target.y);
         this.linkNote
-            ?.attr('transform', d => d.getNoteTransform())
+            ?.attr('transform', d => d.getNoteTransform(d.rotate))
             .attr('textLength', limitLen);
     }
 
-    // 右键菜单事件
-    updateOptions() {
-        const ct = this;
-        const { options: opt } = ct;
-        const genTitle = (desc, judge = () => true, trueExpr = '开启', falseExpr = '关闭') => 
-            `${desc}: ` + (judge() ? trueExpr : falseExpr);
-        const menuData = [ 
-            { title: '隐藏依赖', action: (e) => (ct.hideBorders(e), ct.update()) },
-            { title: '重置视图', action: () => (ct.resetNodes(), ct.update()) },
-            { divider: true },
-            { title: '选项..', children: [
-                {
-                    title: genTitle('多余依赖包', () => opt.showExtraneous, '显示', '隐藏'),
-                    action: () => {
-                        opt.showExtraneous = !opt.showExtraneous;
-                        ct.nodes.filter(n => ct.requirePaths[n.dataIndex] === null)
-                            .forEach(n => n.showNode = opt.showExtraneous)
-                        ct.update();
-                    }
-                },
-                { devider: true },
-                { 
-                    title: genTitle('入边高亮', () => opt.highlightRequiredBy), 
-                    action: () => (opt.highlightRequiredBy = !opt.highlightRequiredBy, ct.updateOptions())
-                }, {
-                    title:  genTitle('出边高亮', () => opt.highlightRequiring),
-                    action: () => (opt.highlightRequiring = !opt.highlightRequiring, ct.updateOptions())
-                }, {
-                    title:  genTitle('路径高亮', () => opt.highlightPath),
-                    action: () => (opt.highlightPath = !opt.highlightPath, ct.updateOptions())
-                }, {
-                    title:  genTitle('背景淡化', () => opt.fading),
-                    action: () => (opt.fading = !opt.fading, ct.updateOptions())
-                }
-            ] }
-        ];
-        this.circle.on('contextmenu', d3.contextMenu(menuData));
-    }
-
     // 根据顶点的属性特征，获取顶点的样式类型名（可重叠）
-    getNodeClass(node, vi) {
+    getNodeClass(node, vi, append = true) {
         const { requirePaths } = this;
         // 顶点类型判断数组
         // [判断方法, 顶点类型名, 样式类名（在chart.scss中定义）, ...(可以继续附加一些值)]，下标越大优先级越高
         const nodeType = [
-            [() => true, "", "node"],
-            [() => true, "", "hidden-node"], // 未展开边的默认顶点
+            [true, "", "node"],
+            [true, "", "hidden-node"], // 未展开边的默认顶点
             [(n) => n.showRequiring && n.data.requiring.length, "", "transit-node"], // 已展开边，有入边有出边的顶点，即有依赖且被依赖的包
             [(n) => !n.data.requiring.length, "", "terminal-node"], // 无出边的顶点，即无依赖的包
             [(n, i) => requirePaths[i] === null, "未使用", "free-node"], // 无法通向根顶点的顶点，即不必要的包
+            [(n, i) => n.data.path === null, "未安装", "not-found-node"], // 没有安装的包
             [(n, i) => n.data.requiredBy.includes(0), "主依赖", "direct-node"], // 根顶点的相邻顶点，即被项目直接依赖的包
             [(n, i) => !i, "主目录", "root-node"], // 根顶点，下标为0的顶点，代表根目录的项目包
         ];
 
-        // 根据判断数组获取顶点类型所映射的属性值的函数，d, i是必要传参，vi是属性值所在的数组下标
-        // 根据nodeType现有的属性值增加类名
-        return nodeType.reduce(
-            (o, e) => e[0](node, node.dataIndex) && e[vi] ? o.concat(e[vi]) : o, []
-        ).join(" ");
+        const { dataIndex: i } = node;
+        const r = v => typeof v === 'function' ? v(node, i) : v;
+        // 根据判断数组获取顶点类型所映射的属性值的函数
+        if(append) {
+            // 根据nodeType现有的属性值增加类名
+            return nodeType.reduce((o, e) => r(e[0]) && e[vi] ? o.concat(r(e[vi])) : o, []).join(" ");
+        } else {
+            return nodeType.reduce((o, e) => r(e[0]) && e[vi] ? r(e[vi]) : o, nodeType[0][vi]);
+        }
     }
 
     // 根据边的属性特征，获取边的样式类型名(可重叠)
-    getLinkClass(link, vi) {
+    getLinkClass(link, vi, append = true) {
         const linkType = [
-            [() => true, "", "link"],
+            [true, "", "link"],
             [(l) => l.meta.optional, "", "optional-link"], // 可选依赖表示为虚线（chart.scss中定义）
             [(l) => l.meta.type === "dev", "开发", null],
-            [(l) => l.meta.type === "peer", "同级", null]
+            [(l) => l.meta.type === "peer", "同级", null],
+            [(l) => l.meta.invalid, (l) => l.meta.range, "invalid-link"],
+            [(l, s, t) => t.data.path === null, "未安装", "invalid-link"]
         ];
 
-        return linkType.reduce(
-            (o, e) => e[0](link, link.source.dataIndex, link.target.dataIndex) && e[vi] ? o.concat(e[vi]) : o, []
-        ).join(" ");
+        const { source: s,  target: t } = link;
+        const r = v => typeof v === 'function' ? v(link, s, t) : v;
+        if(append) {
+            return linkType.reduce(
+                (o, e) => r(e[0]) && e[vi] ? o.concat(r(e[vi])) : o, []
+            ).join(" ");
+        } else {
+            return linkType.reduce((o, e) => r(e[0]) && e[vi] ? r(e[vi]) : o, linkType[0][vi]);
+        }
     }
 
     // 显示每条边上附加的文字标注
@@ -271,9 +247,12 @@ class Chart {
             .data(link.data())
             .join('text')
             .attr('class', (d) => link.filter(e => d == e).attr('class'))
-            .text((d) => this.getLinkClass(d, 1))
-            .style('writing-mode','tb-rl')
-            .attr('transform', d => d.getNoteTransform())
+            .each(d => d.text = this.getLinkClass(d, 1, false))
+            .each(d => d.rotate = includeChinese(d.text))
+            .text(d => d.text)
+            // 如果标注带有汉字则转为竖排显示
+            .classed('chinese-note', d => d.rotate)
+            .attr('transform', d => d.getNoteTransform(d.rotate))
             .attr('textLength', limitLen)
             .attr('dy', function () {
                 return -this.getBBox().height / 2;
@@ -339,6 +318,11 @@ class Chart {
         this.vsbNodes
             .filter(n => node.data.requiring.includes(n.dataIndex))
             .forEach(n => this.hideNode(n, true, [node]));
+    }
+
+    // 右键菜单事件
+    updateOptions() {
+        this.circle.on('contextmenu', d3.contextMenu(nodeMenu(this)));
     }
 
     // 根据顶点showNode和showRequiring属性的变化更新有向图
@@ -425,6 +409,7 @@ class Chart {
             .text('点击显示依赖');
             
         // 更新力导模拟
+        this.options.simulationStop = false;
         simulation.nodes(vsbNodes);
         simulation.force('link').links(vsbLinks);
         simulation.alpha(1).restart();

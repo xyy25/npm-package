@@ -6,6 +6,11 @@ function limit(val, min = 0, max = Infinity) {
     return Math.max(Math.min(val, max), min);
 }
 
+// 判断字符串中是否含汉字
+function includeChinese(str) {
+    return str.match(/[\u4E00-\u9FA5]/) !== null;
+}
+
 // 计算两点的中心点(用于确认摆放在连接线上的文字的位置)
 function getCenter(x1, y1, x2, y2) {
     return { 
@@ -15,11 +20,12 @@ function getCenter(x1, y1, x2, y2) {
 }
 
 // 计算两点角度
-function getAngle(x1, y1, x2, y2) {
+function getAngle(x1, y1, x2, y2, rotate = false) {
     var x = Math.abs(x1 - x2);
     var y = Math.abs(y1 - y2);
     var z = Math.sqrt(x * x + y * y);
-    return Math.round((-Math.acos(y / z) / Math.PI * 180));
+    const r = rotate ? -Math.acos(y / z) : Math.asin(y / z);
+    return Math.round((r / Math.PI * 180));
 }
 
 // 求无权有向图某个起始顶点到所有其他顶点的最短路径，如果无法通达，则路径为null
