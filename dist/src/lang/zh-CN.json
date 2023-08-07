@@ -22,6 +22,9 @@
                 },
                 "diagram": {
                     "description": "是否将结果转化为DirectedDiagram有向图结构."
+                },
+                "console": {
+                    "description": "是否将结果打印至控制台."
                 }
             }
         },
@@ -59,8 +62,12 @@
             "dirNotExist": "目录不存在!",
             "pkgJsonNotExist": "%s根目录下的package.json文件不存在!",
             "detected": "检测到 %s 个依赖包.",
+            "noDependency": "该项目未安装任何依赖.",
             "jsonSaved": "分析结果已保存至%s.",
             "detectPkg": "检测到的依赖包数:"
+        },
+        "express.ts": {
+            "start": "网页视图已在 %s 打开."
         },
         "utils/recur.ts": {
             "nowComplete": "当前",

@@ -1,10 +1,13 @@
+$en-fonts: Monaco, Hack, Consolas;
+$cn-fonts: '方正准圆简体', '青鸟华光准圆', '有爱圆体 CN', '幼圆';
+
 .node {
     @at-root {
         circle#{&} {
             stroke-width: 1.5px;
         }
         text#{&} {
-            font-family: Monaco, sans-serif;
+            font-family: $en-fonts, $cn-fonts, sans-serif;
             font-size: 11px;
         }
     }
@@ -19,7 +22,7 @@
             fill: #999;
             font-size: 10px;
             font-weight: 600;
-            font-family: '方正准圆简体', sans-serif;
+            font-family: $cn-fonts, sans-serif;
             filter: 
                 drop-shadow(0 0 0.15px white)
                 drop-shadow(0 0 0.15px white)
@@ -143,7 +146,7 @@ line.optional-link {
                 fill: orange;
             }
             text#{&} {
-                fill: orange;
+                fill: rgb(204, 90, 14);
             }
         }
     }
@@ -156,7 +159,7 @@ line.optional-link {
                 stroke: cyan;
             }
             text#{&} {
-                fill: cyan;
+                fill: rgb(30, 188, 216);
             }
         }
     }

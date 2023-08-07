@@ -63,6 +63,7 @@ cmd.command('analyze').description(zh_CN_json_1.default.commands.analyze.descrip
     .addOption(depthOption)
     .addOption(jsonOption)
     .addOption(jsonPrettyOption)
+    .option('-c, --console, --print', zh_CN_json_1.default.commands.analyze.options.console.description)
     .option('--diagram', zh_CN_json_1.default.commands.analyze.options.diagram.description)
     .action((str, options) => __awaiter(void 0, void 0, void 0, function* () {
     const cwd = process.cwd(); // 命令执行路径
@@ -99,11 +100,18 @@ cmd.command('analyze').description(zh_CN_json_1.default.commands.analyze.descrip
                 res.push(...notRequired.map(e => (0, utils_1.toDepItemWithId)(e)));
             }
         }
-        if (options.json && Object.keys(res).length) { // 输出JSON文件设置
+        if (!Object.keys(res).length) {
+            console.log(zh_CN_json_1.default.logs['cli.ts'].noDependency);
+            return;
+        }
+        if (options.console) {
+            console.log(res);
+        }
+        if (!fs_1.default.existsSync(path_1.default.join(cwd, 'outputs'))) {
+            fs_1.default.mkdirSync(path_1.default.join(cwd, 'outputs'));
+        }
+        if (options.json) { // 输出JSON文件设置
             // 自动创建outputs文件夹
-            if (!fs_1.default.existsSync(path_1.default.join(cwd, 'outputs'))) {
-                fs_1.default.mkdirSync(path_1.default.join(cwd, 'outputs'));
-            }
             let outFileName = options.json === true ?
                 path_1.default.join('outputs', 'res-' + pkgJson.name) : options.json;
             if (!outFileName.endsWith('.json')) {
@@ -114,7 +122,10 @@ cmd.command('analyze').description(zh_CN_json_1.default.commands.analyze.descrip
             console.log(cyan(desc.jsonSaved.replace('%s', yellowBright(outFileName))));
         }
         else {
-            console.log(res);
+            if (!options.diagram)
+                res = (0, utils_1.toDiagram)(res, pkgJson);
+            fs_1.default.writeFileSync(path_1.default.join(__dirname, 'public', 'res.json'), Buffer.from(JSON.stringify(res)));
+            yield Promise.resolve().then(() => __importStar(require('./express')));
         }
     }
     catch (e) {

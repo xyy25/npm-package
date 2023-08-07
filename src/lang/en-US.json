@@ -22,6 +22,9 @@
                 },
                 "diagram": {
                     "description": "Auto convert result to DirectedDiagram data structure."
+                },
+                "console": {
+                    "description": "Print the result on the console."
                 }
             }
         },
@@ -59,8 +62,12 @@
             "dirNotExist": "The target directory does not exist.",
             "pkgJsonNotExist": "The root package.json of %s does not exist.",
             "detected": "Detected %s packages in the target directory.",
+            "noDependency": "The project does not install any package.",
             "jsonSaved": "Analyze result has been saved to %s.",
             "detectPkg": "CURRENT PACKAGES:"
+        },
+        "express.ts": {
+            "start": "The generated view is now opened at %s"
         },
         "utils/recur.ts": {
             "nowComplete": "Now",

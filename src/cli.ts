@@ -30,6 +30,7 @@ cmd.command('analyze').description(lang.commands.analyze.description)
     .addOption(depthOption)
     .addOption(jsonOption)
     .addOption(jsonPrettyOption)
+    .option('-c, --console, --print', lang.commands.analyze.options.console.description)
     .option('--diagram', lang.commands.analyze.options.diagram.description)
     .action(async (str, options) => {
         const cwd = process.cwd(); // 命令执行路径
@@ -79,11 +80,20 @@ cmd.command('analyze').description(lang.commands.analyze.description)
                 }
             }
 
-            if(options.json && Object.keys(res).length) { // 输出JSON文件设置
+            if(!Object.keys(res).length) {
+                console.log(lang.logs['cli.ts'].noDependency);
+                return;
+            }
+
+            if(options.console) {
+                console.log(res);
+            }
+
+            if(!fs.existsSync(path.join(cwd, 'outputs'))) {
+                fs.mkdirSync(path.join(cwd, 'outputs'));
+            }
+            if(options.json) { // 输出JSON文件设置
                 // 自动创建outputs文件夹
-                if(!fs.existsSync(path.join(cwd, 'outputs'))) {
-                    fs.mkdirSync(path.join(cwd, 'outputs'));
-                }
                 let outFileName = options.json === true ? 
                     path.join('outputs', 'res-' + pkgJson.name) : options.json;
                 if(!outFileName.endsWith('.json')) {
@@ -93,7 +103,9 @@ cmd.command('analyze').description(lang.commands.analyze.description)
                 fs.writeFileSync(outFileUri, Buffer.from(JSON.stringify(res, null, options.format ? "\t" : "")));
                 console.log(cyan(desc.jsonSaved.replace('%s', yellowBright(outFileName))));
             } else {
-                console.log(res);
+                if(!options.diagram) res = toDiagram(res, pkgJson);
+                fs.writeFileSync(path.join(__dirname, 'public', 'res.json'), Buffer.from(JSON.stringify(res)));
+                await import('./express');
             }
         } catch(e: any) {
             console.error(e);

@@ -1,28 +1,59 @@
-class Chart {
-    constructor(svg, data) {
-        this.svg = svg;
-        this.data = data;
-        this.init();
+class Link { 
+    constructor(source, target, meta) {
+        this.source = source;
+        this.target = target;
+        this.meta = meta;
     }
 
-    init() {
-        this.initData();
-        this.initDiagram();
-        this.initSimulation();
+    length() {
+        const { x: x1, y: y1 } = this.source;
+        const { x: x2, y: y2 } = this.target;
+        return getLength(x1, y1, x2, y2);
+    };
 
-        this.resetNodes();
-        this.updateNodes();
-        this.updateLinks();
-        
-        const { nodes, links } = this;
-        console.log(links, nodes);
+    // 获取边上标签的位置
+    getNoteTransform() {
+        const { source: s, target: t } = this;
+        const p = getCenter(s.x, s.y, t.x, t.y);
+        let angle = getAngle(s.x, s.y, t.x, t.y);
+        if (s.x > t.x && s.y < t.y || s.x < t.x && s.y > t.y) {
+            angle = -angle;
+        }
+        return `translate(${p.x}, ${p.y}) rotate(${angle})`;
+    }
+}
 
+class Node {
+    constructor(dataIndex, data) {
+        this.dataIndex = dataIndex;
+        this.data = data;
+        [this.vx, this.vy] = [0, 0];
+        [this.x, this.y] = [0, 0];
+    }
+}
+
+class Chart {
+    constructor(svg, data, initOptions = {}) {
+        this.svg = svg;
+        this.data = data;
+        this.init(initOptions);
+    }
+
+    init(initOptions) {
         this.options = {
+            showExtraneous: true,
             highlightRequiring: true,
             highlightRequiredBy: true,
             highlightPath: true,
-            fading: true
+            fading: true,
+            ...initOptions
         }
+        this.initData();
+        this.initDiagram();
+        this.initSimulation();
+        
+        const { nodes, vsbLinks } = this;
+        console.log(nodes, vsbLinks);
 
         this.update();
     }
@@ -36,26 +67,50 @@ class Chart {
         //const nodes = root.descendants();
     
         // 根据数据生成有向图的顶点和边信息
-        this.nodes = data.map((e, i) => {return {
-            dataIndex: i, vx: 0, vy: 0, x: 0, y: 0, data: e
-        }});
+        this.nodes = data.map((e, i) => new Node(i, e));
         const { nodes } = this;
-        this.links = data.reduce(
-            (o, c, i) => o.concat(
-                c.requiring.map((t, ti) => { 
-                    return { 
-                        source: nodes[i], target: nodes[t],
-                        meta: nodes[i].data.meta[ti]
-                    };
-            })
-        ), []);
 
         // 计算由根顶点到所有顶点的依赖路径
         this.requirePaths = getPaths(0, nodes, e => e.data.requiring);
         
         this.vsbNodes = []; // 实际显示的顶点
         this.vsbLinks = []; // 实际显示的边
+
+        this.resetNodes();
+        this.updateNodes();
+        this.updateLinks();
     }
+
+    // 重置视图（重置顶点和边的隐藏显示）
+    resetNodes() { 
+        const ct = this;
+        const { nodes, options: { showExtraneous } } = ct;
+        nodes.forEach(n => {
+            const { dataIndex: i, data: { requiredBy } } = n;
+            // 初始化有向图时，只显示根顶点、直接顶点、游离顶点
+            n.showNode = !i || requiredBy.includes(0);
+            n.showNode ||= showExtraneous && ct.requirePaths[i] === null;
+            n.showRequiring = !i;
+        })
+    }
+
+    // 根据showNode和showRequiring更新实际显示
+    updateNodes() { 
+        const shown = n => n.showNode;
+        this.vsbNodes = this.nodes.filter(shown);
+        //vsbNodes.push(...nodes.filter(n => !vsbNodes.includes(n) && shown(n)));
+    };
+
+    // 根据showNode和showRequiring更新边，边的列表采取懒加载模式
+    updateLinks() {
+        const shown = l => l.source.showRequiring && l.target.showNode;
+        const { nodes } = this;
+        this.vsbLinks = this.vsbNodes.reduce(
+            (o, { data: d, dataIndex: i }) => o.concat(
+                d.requiring.map((t, ti) => new Link(nodes[i], nodes[t], nodes[i].data.meta[ti])
+        )), []).filter(shown);
+        //vsbLinks.push(...links.filter(l => !vsbLinks.includes(l) && shown(l)));
+    };
 
     initDiagram() {
         const { svg } = this;
@@ -130,53 +185,42 @@ class Chart {
             .attr("x2", d => d.target.x)
             .attr("y2", d => d.target.y);
         this.linkNote
-            ?.attr('transform', getTransform)
+            ?.attr('transform', d => d.getNoteTransform())
             .attr('textLength', limitLen);
     }
-
-    resetNodes() { 
-        const { nodes } = this;
-            nodes.forEach(e => {
-            const { requiredBy } = e.data;
-            // 初始化有向图时，只显示根顶点、直接顶点、游离顶点
-            e.showNode = !e.dataIndex || requiredBy.includes(0) || !requiredBy.length;
-            e.showRequiring = !e.dataIndex;
-        })
-    }
-
-    // 根据showNode和showRequiring更新实际显示
-    updateNodes() { 
-        const shown = e => e.showNode;
-        this.vsbNodes = this.nodes.filter(e => shown(e));
-        //vsbNodes.push(...nodes.filter(e => !vsbNodes.includes(e) && shown(e)));
-    };
-
-    updateLinks() {
-        const shown = e => e.source.showRequiring && e.target.showNode;
-        this.vsbLinks = this.links.filter(e => shown(e));
-        //vsbLinks.push(...links.filter(e => !vsbLinks.includes(e) && shown(e)));
-    };
 
     // 右键菜单事件
     updateOptions() {
         const ct = this;
         const { options: opt } = ct;
+        const genTitle = (desc, judge = () => true, trueExpr = '开启', falseExpr = '关闭') => 
+            `${desc}: ` + (judge() ? trueExpr : falseExpr);
         const menuData = [ 
             { title: '隐藏依赖', action: (e) => (ct.hideBorders(e), ct.update()) },
             { title: '重置视图', action: () => (ct.resetNodes(), ct.update()) },
             { divider: true },
-            { title: '效果选项..', children: [
+            { title: '选项..', children: [
+                {
+                    title: genTitle('多余依赖包', () => opt.showExtraneous, '显示', '隐藏'),
+                    action: () => {
+                        opt.showExtraneous = !opt.showExtraneous;
+                        ct.nodes.filter(n => ct.requirePaths[n.dataIndex] === null)
+                            .forEach(n => n.showNode = opt.showExtraneous)
+                        ct.update();
+                    }
+                },
+                { devider: true },
                 { 
-                    title: (opt.highlightRequiredBy ? '关闭' : '开启') + '入边高亮', 
+                    title: genTitle('入边高亮', () => opt.highlightRequiredBy), 
                     action: () => (opt.highlightRequiredBy = !opt.highlightRequiredBy, ct.updateOptions())
                 }, {
-                    title: (opt.highlightRequiring ? '关闭' : '开启') + '出边高亮',
+                    title:  genTitle('出边高亮', () => opt.highlightRequiring),
                     action: () => (opt.highlightRequiring = !opt.highlightRequiring, ct.updateOptions())
                 }, {
-                    title: (opt.highlightPath ? '关闭' : '开启') + '路径高亮',
+                    title:  genTitle('路径高亮', () => opt.highlightPath),
                     action: () => (opt.highlightPath = !opt.highlightPath, ct.updateOptions())
                 }, {
-                    title: (opt.fading ? '关闭' : '开启') + '背景淡化',
+                    title:  genTitle('背景淡化', () => opt.fading),
                     action: () => (opt.fading = !opt.fading, ct.updateOptions())
                 }
             ] }
@@ -211,8 +255,8 @@ class Chart {
         const linkType = [
             [() => true, "", "link"],
             [(l) => l.meta.optional, "", "optional-link"], // 可选依赖表示为虚线（chart.scss中定义）
-            [(l) => l.meta.type === "dev", "dev", null],
-            [(l) => l.meta.type === "peer", "peer", null]
+            [(l) => l.meta.type === "dev", "开发", null],
+            [(l) => l.meta.type === "peer", "同级", null]
         ];
 
         return linkType.reduce(
@@ -229,7 +273,7 @@ class Chart {
             .attr('class', (d) => link.filter(e => d == e).attr('class'))
             .text((d) => this.getLinkClass(d, 1))
             .style('writing-mode','tb-rl')
-            .attr('transform', getTransform)
+            .attr('transform', d => d.getNoteTransform())
             .attr('textLength', limitLen)
             .attr('dy', function () {
                 return -this.getBBox().height / 2;
@@ -339,8 +383,11 @@ class Chart {
         labelEnter
             .attr("index", (d) => d.dataIndex)
             .attr("class", (d) => ct.getNodeClass(d, 2))
-            .text(d => d.data.id + '@' + d.data.version)
-            .call(drag(simulation))
+            .text(d => d.data.id + (
+                // 如果有同名包，则在标签上后缀版本
+                ct.nodes.filter(n => n.data.id === d.data.id).length >= 2 ?
+                    ('@' + d.data.version) : '' 
+            )).call(drag(simulation))
         
         // 顶点圆圈
         ct.circle = this.nodeg
@@ -373,7 +420,7 @@ class Chart {
 
         // 悬停标签提示
         ct.circle.selectAll('title').remove();
-        ct.circle.filter(d => !d.showRequiring)
+        ct.circle.filter(d => d.data.requiring.length && !d.showRequiring)
             .append('title')
             .text('点击显示依赖');
             
@@ -385,8 +432,10 @@ class Chart {
     
     // 鼠标点击顶点事件
     clickNode(eThis, node) {
-        console.log('点击顶点', node.dataIndex, node);
-        this.showRequiring(node.dataIndex);
+        const { data: { requiring }, dataIndex: i } = node;
+        console.log('点击顶点', i, eThis, node, this.requirePaths[i]);
+        if(!requiring.length) return;
+        this.showRequiring(i);
         this.update();
     }
     
@@ -396,7 +445,11 @@ class Chart {
             desc, circle, 
             label, link, 
             requirePaths, 
-            options: opt
+            options: {
+                highlightRequiring: hlrq, 
+                highlightRequiredBy: hlrb,
+                highlightPath: hlp, fading
+            }
         } = this;
         desc
             .call(appendLine, `名称: ${node.data.id}\n`)
@@ -408,19 +461,19 @@ class Chart {
 
         const { requiring: outs, requiredBy: ins } = node.data;
         // 返回一个函数：判断一条边link是否在路径顶点集nodeSet上，用于过滤边
-        const onPath = (nodeSet) => (link) =>
+        const onPath = (nodeSet) => (link) => nodeSet &&
             nodeSet.includes(link.source.dataIndex) && 
-            nodeSet.includes(link.target.dataIndex)
+            nodeSet.includes(link.target.dataIndex);
 
         // 将该顶点的出边和其目标顶点（依赖包）显示为橙色
-        if(opt.highlightRequiring) {
+        if(hlrq) {
             const outFtr = d => outs.includes(d.dataIndex);
             circle.filter(outFtr).classed('out-node', true);
             label.filter(outFtr).classed('out-node', true);
             link.filter(d => d.source == node).classed('out-link', '#d72');
         }
         // 将该顶点的入边和其源头顶点（被依赖包）显示为绿色
-        if(opt.highlightRequiredBy) {
+        if(hlrb) {
             const inFtr = d => ins.includes(d.dataIndex);      
             circle.filter(inFtr).classed('in-node', true);
             label.filter(inFtr).classed('in-node', true);
@@ -428,7 +481,7 @@ class Chart {
         }
         // 将根顶点到该顶点最短路径上的所有顶点和边（最短依赖路径）显示为青色
         const paths = requirePaths[node.dataIndex];
-        if(opt.highlightPath && paths && paths.length > 1) {
+        if(hlp && paths && paths.length > 1) {
             const pathSel = paths.map(ri => `[index="${ri}"]`);
             circle.filter(pathSel.join(',')).classed('path-node', true);
             label.filter(pathSel.join(',')).classed('path-node', true);
@@ -438,13 +491,17 @@ class Chart {
         // const fills = ins.reduce((o, c) => o.concat(requirePaths[c]), []);
         // link.filter(d => onPath(fills)(d) && !onPath(paths)(d))
         //     .classed('focus-link', true);
-
-        const allUp = [].concat(ins, outs, paths ?? []);
+        
         // 显示所有上述边的文字标签
-        this.showLinkNote(link.filter(onPath(allUp)));
+        const allUpFtr = d => 
+            hlrq && d.source == node ||
+            hlrb && d.target == node ||
+            hlp && onPath(paths)(d)
+        this.showLinkNote(link.filter(allUpFtr));
 
         // 弱化所有上述之外顶点的存在感
-        if(opt.fading) {
+        if(fading) {
+            const allUp = [].concat(hlrb ? ins : [], hlrq ? outs : [], paths ?? []);
             const exptFtr = d => !allUp.includes(d.dataIndex);
             circle.filter(exptFtr).classed('except-node', true);
             label.filter(exptFtr).classed('except-node', true);
@@ -491,26 +548,9 @@ const appendLine = (target, text, style = '', lineHeight = '1.2em') => {
         .text(text);
 }
 
-// 获取边上标签的位置
-const getTransform = (l) => {
-    const { source: s, target: t } = l;
-    const p = getCenter(s.x, s.y, t.x, t.y);
-    let angle = getAngle(s.x, s.y, t.x, t.y);
-    if (s.x > t.x && s.y < t.y || s.x < t.x && s.y > t.y) {
-        angle = -angle;
-    }
-    return `translate(${p.x}, ${p.y}) rotate(${angle})`;
-}
-
-const linkLen = (l) => {
-    const { x: x1, y: y1 } = l.source;
-    const { x: x2, y: y2 } = l.target;
-    return getLength(x1, y1, x2, y2);
-};
-
 // 获取限制的文本宽度
-const limitLen = (l) => 
-    limit(linkLen(l) * 0.4, 22, 33);
+const limitLen = (link) => 
+    limit(link.length() * 0.4, 22, 33);
 
 // 图标定义
 const defs = (container) => {

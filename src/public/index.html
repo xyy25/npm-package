@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<body>
+    <div id="chart"></div>
+    <div class="chartTooltip hidden">
+        <p>
+            <strong class="name"></strong>
+        </p>
+    </div>
+    <!-- load the d3.js library -->
+    <script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.js"></script>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <link rel="stylesheet" href="./js/lib/css/d3-context-menu.css" type="text/css" />
+    <script type="text/javascript" src="./js/lib/d3-context-menu.js"></script>
+    <link rel="stylesheet" href="./css/chart.css" type="text/css" />
+    <script src="./js/utils.js"></script>
+    <script src="./js/chart.js"></script>
+    <script>
+        const myGlobal = {
+            chart: null,
+            data: null
+        }
+
+        d3.json('./res.json')
+            .then(data => {
+                myGlobal.data = data;
+
+                /*初始化宽高*/
+                const ct = d3.select("#chart");
+                //const [width, height] = ['width', 'height'].map(e => parseInt(ct.style(e)))
+                const [width, height] = [1628, 900];
+
+                // 这里我们将svg元素，和子group元素拆分
+                const svg = ct
+                    .append("svg")
+                    // 设置svg宽高
+                    .attr("id", "topo")
+                    .attr("width", width)
+                    .attr("height", height)
+                
+                console.log(width, height);
+
+                svg
+                    .attr("viewBox", [- width / 2, - height / 2, width, height])
+                    .attr("style", "max-width: 100%; max-height: 100%;");
+
+                myGlobal.chart = new Chart(svg, data, { showExtraneous: false });
+            })
+    </script>
+</body>
+
+<style>
+    body {
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
+/* 
+    .node circle {
+        fill: #fff;
+        stroke: steelblue;
+        stroke-width: 3px;
+    }
+
+    .node text {
+        font: 12px sans-serif;
+    }
+
+    .link {
+        fill: none;
+        stroke: #ccc;
+        stroke-width: 4px;
+        cursor: pointer;
+    }
+*/
+
+    .chartTooltip {
+        position: absolute;
+        width: 200px;
+        height: auto;
+        padding: 10px;
+        box-sizing: border-box;
+        background-color: white;
+        border-radius: 5px;
+        box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.4);
+        pointer-events: none;
+    }
+
+    .chartTooltip.hidden {
+        display: none;
+    }
+
+    .chartTooltip p {
+        margin: 0;
+        font-size: 14px;
+        line-height: 20px;
+        word-wrap: break-word;
+    }
+
+    #chart {
+        display: block;
+    }
+</style>

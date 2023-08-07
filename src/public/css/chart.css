@@ -4,7 +4,7 @@ circle.node {
 }
 
 text.node {
-  font-family: Monaco, sans-serif;
+  font-family: Monaco, Hack, Consolas, "方正准圆简体", "青鸟华光准圆", "有爱圆体 CN", "幼圆", sans-serif;
   font-size: 11px;
 }
 
@@ -16,7 +16,7 @@ text.link {
   fill: #999;
   font-size: 10px;
   font-weight: 600;
-  font-family: "方正准圆简体", sans-serif;
+  font-family: "方正准圆简体", "青鸟华光准圆", "有爱圆体 CN", "幼圆", sans-serif;
   filter: drop-shadow(0 0 0.15px white) drop-shadow(0 0 0.15px white) drop-shadow(0 0 0.15px white) drop-shadow(0 0 0.15px white) drop-shadow(0 0 0.15px white) drop-shadow(0 0 0.15px white) drop-shadow(0 0 0.15px white) drop-shadow(0 0 0.15px white) drop-shadow(0 0 0.15px white);
 }
 
@@ -100,7 +100,7 @@ circle.out-node {
 }
 
 text.out-node {
-  fill: orange;
+  fill: rgb(204, 90, 14);
 }
 
 line.path-link {
@@ -108,7 +108,7 @@ line.path-link {
 }
 
 text.path-link {
-  fill: cyan;
+  fill: rgb(30, 188, 216);
 }
 
 circle.path-node {
