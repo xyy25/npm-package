@@ -112,6 +112,10 @@ line.optional-link {
     stroke-dasharray: 8 2 2 2;
 }
 
+circle.depth-end-node {
+    fill:rgb(201, 109, 109);
+}
+
 .in {
     &-link {
         @at-root {

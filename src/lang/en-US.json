@@ -20,6 +20,9 @@
                 "format": {
                     "description": "Auto format JSON file to a more pretty looking."
                 },
+                "default": {
+                    "description": "Use default options without asking any questions."
+                },
                 "diagram": {
                     "description": "Auto convert result to DirectedDiagram data structure."
                 },
@@ -56,6 +59,14 @@
     },
     "commons": {
         "error": "ERROR"
+    },
+    "line": {
+        "default": "DEFAULT",
+        "input.dir": "Your directory",
+        "input.name": "Package name",
+        "input.outJson": "Output as JSON",
+        "input.outJsonDir": "Output file name",
+        "input.depth": "Recursion depth"
     },
     "logs": {
         "cli.ts": {

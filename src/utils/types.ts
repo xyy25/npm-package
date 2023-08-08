@@ -64,11 +64,8 @@ export type DepResult = {
 export type DepItem = {
     version: string; // 【顶点属性】该依赖包实际使用的版本（即在node_modules里存在的版本）
     path: string | null; // 【顶点属性】该依赖包安装的相对路径
-    type: DependencyType; // 【边属性】该包的依赖类型
-    range: string; // 【边属性】该依赖包需要的版本范围
-    optional: boolean; // 【边属性】该依赖包是否必须
-    invalid: boolean; // 【边属性】该依赖包是否非法
     requires?: DepResult; // 【顶点属性】该依赖包的子依赖列表（若无依赖或已经计算过，则没有这条）
+    meta: LinkMeta;
 };
 
 // 顶点属性
@@ -83,10 +80,11 @@ export type DiagramNode = {
 
 // 边属性
 export type LinkMeta = {
-    range: string;
-    type: DependencyType;
-    optional: boolean;
-    invalid: boolean;
+    type: DependencyType; // 【边属性】该依赖的类型
+    range: string; // 【边属性】该依赖需要的版本范围
+    optional: boolean; // 【边属性】该依赖是否必须
+    invalid: boolean; // 【边属性】该依赖关系是否版本非法
+    depthEnd: boolean; // 【边属性】该依赖关系是否到达了递归的终点（当递归深度有限时）
 }
 
 export type DirectedDiagram = 

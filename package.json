@@ -4,8 +4,11 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "start": "ts-node index.ts",
-    "test": "ts-node index.ts analyze test-pkg"
+    "start": "ts-node index.ts analyze",
+    "test": "ts-node index.ts analyze test-pkg -y",
+    "detect": "ts-node index.ts detect",
+    "detect-test": "ts-node index.ts detect test-pkg",
+    "get": "ts-node index.ts get"
   },
   "keywords": [],
   "author": "",

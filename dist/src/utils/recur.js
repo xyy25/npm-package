@@ -213,22 +213,28 @@ pkgCount) {
                     rangeInvalid.push(`${id} REQUIRED ${range} BUT ${pkg.version} BY ${by}`);
                 }
                 const item = {
-                    range,
                     version: pkg.version,
-                    type: p.type,
                     path: pth,
-                    optional: p.optional,
-                    invalid
+                    meta: {
+                        range,
+                        type: p.type,
+                        depthEnd: false,
+                        optional: p.optional,
+                        invalid
+                    }
                 };
                 p.target[id] = item;
                 const itemStr = (0, _1.toString)(item, id);
                 // console.log('FOUND', itemStr);
                 // 如果该包的依赖未登记入哈希集合
                 if (!hash.has(itemStr)) {
-                    // 如果当前搜索深度未超标，则计算它的子依赖
-                    if (p.depth <= depth && (pkgDeps && Object.keys(pkgDeps).length ||
+                    const hasDeps = !!(pkgDeps && Object.keys(pkgDeps).length ||
                         pkgOptDeps && Object.keys(pkgOptDeps).length ||
-                        pkgPeerDeps && Object.keys(pkgPeerDeps).length)) {
+                        pkgPeerDeps && Object.keys(pkgPeerDeps).length);
+                    if (p.depth > depth) {
+                        item.meta.depthEnd = true;
+                    } // 如果当前搜索深度未超标，则计算它的子依赖
+                    else if (hasDeps) {
                         p.target[id].requires = {};
                         let newTasks = [];
                         const q = (e, type, optional) => new QueueItem(e[0], e[1], itemStr, type, optional, p.depth + 1, (0, path_1.join)(pkgPath, NODE_MODULES), p.target[id].requires);
@@ -255,8 +261,11 @@ pkgCount) {
                 (p.optional ? optionalNotMeet : notFound)
                     .push(`${id} ${range} ${type} REQUIRED BY ${by}`);
                 p.target[id] = {
-                    range, version: "NOT_FOUND", type: p.type, path: null,
-                    optional: p.optional, invalid: false
+                    version: "NOT_FOUND", path: null,
+                    meta: {
+                        range, type: p.type, depthEnd: p.depth > depth,
+                        optional: p.optional, invalid: false
+                    }
                 };
                 break;
             }

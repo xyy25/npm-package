@@ -57,7 +57,7 @@ const toDiagram = (depResult, rootPkg) => {
         }];
     const dfs = (dep, originIndex = 0) => {
         for (const [id, item] of Object.entries(dep)) {
-            const { requires, version, path, type, optional, range, invalid } = item;
+            const { requires, version, path, meta } = item;
             const newItem = {
                 id, version, path,
                 meta: [], requiring: [],
@@ -75,9 +75,8 @@ const toDiagram = (depResult, rootPkg) => {
             }
             // 起始顶点的依赖（出边）属性中登记该顶点
             res[originIndex].requiring.push(index);
-            res[originIndex].meta.push({
-                range, type, optional, invalid
-            });
+            // 登记边（依赖）属性
+            res[originIndex].meta.push(meta);
             if (requires) {
                 dfs(requires, index);
             }

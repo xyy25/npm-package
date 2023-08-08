@@ -55,8 +55,7 @@ export const toDiagram = (depResult: DepResult, rootPkg?: PackageJson): Directed
     const dfs = (dep: DepResult, originIndex: number = 0) => {
         for(const [id, item] of Object.entries(dep)) {
             const { 
-                requires, version, path, type, 
-                optional, range, invalid
+                requires, version, path, meta
             } = item;
             const newItem: DiagramNode = { 
                 id, version, path, 
@@ -75,9 +74,8 @@ export const toDiagram = (depResult: DepResult, rootPkg?: PackageJson): Directed
             }
             // 起始顶点的依赖（出边）属性中登记该顶点
             res[originIndex].requiring.push(index);
-            res[originIndex].meta.push({
-                range, type, optional, invalid
-            });
+            // 登记边（依赖）属性
+            res[originIndex].meta.push(meta);
                 
             if(requires) {
                 dfs(requires, index);

@@ -205,25 +205,27 @@ class Chart {
 
     // 根据顶点的属性特征，获取顶点的样式类型名（可重叠）
     getNodeClass(node, vi, append = true) {
-        const { requirePaths } = this;
+        const { requirePaths, link } = this;
         // 顶点类型判断数组
         // [判断方法, 顶点类型名, 样式类名（在chart.scss中定义）, ...(可以继续附加一些值)]，下标越大优先级越高
         const nodeType = [
             [true, "", "node"],
             [true, "", "hidden-node"], // 未展开边的默认顶点
             [(n) => n.showRequiring && n.data.requiring.length, "", "transit-node"], // 已展开边，有入边有出边的顶点，即有依赖且被依赖的包
+            [(n, li) => li.length && li.every(l => l.meta.depthEnd), "递归终点", "depth-end-node"], // 所有的入边均为递归深度到达最大的边的顶点
             [(n) => !n.data.requiring.length, "", "terminal-node"], // 无出边的顶点，即无依赖的包
             [(n, i) => requirePaths[i] === null, "未使用", "free-node"], // 无法通向根顶点的顶点，即不必要的包
             [(n, i) => n.data.path === null, "未安装", "not-found-node"], // 没有安装的包
-            [(n, i) => n.data.requiredBy.includes(0), "主依赖", "direct-node"], // 根顶点的相邻顶点，即被项目直接依赖的包
+            [(n) => n.data.requiredBy.includes(0), "主依赖", "direct-node"], // 根顶点的相邻顶点，即被项目直接依赖的包
             [(n, i) => !i, "主目录", "root-node"], // 根顶点，下标为0的顶点，代表根目录的项目包
         ];
 
         const { dataIndex: i } = node;
-        const r = v => typeof v === 'function' ? v(node, i) : v;
+        const linkIn = link.filter(l => l.target == node).data();
+        const linkOut = link.filter(l => l.source == node).data();
+        const r = v => typeof v === 'function' ? v(node, i, linkIn, linkOut) : v;
         // 根据判断数组获取顶点类型所映射的属性值的函数
-        if(append) {
-            // 根据nodeType现有的属性值增加类名
+        if(append) { // 根据nodeType现有的属性值增加类名
             return nodeType.reduce((o, e) => r(e[0]) && e[vi] ? o.concat(r(e[vi])) : o, []).join(" ");
         } else {
             return nodeType.reduce((o, e) => r(e[0]) && e[vi] ? r(e[vi]) : o, nodeType[0][vi]);
