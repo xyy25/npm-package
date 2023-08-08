@@ -1,1 +1,1 @@
-run_command: "ts-node index.ts analyze test-pkg"
+run_command: ts-node index.ts analyze test-pkg -y -d 1

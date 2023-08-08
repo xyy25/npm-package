@@ -212,7 +212,7 @@ class Chart {
             [true, "", "node"],
             [true, "", "hidden-node"], // 未展开边的默认顶点
             [(n) => n.showRequiring && n.data.requiring.length, "", "transit-node"], // 已展开边，有入边有出边的顶点，即有依赖且被依赖的包
-            [(n, li) => li.length && li.every(l => l.meta.depthEnd), "递归终点", "depth-end-node"], // 所有的入边均为递归深度到达最大的边的顶点
+            [(n, i, li) => li.length && li.every(l => l.meta.depthEnd), "递归终点", "depth-end-node"], // 所有的入边均为递归深度到达最大的边的顶点
             [(n) => !n.data.requiring.length, "", "terminal-node"], // 无出边的顶点，即无依赖的包
             [(n, i) => requirePaths[i] === null, "未使用", "free-node"], // 无法通向根顶点的顶点，即不必要的包
             [(n, i) => n.data.path === null, "未安装", "not-found-node"], // 没有安装的包
@@ -240,7 +240,7 @@ class Chart {
             [(l) => l.meta.type === "dev", "开发", null],
             [(l) => l.meta.type === "peer", "同级", null],
             [(l) => !l.meta.optional && l.meta.invalid, (l) => l.meta.range, "invalid-link"],
-            [(l, _, t) => !l.meta.optional && t.data.path === null, "未安装", "invalid-link"]
+            [(l, i, t) => !l.meta.optional && t.data.path === null, "未安装", "invalid-link"]
         ];
 
         const { source: s,  target: t } = link;
