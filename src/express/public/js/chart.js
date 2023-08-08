@@ -237,10 +237,11 @@ class Chart {
         const linkType = [
             [true, "", "link"],
             [(l) => l.meta.optional, "", "optional-link"], // 可选依赖表示为虚线（chart.scss中定义）
-            [(l) => l.meta.type === "dev", "开发", null],
-            [(l) => l.meta.type === "peer", "同级", null],
-            [(l) => !l.meta.optional && l.meta.invalid, (l) => l.meta.range, "invalid-link"],
-            [(l, i, t) => !l.meta.optional && t.data.path === null, "未安装", "invalid-link"]
+            [(l) => l.meta.type === "dev", "开发", null], // 开发依赖(devDependecies)的边
+            [(l) => l.meta.type === "peer", "同级", null], // 同级依赖(peerDependencies)的边
+            [(l) => l.meta.depthEnd, "", "depth-end-link"], // 递归深度达到上限的边
+            [(l) => !l.meta.optional && l.meta.invalid, (l) => l.meta.range, "invalid-link"], // 非法依赖版本的边，标签显示合法版本范围
+            [(l, i, t) => !l.meta.optional && t.data.path === null, "未安装", "invalid-link"] // 未安装该依赖的边，样式和非法一致
         ];
 
         const { source: s,  target: t } = link;
@@ -424,8 +425,6 @@ class Chart {
                 ct.link.attr('class', d => ct.getLinkClass(d, 2));
                 ct.hideLinkNote();
             })
-        
-        this.updateOptions();
 
         // 悬停标签提示
         ct.circle.selectAll('title').remove();
@@ -441,6 +440,8 @@ class Chart {
         simulation.nodes(vsbNodes);
         simulation.force('link').links(vsbLinks);
         simulation.alpha(alpha).restart();
+
+        this.updateOptions();
     }
     
     // 鼠标点击顶点事件

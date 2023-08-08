@@ -48,6 +48,10 @@ circle.transit-node {
   stroke: black;
 }
 
+text.not-found-node {
+  fill: rgb(135, 46, 68);
+}
+
 circle.direct-node {
   stroke: #c84;
 }
@@ -77,6 +81,10 @@ line.optional-link {
 
 circle.depth-end-node {
   fill: rgb(201, 109, 109);
+}
+
+line.depth-end-link {
+  stroke: rgb(201, 109, 109);
 }
 
 line.in-link {
@@ -113,6 +121,7 @@ text.out-node {
 
 line.invalid-link {
   stroke: rgb(201, 109, 109);
+  stroke-width: 2px;
 }
 
 text.invalid-link {
@@ -123,10 +132,6 @@ text.invalid-link {
 circle.not-found-node {
   stroke: rgb(144, 114, 123);
   fill: rgb(72, 57, 57);
-}
-
-text.not-found-node {
-  fill: rgb(135, 46, 68);
 }
 
 line.path-link {

@@ -7,6 +7,7 @@ tmp/
 nginx/
 log/
 run/
+scripts/
 .vscode/
 .git/
 .config/
