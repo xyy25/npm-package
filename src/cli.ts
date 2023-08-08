@@ -28,7 +28,6 @@ const readInput = async (prompt: string, inputDesc: string = '', def: string = '
     return await new Promise<string>(
         res => rl.on('line', (line: string) => res(line || def))
     );
-
 }
 
 const cmd = new Command();
@@ -54,27 +53,37 @@ cmd.command('analyze').description(lang.commands.analyze.description)
     .addOption(jsonPrettyOption)
     .option('-y, --default', lang.commands.analyze.options.default.description, false)
     .option('-c, --console, --print', lang.commands.analyze.options.console.description)
+    .option('-h, --host', lang.commands.analyze.options.host.description)
+    .option('-p, --port', lang.commands.analyze.options.port.description)
     .option('--diagram', lang.commands.analyze.options.diagram.description)
     .action(async (str, options) => {
         const cwd = process.cwd(); // 命令执行路径
-        let { depth, default: def } = options; // 最大深度设置，默认为Infinity
+        let { depth, default: def, host, port } = options; // 最大深度设置，默认为Infinity
         let json: boolean | string | undefined = options.json;
 
         // 询问
-        if(!str) {
-            str = await readInput(lang.line['input.dir'])
+        while(!str) {
+            str = await readInput(lang.line['input.dir']);
+            if(str === '.exit') return;
+            if(!fs.existsSync(join(cwd, str))) {
+                console.error(error(lang.logs['cli.ts'].dirNotExist));
+                str = undefined;
+            }
         }
         const defOutFileName = join('outputs', `res-${path.basename(join(cwd, str))}.json`);
         if(!def) { // 如果不设置默认，则询问一些问题
+            if(depth === Infinity) {
+                depth = parseInt(await readInput(lang.line['input.depth'], '', 'Infinity')) || Infinity;
+            }
             if(json === undefined) {
                 const input = await readInput(lang.line['input.outJson'], 'y/n', 'n');
                 json = input === 'y';
                 if(json) {
                     json = await readInput(lang.line['input.outJsonDir'], '', defOutFileName) || true;
+                } else {
+                    port = port ?? parseInt(await readInput(lang.line['input.port'], '', '5500'));
+                    host = host ?? '127.0.0.1';
                 }
-            }
-            if(depth === Infinity) {
-                depth = parseInt(await readInput(lang.line['input.depth'], '', 'Infinity')) || Infinity;
             }
         }
         rl.close();
@@ -142,7 +151,7 @@ cmd.command('analyze').description(lang.commands.analyze.description)
                 if(!options.diagram) res = toDiagram(res, pkgJson);
                 const buffer = Buffer.from(JSON.stringify(res));
                 fs.writeFileSync(join(__dirname, 'express/public/res.json'), buffer);
-                await import('./express');
+                (await import('./express')).default(port, host);
             }
         } catch(e: any) {
             console.error(error(lang.commons.error + ':' + e));

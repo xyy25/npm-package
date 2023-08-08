@@ -46,12 +46,12 @@ class Chart {
 
     init(initOptions) {
         this.options = {
-            showExtraneous: true,
-            highlightRequiring: true,
-            highlightRequiredBy: true,
-            highlightPath: true,
-            fading: true,
-            simulationStop: false,
+            showExtraneous: true, // 显示游离顶点(无被依赖的额外包)
+            highlightRequiring: true, // 高亮入边(绿色)
+            highlightRequiredBy: true, // 高亮出边(橙色)
+            highlightPath: true, // 高亮根出发路径(青色)
+            fading: true, // 淡化非聚焦顶点
+            simulationStop: false, // 暂停力导模拟
             ...initOptions
         }
         this.initData();
@@ -322,16 +322,19 @@ class Chart {
 
         if(!keepNode) [node.showNode, node.showRequiring] = [false, false];
         // 隐藏所有当前无法通向根顶点的顶点，防止额外游离顶点产生
-        const vsbPaths = () => getPaths(0, nodes, 
+        // 获取当前所有显示顶点通向根顶点的路径，无路径者(游离)为null
+        const getVsbPaths = (nodeSet) => getPaths(0, nodeSet, 
             n => n.data.requiring, 
-            n => n.showNode && n.showRequiring);
-        let rest;
+            n => n.showNode && n.showRequiring); 
+        let rest = all, vsbPaths = getVsbPaths(nodes);
+        // 过滤，每次仅保留满足无法通向根顶点条件的顶点，并进行循环操作
         const filter = n => 
             (n.showNode || n.showRequiring) && 
             requirePaths[n.dataIndex] !== null && 
-            vsbPaths()[n.dataIndex] === null;
-        while((rest = all.filter(filter)).length)
-            console.log(vsbPaths()), rest.forEach(n => [n.showNode, n.showRequiring] = [false, false]);
+            vsbPaths[n.dataIndex] === null;
+        while((rest = rest.filter(filter)).length)
+            rest.forEach(n => [n.showNode, n.showRequiring] = [false, false]), 
+            console.log(vsbPaths = getVsbPaths(rest));
     }
     
     // 隐藏顶点的所有边，不隐藏顶点本身

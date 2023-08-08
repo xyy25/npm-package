@@ -23,6 +23,12 @@
                 "default": {
                     "description": "Use default options without asking any questions."
                 },
+                "host": {
+                    "description": "The host the view website opens on."
+                },
+                "port": {
+                    "description": "The port the view website opens on."
+                },
                 "diagram": {
                     "description": "Auto convert result to DirectedDiagram data structure."
                 },
@@ -66,7 +72,8 @@
         "input.name": "Package name",
         "input.outJson": "Output as JSON",
         "input.outJsonDir": "Output file name",
-        "input.depth": "Recursion depth"
+        "input.depth": "Recursion depth",
+        "input.port": "Opening on port"
     },
     "logs": {
         "cli.ts": {
