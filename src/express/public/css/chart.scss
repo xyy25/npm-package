@@ -76,6 +76,19 @@ $cn-fonts: '方正准圆简体', '青鸟华光准圆', '有爱圆体 CN', '幼�
     }
 }
 
+.depth-end {
+    &-node {
+        @at-root circle#{&} {
+            fill: rgb(201, 109, 109);
+        }
+    }
+    &-link {
+        @at-root line#{&} {
+            stroke: rgb(201, 109, 109);
+        }
+    }
+}
+
 .not-found-node {
     @at-root {
         circle#{&} {
@@ -124,15 +137,15 @@ line.optional-link {
     stroke-dasharray: 8 2 2 2;
 }
 
-.depth-end {
-    &-node {
-        @at-root circle#{&} {
-            fill: rgb(201, 109, 109);
-        }
-    }
-    &-link {
-        @at-root line#{&} {
+.invalid-link {
+    @at-root {
+        line#{&} {
             stroke: rgb(201, 109, 109);
+            stroke-width: 2px;
+        }
+        text#{&} {
+            fill: rgb(172, 77, 107);
+            @include backshade(rgb(56, 45, 45));
         }
     }
 }
@@ -179,19 +192,6 @@ line.optional-link {
             text#{&} {
                 fill: rgb(204, 90, 14);
             }
-        }
-    }
-}
-
-.invalid-link {
-    @at-root {
-        line#{&} {
-            stroke: rgb(201, 109, 109);
-            stroke-width: 2px;
-        }
-        text#{&} {
-            fill: rgb(172, 77, 107);
-            @include backshade(rgb(56, 45, 45));
         }
     }
 }

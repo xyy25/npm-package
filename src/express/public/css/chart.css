@@ -48,6 +48,19 @@ circle.transit-node {
   stroke: black;
 }
 
+circle.depth-end-node {
+  fill: rgb(201, 109, 109);
+}
+
+line.depth-end-link {
+  stroke: rgb(201, 109, 109);
+}
+
+circle.not-found-node {
+  stroke: rgb(144, 114, 123);
+  fill: rgb(72, 57, 57);
+}
+
 text.not-found-node {
   fill: rgb(135, 46, 68);
 }
@@ -79,12 +92,14 @@ line.optional-link {
   stroke-dasharray: 8 2 2 2;
 }
 
-circle.depth-end-node {
-  fill: rgb(201, 109, 109);
+line.invalid-link {
+  stroke: rgb(201, 109, 109);
+  stroke-width: 2px;
 }
 
-line.depth-end-link {
-  stroke: rgb(201, 109, 109);
+text.invalid-link {
+  fill: rgb(172, 77, 107);
+  filter: drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45));
 }
 
 line.in-link {
@@ -117,21 +132,6 @@ circle.out-node {
 
 text.out-node {
   fill: rgb(204, 90, 14);
-}
-
-line.invalid-link {
-  stroke: rgb(201, 109, 109);
-  stroke-width: 2px;
-}
-
-text.invalid-link {
-  fill: rgb(172, 77, 107);
-  filter: drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45));
-}
-
-circle.not-found-node {
-  stroke: rgb(144, 114, 123);
-  fill: rgb(72, 57, 57);
 }
 
 line.path-link {
