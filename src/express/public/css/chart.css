@@ -97,11 +97,6 @@ line.invalid-link {
   stroke-width: 2px;
 }
 
-text.invalid-link {
-  fill: rgb(172, 77, 107);
-  filter: drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45));
-}
-
 line.in-link {
   stroke: green;
 }
@@ -148,6 +143,11 @@ circle.path-node {
 
 text.path-node {
   fill: blue;
+}
+
+text.invalid-link {
+  fill: rgb(172, 77, 107);
+  filter: drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45));
 }
 
 line.focus-link {

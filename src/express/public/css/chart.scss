@@ -137,17 +137,9 @@ line.optional-link {
     stroke-dasharray: 8 2 2 2;
 }
 
-.invalid-link {
-    @at-root {
-        line#{&} {
-            stroke: rgb(201, 109, 109);
-            stroke-width: 2px;
-        }
-        text#{&} {
-            fill: rgb(172, 77, 107);
-            @include backshade(rgb(56, 45, 45));
-        }
-    }
+line.invalid-link {
+    stroke: rgb(201, 109, 109);
+    stroke-width: 2px;
 }
 
 .in {
@@ -217,6 +209,11 @@ line.optional-link {
             }
         }
     }
+}
+
+text.invalid-link {
+    fill: rgb(172, 77, 107);
+    @include backshade(rgb(56, 45, 45));
 }
 
 .focus {

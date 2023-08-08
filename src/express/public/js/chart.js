@@ -326,7 +326,7 @@ class Chart {
         const getVsbPaths = (nodeSet) => getPaths(0, nodeSet, 
             n => n.data.requiring, 
             n => n.showNode && n.showRequiring); 
-        let rest = all, vsbPaths = getVsbPaths(nodes);
+        let rest = all, vsbPaths = getVsbPaths(vsbNodes);
         // 过滤，每次仅保留满足无法通向根顶点条件的顶点，并进行循环操作
         const filter = n => 
             (n.showNode || n.showRequiring) && 

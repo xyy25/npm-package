@@ -64,7 +64,10 @@ cmd.command('analyze').description(lang.commands.analyze.description)
         // 询问
         while(!str) {
             str = await readInput(lang.line['input.dir']);
-            if(str === '.exit') return;
+            if(str === '.exit') {
+                rl.close();
+                return;
+            }
             if(!fs.existsSync(join(cwd, str))) {
                 console.error(error(lang.logs['cli.ts'].dirNotExist));
                 str = undefined;
