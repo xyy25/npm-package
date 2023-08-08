@@ -71,13 +71,11 @@ cmd.command('analyze').description(zh_CN_json_1.default.commands.analyze.descrip
     const { depth } = options; // 最大深度设置，默认为Infinity
     try {
         if (!fs_1.default.existsSync(pkgRoot)) { // 目录不存在
-            console.error(error(zh_CN_json_1.default.commons.error + ':', zh_CN_json_1.default.logs['cli.ts'].dirNotExist));
-            return;
+            throw zh_CN_json_1.default.logs['cli.ts'].dirNotExist;
         }
         const pkgJson = (0, utils_1.readPackageJson)(path_1.default.join(pkgRoot, 'package.json'));
         if (!pkgJson) { // package.json不存在
-            console.error(error(zh_CN_json_1.default.commons.error + ":", zh_CN_json_1.default.logs['cli.ts'].pkgJsonNotExist.replace('%s', str)));
-            return;
+            throw zh_CN_json_1.default.logs['cli.ts'].pkgJsonNotExist.replace('%s', str);
         }
         const pkgEx = (0, recur_1.detect)(pkgRoot, depth);
         const desc = zh_CN_json_1.default.logs['cli.ts'];
@@ -124,12 +122,13 @@ cmd.command('analyze').description(zh_CN_json_1.default.commands.analyze.descrip
         else {
             if (!options.diagram)
                 res = (0, utils_1.toDiagram)(res, pkgJson);
-            fs_1.default.writeFileSync(path_1.default.join(__dirname, 'public', 'res.json'), Buffer.from(JSON.stringify(res)));
+            const buffer = Buffer.from(JSON.stringify(res));
+            fs_1.default.writeFileSync(path_1.default.join(__dirname, 'express/public/res.json'), buffer);
             yield Promise.resolve().then(() => __importStar(require('./express')));
         }
     }
     catch (e) {
-        console.error(e);
+        console.error(error(zh_CN_json_1.default.commons.error + ':' + e));
     }
 }));
 cmd.command('detect')

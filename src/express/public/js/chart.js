@@ -15,7 +15,8 @@ class Link {
     getNoteTransform(rotate = false) {
         const { source: s, target: t } = this;
         const p = getCenter(s.x, s.y, t.x, t.y);
-        let angle = getAngle(s.x, s.y, t.x, t.y, rotate);
+        let angle = getAngle([s.x, s.y], [t.x, t.y], true, true);
+        rotate && (angle -= 90);
         if (s.x > t.x && s.y < t.y || s.x < t.x && s.y > t.y) {
             angle = -angle;
         }
@@ -191,7 +192,7 @@ class Chart {
         // 线的两端应该在结点圆的边上
         const { sin, cos } = Math;
         const proj = (d, cir, ofs, f) =>
-            (cir.r + ofs) * f(getAngleRad(d.source.x, d.source.y, d.target.x, d.target.y));
+            (cir.r + ofs) * f(getAngle([d.source.x, d.source.y], [d.target.x, d.target.y]));
         this.link
             .attr("x1", d => d.source.x + proj(d, d.source, 0, cos))
             .attr("y1", d => d.source.y + proj(d, d.source, 0, sin))
@@ -265,12 +266,20 @@ class Chart {
             .classed('chinese-note', d => d.rotate)
             .attr('transform', d => d.getNoteTransform(d.rotate))
             .attr('textLength', limitLen)
-            .attr('dy', function () {
-                return -this.getBBox().height / 2;
-            })
-            .attr('dx', function () {
-                return -this.getBBox().width / 2 + 6;
-            })
+
+        this.linkNote.filter(':not(.chinese-note)')
+            .attr('dx', offset(0, null))
+            .attr('dy', offset(null, 10));
+        this.linkNote.filter('.chinese-note')
+            .attr('dx', offset(5, null))
+            .attr('dy', offset(null, 0));
+        
+        function offset(x, y) { 
+            return function() {
+                const { width: w, height: h } = this.getBBox();
+                return (x !== null && -w / 2 + x) + (y !== null && -h / 2 + y);
+            }
+        }
     }
 
     hideLinkNote() {

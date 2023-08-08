@@ -2,11 +2,12 @@ node_modules/
 test-pkg/node_modules/
 test-pkgs/
 outputs/
-src/public/res.json
+src/express/public/res.json
 tmp/
 nginx/
 log/
 run/
+.vscode/
 .git/
 .config/
 .1024.nix

@@ -39,18 +39,11 @@ cmd.command('analyze').description(lang.commands.analyze.description)
 
         try {
             if(!fs.existsSync(pkgRoot)) { // 目录不存在
-                console.error( 
-                    error(lang.commons.error + ':', lang.logs['cli.ts'].dirNotExist)
-                );
-                return;
+                throw lang.logs['cli.ts'].dirNotExist;
             }
             const pkgJson = readPackageJson(path.join(pkgRoot, 'package.json'));
             if(!pkgJson) { // package.json不存在
-                console.error(error(
-                    lang.commons.error + ":", 
-                    lang.logs['cli.ts'].pkgJsonNotExist.replace('%s', str)
-                ))
-                return;
+                throw lang.logs['cli.ts'].pkgJsonNotExist.replace('%s', str);
             }
 
             const pkgEx = detect(pkgRoot, depth);
@@ -104,11 +97,12 @@ cmd.command('analyze').description(lang.commands.analyze.description)
                 console.log(cyan(desc.jsonSaved.replace('%s', yellowBright(outFileName))));
             } else {
                 if(!options.diagram) res = toDiagram(res, pkgJson);
-                fs.writeFileSync(path.join(__dirname, 'public', 'res.json'), Buffer.from(JSON.stringify(res)));
+                const buffer = Buffer.from(JSON.stringify(res));
+                fs.writeFileSync(path.join(__dirname, 'express/public/res.json'), buffer);
                 await import('./express');
             }
         } catch(e: any) {
-            console.error(e);
+            console.error(error(lang.commons.error + ':' + e));
         }
     });
 

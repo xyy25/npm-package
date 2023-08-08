@@ -1,5 +1,5 @@
 import express from 'express';
-import lang from './lang/zh-CN.json'
+import lang from '../lang/zh-CN.json'
 import { yellowBright } from 'chalk';
 import { exec } from 'child_process';
 import { join } from 'path';

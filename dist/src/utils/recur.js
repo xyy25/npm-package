@@ -79,8 +79,6 @@ function evaluate(depEval, pkgList) {
                 console.warn(orange(desc.notInHash2));
             }
             notRequired.push(...notInHash);
-            // notRequired.push(...notInHash.map(e => {
-            // }));
         }
         if (notInList.length) {
             // 如果有元素存在于哈希集合却不存在于detect结果中
@@ -208,20 +206,23 @@ pkgCount) {
                     continue;
                 }
                 const { dependencies: pkgDeps, optionalDependencies: pkgOptDeps, peerDependencies: pkgPeerDeps, peerDependenciesMeta: pkgPeerMeta } = pkg;
+                let invalid = false;
+                if (range !== 'latest' && !(0, semver_1.satisfies)(pkg.version, range)) {
+                    invalid = true;
+                    // 如果该包版本不符合range要求
+                    rangeInvalid.push(`${id} REQUIRED ${range} BUT ${pkg.version} BY ${by}`);
+                }
                 const item = {
                     range,
                     version: pkg.version,
                     type: p.type,
                     path: pth,
-                    optional: p.optional
+                    optional: p.optional,
+                    invalid
                 };
                 p.target[id] = item;
                 const itemStr = (0, _1.toString)(item, id);
                 // console.log('FOUND', itemStr);
-                if (range !== 'latest' && !(0, semver_1.satisfies)(pkg.version, range)) {
-                    // 如果该包版本不符合range要求
-                    rangeInvalid.push(`${id} REQUIRED ${range} BUT ${pkg.version} BY ${by}`);
-                }
                 // 如果该包的依赖未登记入哈希集合
                 if (!hash.has(itemStr)) {
                     // 如果当前搜索深度未超标，则计算它的子依赖
@@ -253,6 +254,10 @@ pkgCount) {
                 // 如果已到达根目录还是没找到，说明该依赖未安装
                 (p.optional ? optionalNotMeet : notFound)
                     .push(`${id} ${range} ${type} REQUIRED BY ${by}`);
+                p.target[id] = {
+                    range, version: "NOT_FOUND", type: p.type, path: null,
+                    optional: p.optional, invalid: false
+                };
                 break;
             }
             else {

@@ -20,17 +20,11 @@ function getCenter(x1, y1, x2, y2) {
 }
 
 // 计算两点角度
-function getAngleRad(x1, y1, x2, y2, rad = true) {
-    const res = Math.atan2(y2 - y1, x2 - x1);
-    return rad ? res : res / Math.PI * 180;
-}
-
-function getAngle(x1, y1, x2, y2, rotate = false) {
-    var x = Math.abs(x1 - x2);
-    var y = Math.abs(y1 - y2);
-    var z = Math.sqrt(x * x + y * y);
-    const r = rotate ? -Math.acos(y / z) : Math.asin(y / z);
-    return r / Math.PI * 180;
+function getAngle([x1, y1], [x2, y2], deg = false, abs = false) {
+    var [dx, dy] = [x2 - x1, y2 - y1].map(e => (abs ? Math.abs(e) : e));
+    let res = Math.atan2(dy, dx);
+    deg && (res = res / Math.PI * 180);
+    return res;
 }
 
 // 求无权有向图某个起始顶点到所有其他顶点的最短路径，如果无法通达，则路径为null

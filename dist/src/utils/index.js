@@ -32,9 +32,10 @@ exports.getREADME = getREADME;
 const countMatches = (str, matcher) => { var _a, _b; return (_b = (_a = str.match(new RegExp(matcher, "g"))) === null || _a === void 0 ? void 0 : _a.length) !== null && _b !== void 0 ? _b : 0; };
 exports.countMatches = countMatches;
 const toString = (depItem, id) => {
+    var _a;
     if ((id = id !== null && id !== void 0 ? id : depItem.id) === undefined)
         return '';
-    return (0, path_1.join)(depItem.path, id + '@' + depItem.version);
+    return (0, path_1.join)((_a = depItem.path) !== null && _a !== void 0 ? _a : '', id + '@' + depItem.version);
 };
 exports.toString = toString;
 const limit = (str, length) => str.slice(0, Math.min(str.length, Math.floor(length)) - 3) + '...';
@@ -56,7 +57,7 @@ const toDiagram = (depResult, rootPkg) => {
         }];
     const dfs = (dep, originIndex = 0) => {
         for (const [id, item] of Object.entries(dep)) {
-            const { requires, version, path, type, optional, range } = item;
+            const { requires, version, path, type, optional, range, invalid } = item;
             const newItem = {
                 id, version, path,
                 meta: [], requiring: [],
@@ -75,7 +76,7 @@ const toDiagram = (depResult, rootPkg) => {
             // 起始顶点的依赖（出边）属性中登记该顶点
             res[originIndex].requiring.push(index);
             res[originIndex].meta.push({
-                range, type, optional
+                range, type, optional, invalid
             });
             if (requires) {
                 dfs(requires, index);

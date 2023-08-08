@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const zh_CN_json_1 = __importDefault(require("./lang/zh-CN.json"));
+const zh_CN_json_1 = __importDefault(require("../lang/zh-CN.json"));
 const chalk_1 = require("chalk");
 const child_process_1 = require("child_process");
 const path_1 = require("path");
