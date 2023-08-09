@@ -7,27 +7,23 @@ import { NODE_MODULES, PACKAGE_JSON } from "./analyze";
 import { existsSync, readdirSync, lstatSync, readlinkSync } from "fs";
 import { toString } from ".";
 
-type DetectReturnType<T extends PackageManager> =
-    T extends 'npm' | 'yarn' ? string[] :
-    T extends 'pnpm' ? [string, string[]][] : never
-
 // 和analyze不同的地方在于：analyze是按照依赖的顺序分析，detect仅进行文件扫描
-export default function detect<P extends PackageManager, R = DetectReturnType<P>>(
+export default function detect(
     pkgRoot: string,
-    manager: P,
+    manager: PackageManager,
     depth: number = Infinity
-): R
+): string[]
 {
     const abs = (...path: string[]): string => join(pkgRoot, ...path);
     if(
         depth <= 0 || 
         !existsSync(pkgRoot) || 
         !existsSync(abs(NODE_MODULES))
-    ) { return [] as R; }
+    ) { return []; }
     
     // 如果包管理器是pnpm的符号链接结构
     if(manager === 'pnpm') {
-        return detectPnpm(pkgRoot) as R;
+        return detectPnpm(pkgRoot).map(e => e[0]);
     }
 
     // 如果包管理器是npm或yarn的扁平结构
@@ -59,12 +55,12 @@ export default function detect<P extends PackageManager, R = DetectReturnType<P>
             countPkg(modPath, pkgId);
         }
     }
-    return [...res] as R;
+    return [...res];
 }
 
 const DOT_PNPM = '.pnpm';
 
-function detectPnpm(pkgRoot: string): [string, string[]][] {
+export function detectPnpm(pkgRoot: string): [string, string[]][] {
     const abs = (...path: string[]): string => join(pkgRoot, ...path);
     const res = new Map<string, string[]>();
 

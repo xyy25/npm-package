@@ -5,7 +5,7 @@ import { getManagerType, readPackageJson, toDepItemWithId, toDiagram } from './u
 import { getPackage } from './utils/npmUtils';
 import analyze from './utils/analyze'; 
 import { evaluate } from './utils/recurUtils';
-import detect from './utils/detect';
+import detect, { detectPnpm } from './utils/detect';
 import readline from 'readline';
 import chalk from 'chalk';
 import lang from './lang/zh-CN.json';
@@ -46,8 +46,7 @@ const scopeOption = new Option('-s, --scope <scope>', lang.commands.analyze.opti
         .choices(['all', 'norm', 'peer', 'dev'])
         .default('all');
 const depthOption = new Option('-d, --depth <depth>', lang.commands.analyze.options.depth.description)
-        .default('NaN', lang.commands.analyze.options.depth.default)
-        .argParser((value) => { const r: number = parseInt(value); return r; })
+        .default(NaN, lang.commands.analyze.options.depth.default);
 const jsonOption = new Option( '-j, --json [fileName]', lang.commands.analyze.options.json.description);
 const jsonPrettyOption = new Option('--pretty, --format', lang.commands.analyze.options.format.description)
 const defaultOption = new Option('-y, --default', lang.commands.analyze.options.default.description)
@@ -104,7 +103,7 @@ cmd.command('analyze').description(lang.commands.analyze.description)
                 }
             }
         }
-        depth ||= Infinity
+        depth ||= Infinity;
         rl.close();
 
         const pkgRoot = join(cwd, str); // 包的根目录
@@ -215,14 +214,16 @@ cmd.command('detect')
             rl.close();
             depth ||= Infinity;
 
-            const res = detect(pkgRoot, manager, depth);
+            let res: string[] | [string, string[]][] = [];
             if(options.show) {
                 if(manager === 'pnpm') {
+                    res = detectPnpm(pkgRoot);
                     res.forEach(([o, l]) => {
                         console.log('*', cyanBright(o));
-                        (l as string[]).forEach(e => console.log(' ->', green(e)));
+                        l.forEach(e => console.log(' ->', green(e)));
                     });
                 } else {
+                    res = detect(pkgRoot, manager, depth);
                     res.forEach(e => console.log('-', green(e)));
                 }
             }

@@ -37,7 +37,7 @@ export const createBar = (total: number): ProgressBar | null => {
 
 export function evaluate(
     depEval: DepEval,
-    pkgList: string[] | [string, string[]][]
+    pkgList: string[]
 ): string[] {
     const notRequired: string[] = [];
     const {
@@ -45,11 +45,8 @@ export function evaluate(
     } = depEval;
     // 检查哈希表集合hash中的记录与detect结果的相差
     if (pkgList) {
-        if(Array.isArray(pkgList[0])) {
-            pkgList = pkgList.map(e => e[0]);
-        }
-        const notInHash = (pkgList as string[]).filter(e => !hash.has(e)).sort();
-        const notInList = [...hash].filter(e => !(pkgList as string[]).includes(e)).sort();
+        const notInHash = pkgList.filter(e => !hash.has(e)).sort();
+        const notInList = [...hash].filter(e => !pkgList.includes(e)).sort();
         if (notInHash.length) {
             // 如果有元素存在于detect结果却不存在于哈希集合中
             // 说明这些元素没有被通过依赖搜索覆盖到，如果scope不是全部或者递归深度有限，这是正常现象
