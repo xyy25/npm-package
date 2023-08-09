@@ -72,7 +72,7 @@ export function detectPnpm(pkgRoot: string): [string, string[]][] {
             const org = readlinkSync(abs(pkgPath));
             let orgPath;
             if(sep === '/') { // linux下，org是相对地址
-                orgPath = join(pkgPath, org);
+                orgPath = join(modPath, pkgId, "..", org);
             } else { // windows下，org是绝对地址
                 orgPath = relative(pkgRoot, org);
             }
