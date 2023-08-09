@@ -39,7 +39,12 @@ export default function (
     // 如果路径为符号链接，则将路径转到源文件
     if(fs.lstatSync(abs(pkgPath)).isSymbolicLink()) {
         const orgAbs = fs.readlinkSync(abs(pkgPath));
-        pkgPath = relative(abs(), orgAbs);
+        // readlink在windows和linux里表现不一样，所以这里要做区分
+        if(sep === '/') { // linux下realink获取的符号链接地址是文件的相对位置
+            pkgPath = join(pkgPath, orgAbs);
+        } else { // windows下realink获取的符号链接地址是绝对位置
+            pkgPath = relative(abs(), orgAbs);
+        }
         pth = getParentPath(id, pkgPath);
     }
 

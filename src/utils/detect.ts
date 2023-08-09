@@ -69,8 +69,13 @@ export function detectPnpm(pkgRoot: string): [string, string[]][] {
         const lstat = lstatSync(abs(pkgPath));
         // 如果目录是符号链接，则找它所指向的源目录，并放到一个组里
         if(lstat.isSymbolicLink()) { 
-            const orgAbs = readlinkSync(abs(pkgPath));
-            const orgPath = relative(pkgRoot, orgAbs);
+            const org = readlinkSync(abs(pkgPath));
+            let orgPath;
+            if(sep === '/') { // linux下，org是相对地址
+                orgPath = join(pkgPath, org);
+            } else { // windows下，org是绝对地址
+                orgPath = relative(pkgRoot, org);
+            }
             const ver = readPackageJson(abs(orgPath, PACKAGE_JSON))?.version ?? '';
             const orgStr = orgPath + (ver ? '@' + ver : '');
             if(!res.has(orgStr)) {

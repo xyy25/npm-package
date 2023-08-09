@@ -215,19 +215,20 @@ cmd.command('detect')
             depth ||= Infinity;
 
             let res: string[] | [string, string[]][] = [];
-            if(options.show) {
-                if(manager === 'pnpm') {
-                    res = detectPnpm(pkgRoot);
-                    res.forEach(([o, l]) => {
-                        console.log('*', cyanBright(o));
-                        l.forEach(e => console.log(' ->', green(e)));
-                    });
-                } else {
-                    res = detect(pkgRoot, manager, depth);
-                    res.forEach(e => console.log('-', green(e)));
-                }
+            
+            if(manager === 'pnpm') {
+                res = detectPnpm(pkgRoot);
+                res.forEach(([o, l]) => {
+                    console.log('*', cyanBright(o));
+                    l.forEach(e => console.log(' ->', green(e)));
+                });
+            } else {
+                res = detect(pkgRoot, manager, depth);
+                res.forEach(e => console.log('-', green(e)));
             }
-            console.log(cyan(lang.logs["cli.ts"].detectPkg), res.length);
+            if(options.show) {
+                console.log(cyan(lang.logs["cli.ts"].detectPkg), res.length);
+            }
         } catch (e) {
             console.error(error(lang.commons.error + ':', e));
         }
