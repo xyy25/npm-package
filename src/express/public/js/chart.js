@@ -326,15 +326,17 @@ class Chart {
         const getVsbPaths = (nodeSet) => getPaths(0, nodeSet, 
             n => n.data.requiring, 
             n => n.showNode && n.showRequiring); 
-        let rest = all, vsbPaths = getVsbPaths(vsbNodes);
+        let rest = all, vsbPaths = getVsbPaths(nodes);
         // 过滤，每次仅保留满足无法通向根顶点条件的顶点，并进行循环操作
         const filter = n => 
             (n.showNode || n.showRequiring) && 
             requirePaths[n.dataIndex] !== null && 
             vsbPaths[n.dataIndex] === null;
-        while((rest = rest.filter(filter)).length)
-            rest.forEach(n => [n.showNode, n.showRequiring] = [false, false]), 
+        console.log(vsbNodes);
+        while((rest = rest.filter(filter)).length) {
+            rest.forEach(n => [n.showNode, n.showRequiring] = [false, false]); 
             console.log(vsbPaths = getVsbPaths(rest));
+        }
     }
     
     // 隐藏顶点的所有边，不隐藏顶点本身
