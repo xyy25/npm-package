@@ -83,7 +83,7 @@ export default function analyze(
             new QueueItem(id, range, 'ROOT', type as DependencyType, { 
                 norm: false, optional: true, dev: false,
                 peer: rootPeerMeta?.[id]?.optional ?? false
-            }[type], 1, join(sep, NODE_MODULES), depEval.result
+            }[type], 1, NODE_MODULES, depEval.result
     ))));
 
     if(manager === 'pnpm') {
@@ -122,7 +122,7 @@ function doBfs(
             break;
         }
 
-        if(!pth || pth === sep || pth === join(sep, NODE_MODULES)) {
+        if(!pth || pth === sep || pth === NODE_MODULES) {
             const type = p.type === 'norm' ? '' : p.type;
             // 如果已到达根目录还是没找到，说明该依赖未安装
             (p.optional ? optionalNotMeet : notFound)

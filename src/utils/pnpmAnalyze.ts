@@ -39,7 +39,7 @@ export default function (
     // 如果路径为符号链接，则将路径转到源文件
     if(fs.lstatSync(abs(pkgPath)).isSymbolicLink()) {
         const orgAbs = fs.readlinkSync(abs(pkgPath));
-        pkgPath = join(sep, relative(abs(), orgAbs));
+        pkgPath = relative(abs(), orgAbs);
         pth = getParentPath(id, pkgPath);
     }
 

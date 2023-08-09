@@ -38,7 +38,7 @@ export default function detect(
     }
 
     for(const pkgId of readdirSync(abs(NODE_MODULES))) {
-        const modPath = join(sep, NODE_MODULES)
+        const modPath = NODE_MODULES;
         if(
             !lstatSync(abs(modPath, pkgId)).isDirectory()
             || pkgId.startsWith('.')
@@ -70,7 +70,7 @@ export function detectPnpm(pkgRoot: string): [string, string[]][] {
         // 如果目录是符号链接，则找它所指向的源目录，并放到一个组里
         if(lstat.isSymbolicLink()) { 
             const orgAbs = readlinkSync(abs(pkgPath));
-            const orgPath = join(sep, relative(pkgRoot, orgAbs));
+            const orgPath = relative(pkgRoot, orgAbs);
             const ver = readPackageJson(abs(orgPath, PACKAGE_JSON))?.version ?? '';
             const orgStr = orgPath + (ver ? '@' + ver : '');
             if(!res.has(orgStr)) {
@@ -112,7 +112,7 @@ export function detectPnpm(pkgRoot: string): [string, string[]][] {
         }
     }
 
-    detectPkg(sep);
+    detectPkg('.');
     //console.log(res);
 
     return [...res];

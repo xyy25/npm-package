@@ -54,7 +54,7 @@ export const toDiagram = (depResult: DepResult, rootPkg?: PackageJson): Directed
     const res: DirectedDiagram = [{
         id: rootPkg?.name ?? 'root',
         version: rootPkg?.version ?? 'root',
-        path: sep,
+        path: '.',
         meta: [],
         requiring: [],
         requiredBy: []
