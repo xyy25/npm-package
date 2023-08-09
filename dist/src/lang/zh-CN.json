@@ -17,17 +17,29 @@
                 "json": {
                     "description": "将结果输出为JSON文件, 否则打印至命令行."
                 },
+                "noweb": {
+                    "description": "完成分析后不启动网页视图."
+                },
                 "format": {
                     "description": "是否自动格式化JSON文件."
                 },
                 "default": {
                     "description": "不询问任何问题, 采用默认设置."
                 },
+                "host": {
+                    "description": "视图网页开启的地址."
+                },
+                "port": {
+                    "description": "视图网页开启的端口号."
+                },
                 "diagram": {
                     "description": "是否将结果转化为DirectedDiagram有向图结构."
                 },
                 "console": {
                     "description": "是否将结果打印至控制台."
+                },
+                "manager": {
+                    "description": "指定该项目的包管理器。"
                 }
             }
         },
@@ -66,7 +78,8 @@
         "input.name": "输入包名",
         "input.outJson": "是否输出JSON文件",
         "input.outJsonDir": "输出的JSON文件名",
-        "input.depth": "递归深度"
+        "input.depth": "递归深度",
+        "input.port": "端口号"
     },
     "logs": {
         "cli.ts": {

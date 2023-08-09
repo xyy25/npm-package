@@ -17,8 +17,11 @@
                 "json": {
                     "description": "Output result as JSON file, otherwise will print the result on the console."
                 },
+                "noweb": {
+                    "description": "Do not start the view website after analyzing."
+                },
                 "format": {
-                    "description": "Auto format JSON file to a more pretty looking."
+                    "description": "Automatically format JSON file to a more pretty looking."
                 },
                 "default": {
                     "description": "Use default options without asking any questions."
@@ -30,10 +33,13 @@
                     "description": "The port the view website opens on."
                 },
                 "diagram": {
-                    "description": "Auto convert result to DirectedDiagram data structure."
+                    "description": "Automatically convert result to DirectedDiagram data structure."
                 },
                 "console": {
                     "description": "Print the result on the console."
+                },
+                "manager": {
+                    "description": "The package manager of the target project."
                 }
             }
         },
@@ -87,9 +93,11 @@
         "express.ts": {
             "start": "The generated view is now opened at %s"
         },
-        "utils/recur.ts": {
+        "utils/analyze.ts": {
             "nowComplete": "Now",
-            "analyzed": "Analyzed %d packages.",
+            "analyzed": "Analyzed %d packages."
+        },
+        "utils/recurUtils.ts": {
             "coverage": "Depth level: %d, Coverage: %cv. %len package(s) are not analyzed.",
             "notInHash": "The following %len package(s) detected in node_modules are existing but not analyzed.",
             "notInHash2": "Maybe they are not required by anyone?",

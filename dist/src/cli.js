@@ -81,17 +81,32 @@ cmd.command('analyze').description(zh_CN_json_1.default.commands.analyze.descrip
     .addOption(jsonPrettyOption)
     .option('-y, --default', zh_CN_json_1.default.commands.analyze.options.default.description, false)
     .option('-c, --console, --print', zh_CN_json_1.default.commands.analyze.options.console.description)
+    .option('-i, --noweb', zh_CN_json_1.default.commands.analyze.options.noweb.description, false)
+    .option('-h, --host', zh_CN_json_1.default.commands.analyze.options.host.description)
+    .option('-p, --port', zh_CN_json_1.default.commands.analyze.options.port.description)
+    .option('-m, --manager', zh_CN_json_1.default.commands.analyze.options.manager.description)
     .option('--diagram', zh_CN_json_1.default.commands.analyze.options.diagram.description)
     .action((str, options) => __awaiter(void 0, void 0, void 0, function* () {
     const cwd = process.cwd(); // 命令执行路径
-    let { depth, default: def } = options; // 最大深度设置，默认为Infinity
+    let { depth, noweb, default: def, host, port } = options; // 最大深度设置，默认为Infinity
     let json = options.json;
     // 询问
-    if (!str) {
+    while (!str) {
         str = yield readInput(zh_CN_json_1.default.line['input.dir']);
+        if (str === '.exit') {
+            rl.close();
+            return;
+        }
+        if (!fs_1.default.existsSync((0, path_1.join)(cwd, str))) {
+            console.error(error(zh_CN_json_1.default.logs['cli.ts'].dirNotExist));
+            str = undefined;
+        }
     }
     const defOutFileName = (0, path_1.join)('outputs', `res-${path_1.default.basename((0, path_1.join)(cwd, str))}.json`);
     if (!def) { // 如果不设置默认，则询问一些问题
+        if (depth === Infinity) {
+            depth = parseInt(yield readInput(zh_CN_json_1.default.line['input.depth'], '', 'Infinity')) || Infinity;
+        }
         if (json === undefined) {
             const input = yield readInput(zh_CN_json_1.default.line['input.outJson'], 'y/n', 'n');
             json = input === 'y';
@@ -99,8 +114,9 @@ cmd.command('analyze').description(zh_CN_json_1.default.commands.analyze.descrip
                 json = (yield readInput(zh_CN_json_1.default.line['input.outJsonDir'], '', defOutFileName)) || true;
             }
         }
-        if (depth === Infinity) {
-            depth = parseInt(yield readInput(zh_CN_json_1.default.line['input.depth'], '', 'Infinity')) || Infinity;
+        if (!noweb) {
+            port = port !== null && port !== void 0 ? port : parseInt(yield readInput(zh_CN_json_1.default.line['input.port'], '', '5500'));
+            host = host !== null && host !== void 0 ? host : '127.0.0.1';
         }
     }
     rl.close();
@@ -154,12 +170,12 @@ cmd.command('analyze').description(zh_CN_json_1.default.commands.analyze.descrip
             fs_1.default.writeFileSync(outFileUri, Buffer.from(JSON.stringify(res, null, options.format ? "\t" : "")));
             console.log(cyan(desc.jsonSaved.replace('%s', yellowBright(outFileName))));
         }
-        else {
+        if (!noweb) {
             if (!options.diagram)
                 res = (0, utils_1.toDiagram)(res, pkgJson);
             const buffer = Buffer.from(JSON.stringify(res));
             fs_1.default.writeFileSync((0, path_1.join)(__dirname, 'express/public/res.json'), buffer);
-            yield Promise.resolve().then(() => __importStar(require('./express')));
+            (yield Promise.resolve().then(() => __importStar(require('./express')))).default(port, host);
         }
     }
     catch (e) {

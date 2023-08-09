@@ -17,6 +17,9 @@
                 "json": {
                     "description": "将结果输出为JSON文件, 否则打印至命令行."
                 },
+                "noweb": {
+                    "description": "完成分析后不启动网页视图."
+                },
                 "format": {
                     "description": "是否自动格式化JSON文件."
                 },
@@ -34,6 +37,9 @@
                 },
                 "console": {
                     "description": "是否将结果打印至控制台."
+                },
+                "manager": {
+                    "description": "指定该项目的包管理器。"
                 }
             }
         },
@@ -82,14 +88,16 @@
             "detected": "检测到 %s 个依赖包.",
             "noDependency": "该项目未安装任何依赖.",
             "jsonSaved": "分析结果已保存至%s.",
-            "detectPkg": "检测到的依赖包数:"
+            "detectPkg": "扫描到的依赖包文件数:"
         },
         "express.ts": {
             "start": "网页视图已在 %s 打开."
         },
-        "utils/recur.ts": {
+        "utils/analyze.ts": {
             "nowComplete": "当前",
-            "analyzed": "已分析 %d 个依赖包.",
+            "analyzed": "已分析 %d 个依赖包."
+        },
+        "utils/recurUtils.ts": {
             "coverage": "递归深度: %d, 覆盖率: %cv. 有 %len 个依赖包尚未分析到.",
             "notInHash": "以下 %len 个依赖包在node_modules中存在且被扫描, 但没有被依赖分析检测到.",
             "notInHash2": "这些包有可能未被使用?",

@@ -1,3 +1,4 @@
+export type PackageManager = 'npm' | 'yarn' | 'pnpm';
 export type Dependencies = {
     [id: string]: string;
 };

@@ -1,10 +1,18 @@
-import { DepResult, DepItem, DiagramNode, DirectedDiagram, PackageJson } from './types';
+import { DepResult, DepItem, DiagramNode, DirectedDiagram, PackageJson, PackageManager } from './types';
 import { join, sep } from 'path';
 import fs from 'fs';
 
 // 获取包根目录下的package.json对象
 export const readPackageJson = (fileUri: string): PackageJson | null => {
     try { return require(fileUri); } catch(e: any) { return null; }
+}
+
+// 根据lock文件判定该项目使用的是哪种包管理器
+export function getManagerType(pkgRoot: string): PackageManager {
+    let manager: PackageManager = 'npm';
+    fs.existsSync(join(pkgRoot, 'yarn.lock')) && (manager = 'yarn');
+    fs.existsSync(join(pkgRoot, 'pnpm-lock.yaml')) && (manager = 'pnpm');
+    return manager;
 }
 
 // 获取包根目录下的README.md文件
