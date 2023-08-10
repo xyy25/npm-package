@@ -296,7 +296,7 @@ class Chart {
             requirePaths[index].forEach(i => { 
                 i === index ? (nodes[i].showNode = true) : this.showRequiring(i)
             });
-        } else { nodes[i].showNode = true; }
+        } else { nodes[index].showNode = true; }
     }
 
     // 显示顶点的所有相邻顶点，即该包的依赖
@@ -488,7 +488,7 @@ class Chart {
             const outFtr = d => outs.includes(d.dataIndex);
             circle.filter(outFtr).classed('out-node', true);
             label.filter(outFtr).classed('out-node', true);
-            link.filter(d => d.source == node).classed('out-link', '#d72');
+            link.filter(d => d.source == node).classed('out-link', true);
         }
         // 将该顶点的入边和其源头顶点（被依赖包）显示为绿色
         if(hlrb) {

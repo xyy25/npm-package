@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.stringPlus = exports.compareVersionExpr = exports.compareVersion = exports.toDepItemWithId = exports.toDiagram = exports.find = exports.splitAt = exports.limit = exports.toString = exports.countMatches = exports.getREADME = exports.readPackageJson = void 0;
+exports.stringPlus = exports.compareVersionExpr = exports.compareVersion = exports.toDepItemWithId = exports.toDiagram = exports.find = exports.splitAt = exports.limit = exports.toString = exports.countMatches = exports.getREADME = exports.getManagerType = exports.readPackageJson = void 0;
 const path_1 = require("path");
 const fs_1 = __importDefault(require("fs"));
 // 获取包根目录下的package.json对象
@@ -16,6 +16,14 @@ const readPackageJson = (fileUri) => {
     }
 };
 exports.readPackageJson = readPackageJson;
+// 根据lock文件判定该项目使用的是哪种包管理器
+function getManagerType(pkgRoot) {
+    let manager = 'npm';
+    fs_1.default.existsSync((0, path_1.join)(pkgRoot, 'yarn.lock')) && (manager = 'yarn');
+    fs_1.default.existsSync((0, path_1.join)(pkgRoot, 'pnpm-lock.yaml')) && (manager = 'pnpm');
+    return manager;
+}
+exports.getManagerType = getManagerType;
 // 获取包根目录下的README.md文件
 const getREADME = (id, path) => {
     try {
@@ -45,12 +53,12 @@ const splitAt = (str, pos) => pos < 0 ? ['', str] : pos >= str.length ? [str, ''
 exports.splitAt = splitAt;
 const find = (items, item) => items.findIndex(e => (0, exports.toString)(e) === (0, exports.toString)(item));
 exports.find = find;
-const toDiagram = (depResult, rootPkg) => {
+const toDiagram = (depResult, rootPath, rootPkg) => {
     var _a, _b;
     const res = [{
             id: (_a = rootPkg === null || rootPkg === void 0 ? void 0 : rootPkg.name) !== null && _a !== void 0 ? _a : 'root',
             version: (_b = rootPkg === null || rootPkg === void 0 ? void 0 : rootPkg.version) !== null && _b !== void 0 ? _b : 'root',
-            path: path_1.sep,
+            path: rootPath !== null && rootPath !== void 0 ? rootPath : '.',
             meta: [],
             requiring: [],
             requiredBy: []

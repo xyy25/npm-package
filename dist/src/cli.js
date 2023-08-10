@@ -34,17 +34,20 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 const commander_1 = require("commander");
 const path_1 = __importStar(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const utils_1 = require("./utils");
 const npmUtils_1 = require("./utils/npmUtils");
-const recur_1 = __importStar(require("./utils/recur"));
+const analyze_1 = __importDefault(require("./utils/analyze"));
+const recurUtils_1 = require("./utils/recurUtils");
+const detect_1 = __importStar(require("./utils/detect"));
 const readline_1 = __importDefault(require("readline"));
 const chalk_1 = __importDefault(require("chalk"));
 const zh_CN_json_1 = __importDefault(require("./lang/zh-CN.json"));
-const { cyan, green, yellow, yellowBright } = chalk_1.default;
+const { cyan, cyanBright, green, yellow, yellowBright } = chalk_1.default;
 const error = chalk_1.default.bgBlack.bold.red;
 const rl = readline_1.default.createInterface({
     input: process.stdin,
@@ -64,32 +67,39 @@ const readInput = (prompt, inputDesc = '', def = '') => __awaiter(void 0, void 0
 const cmd = new commander_1.Command();
 cmd.name('npmpkg-cli')
     .description(zh_CN_json_1.default.description)
-    .version('0.0.1');
+    .version('0.0.1', undefined, zh_CN_json_1.default.version)
+    .addHelpCommand(true, (_a = zh_CN_json_1.default.commands.help) === null || _a === void 0 ? void 0 : _a.description)
+    .showSuggestionAfterError(true);
+const managerOption = new commander_1.Option('-m, --manager <packageManager>', zh_CN_json_1.default.commands.analyze.options.manager.description)
+    .choices(['auto', 'npm', 'yarn', 'pnpm'])
+    .default('auto');
 const scopeOption = new commander_1.Option('-s, --scope <scope>', zh_CN_json_1.default.commands.analyze.options.scope.description)
     .choices(['all', 'norm', 'peer', 'dev'])
     .default('all');
 const depthOption = new commander_1.Option('-d, --depth <depth>', zh_CN_json_1.default.commands.analyze.options.depth.description)
-    .default(Infinity, zh_CN_json_1.default.commands.analyze.options.depth.default)
-    .argParser((value) => { const r = parseInt(value); return Number.isNaN(r) ? Infinity : r; });
+    .default(NaN, zh_CN_json_1.default.commands.analyze.options.depth.default);
 const jsonOption = new commander_1.Option('-j, --json [fileName]', zh_CN_json_1.default.commands.analyze.options.json.description);
 const jsonPrettyOption = new commander_1.Option('--pretty, --format', zh_CN_json_1.default.commands.analyze.options.format.description);
+const defaultOption = new commander_1.Option('-y, --default', zh_CN_json_1.default.commands.analyze.options.default.description)
+    .default(false);
 cmd.command('analyze').description(zh_CN_json_1.default.commands.analyze.description)
-    .argument('[string]', zh_CN_json_1.default.commands.analyze.argument[0].description)
+    .argument('[package root]', zh_CN_json_1.default.commands.analyze.argument[0].description)
+    .addOption(managerOption)
     .addOption(scopeOption)
     .addOption(depthOption)
     .addOption(jsonOption)
     .addOption(jsonPrettyOption)
-    .option('-y, --default', zh_CN_json_1.default.commands.analyze.options.default.description, false)
+    .addOption(defaultOption)
     .option('-c, --console, --print', zh_CN_json_1.default.commands.analyze.options.console.description)
-    .option('-i, --noweb', zh_CN_json_1.default.commands.analyze.options.noweb.description, false)
+    .option('-i, --noweb', zh_CN_json_1.default.commands.analyze.options.noweb.description)
     .option('-h, --host', zh_CN_json_1.default.commands.analyze.options.host.description)
     .option('-p, --port', zh_CN_json_1.default.commands.analyze.options.port.description)
-    .option('-m, --manager', zh_CN_json_1.default.commands.analyze.options.manager.description)
-    .option('--diagram', zh_CN_json_1.default.commands.analyze.options.diagram.description)
+    .option('--proto', zh_CN_json_1.default.commands.analyze.options.proto.description)
     .action((str, options) => __awaiter(void 0, void 0, void 0, function* () {
     const cwd = process.cwd(); // 命令执行路径
     let { depth, noweb, default: def, host, port } = options; // 最大深度设置，默认为Infinity
     let json = options.json;
+    let manager = options.manager;
     // 询问
     while (!str) {
         str = yield readInput(zh_CN_json_1.default.line['input.dir']);
@@ -103,8 +113,8 @@ cmd.command('analyze').description(zh_CN_json_1.default.commands.analyze.descrip
         }
     }
     const defOutFileName = (0, path_1.join)('outputs', `res-${path_1.default.basename((0, path_1.join)(cwd, str))}.json`);
-    if (!def) { // 如果不设置默认，则询问一些问题
-        if (depth === Infinity) {
+    if (!def) { // 如果不设置使用默认设置-y，则询问一些问题
+        if (Number.isNaN(depth)) {
             depth = parseInt(yield readInput(zh_CN_json_1.default.line['input.depth'], '', 'Infinity')) || Infinity;
         }
         if (json === undefined) {
@@ -112,13 +122,18 @@ cmd.command('analyze').description(zh_CN_json_1.default.commands.analyze.descrip
             json = input === 'y';
             if (json) {
                 json = (yield readInput(zh_CN_json_1.default.line['input.outJsonDir'], '', defOutFileName)) || true;
+                if (noweb === undefined) { // 输出json则默认不打开网页
+                    noweb = true;
+                }
+            }
+            else if (!noweb) {
+                port = port !== null && port !== void 0 ? port : parseInt(yield readInput(zh_CN_json_1.default.line['input.port'], '', '5500'));
+                host = host !== null && host !== void 0 ? host : '127.0.0.1';
             }
         }
-        if (!noweb) {
-            port = port !== null && port !== void 0 ? port : parseInt(yield readInput(zh_CN_json_1.default.line['input.port'], '', '5500'));
-            host = host !== null && host !== void 0 ? host : '127.0.0.1';
-        }
     }
+    noweb !== null && noweb !== void 0 ? noweb : (noweb = json);
+    depth || (depth = Infinity);
     rl.close();
     const pkgRoot = (0, path_1.join)(cwd, str); // 包的根目录
     try {
@@ -129,7 +144,10 @@ cmd.command('analyze').description(zh_CN_json_1.default.commands.analyze.descrip
         if (!pkgJson) { // package.json不存在
             throw zh_CN_json_1.default.logs['cli.ts'].pkgJsonNotExist.replace('%s', str);
         }
-        const pkgEx = (0, recur_1.detect)(pkgRoot, depth);
+        if (manager === 'auto') {
+            manager = (0, utils_1.getManagerType)(pkgRoot);
+        }
+        const pkgEx = (0, detect_1.default)(pkgRoot, manager, depth);
         const desc = zh_CN_json_1.default.logs['cli.ts'];
         console.log(cyan(desc.detected.replace("%s", yellow(pkgEx.length))));
         yield new Promise((res) => setTimeout(res, 1000));
@@ -138,13 +156,13 @@ cmd.command('analyze').description(zh_CN_json_1.default.commands.analyze.descrip
             scope === 'dev' ? [false, true, false] :
                 scope === 'peer' ? [false, false, true] :
                     [true, true, true];
-        console.log(pkgRoot, scopes, depth);
-        const depEval = (0, recur_1.default)(pkgRoot, depth, scopes[0], scopes[1], scopes[2], pkgEx.length);
+        console.log(pkgRoot, scopes, manager, depth);
+        const depEval = (0, analyze_1.default)(pkgRoot, manager, depth, scopes[0], scopes[1], scopes[2], pkgEx.length);
         // 评估分析结果并打印至控制台，该函数返回没有被依赖的包
-        const notRequired = (0, recur_1.evaluate)(depEval, pkgEx);
+        const notRequired = (0, recurUtils_1.evaluate)(depEval, pkgEx);
         let res = depEval.result;
-        if (options.diagram) {
-            res = (0, utils_1.toDiagram)(res, pkgJson);
+        if (!options.proto) {
+            res = (0, utils_1.toDiagram)(res, pkgRoot, pkgJson);
             // 如果未设置最大深度，有向图结构会自动附加上存在于node_modules中但没有被依赖覆盖到的包
             if (depth === Infinity) {
                 res.push(...notRequired.map(e => (0, utils_1.toDepItemWithId)(e)));
@@ -171,8 +189,8 @@ cmd.command('analyze').description(zh_CN_json_1.default.commands.analyze.descrip
             console.log(cyan(desc.jsonSaved.replace('%s', yellowBright(outFileName))));
         }
         if (!noweb) {
-            if (!options.diagram)
-                res = (0, utils_1.toDiagram)(res, pkgJson);
+            if (options.proto)
+                res = (0, utils_1.toDiagram)(res, pkgRoot, pkgJson);
             const buffer = Buffer.from(JSON.stringify(res));
             fs_1.default.writeFileSync((0, path_1.join)(__dirname, 'express/public/res.json'), buffer);
             (yield Promise.resolve().then(() => __importStar(require('./express')))).default(port, host);
@@ -184,42 +202,60 @@ cmd.command('analyze').description(zh_CN_json_1.default.commands.analyze.descrip
 }));
 cmd.command('detect')
     .description(zh_CN_json_1.default.commands.detect.description)
-    .argument('[string]', zh_CN_json_1.default.commands.detect.argument[0].description)
+    .argument('[package root]', zh_CN_json_1.default.commands.detect.argument[0].description)
+    .addOption(managerOption)
     .addOption(depthOption)
+    .addOption(defaultOption)
     .option('--show', zh_CN_json_1.default.commands.detect.options.show.description, false)
     .action((str, options) => __awaiter(void 0, void 0, void 0, function* () {
     const cwd = process.cwd(); // 命令执行路径
-    const { depth } = options;
-    // 询问
-    if (!str) {
-        str = yield readInput(zh_CN_json_1.default.line['input.dir']);
-    }
-    rl.close();
-    const pkgRoot = (0, path_1.join)(cwd, str); // 包的根目录
+    let { depth, default: def } = options;
+    let manager = options.manager;
+    depth = parseInt(depth);
     try {
+        // 询问
+        if (!str) {
+            str = yield readInput(zh_CN_json_1.default.line['input.dir']);
+        }
+        const pkgRoot = (0, path_1.join)(cwd, str); // 包的根目录
         const dirEx = fs_1.default.existsSync(pkgRoot);
         if (!dirEx) {
-            console.error(error(zh_CN_json_1.default.commons.error + ':', zh_CN_json_1.default.logs['cli.ts'].dirNotExist));
-            return;
+            throw zh_CN_json_1.default.logs['cli.ts'].dirNotExist;
         }
-        const res = (0, recur_1.detect)(pkgRoot, depth);
-        if (options.show) {
-            res.forEach(e => console.log('-', green(e)));
+        if (manager === 'auto') {
+            manager = (0, utils_1.getManagerType)(pkgRoot);
+        }
+        if (manager !== 'pnpm' && !def) {
+            depth = parseInt(yield readInput(zh_CN_json_1.default.line['input.depth'], '', 'Infinity')) || Infinity;
+        }
+        rl.close();
+        depth || (depth = Infinity);
+        let res = [];
+        if (manager === 'pnpm') {
+            res = (0, detect_1.detectPnpm)(pkgRoot);
+            options.show && res.forEach(([o, l]) => {
+                console.log('*', cyanBright(o));
+                l.forEach(e => console.log(' ->', green(e)));
+            });
+        }
+        else {
+            res = (0, detect_1.default)(pkgRoot, manager, depth);
+            options.show && res.forEach(e => console.log('-', green(e)));
         }
         console.log(cyan(zh_CN_json_1.default.logs["cli.ts"].detectPkg), res.length);
     }
     catch (e) {
-        console.error(e);
+        console.error(error(zh_CN_json_1.default.commons.error + ':', e));
     }
 }));
 cmd.command('get')
     .description(zh_CN_json_1.default.commands.get.description)
-    .argument('[string]', zh_CN_json_1.default.commands.get.argument[0].description)
+    .argument('[package name]', zh_CN_json_1.default.commands.get.argument[0].description)
     .option('-v, --version <string>', zh_CN_json_1.default.commands.get.options.version.description)
     .option('-a, --all', zh_CN_json_1.default.commands.get.options.all.description)
     .action((str, options) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
-    const res = yield (0, npmUtils_1.getPackage)(str, (_a = options.version) !== null && _a !== void 0 ? _a : '*', !!options.all);
+    var _b;
+    const res = yield (0, npmUtils_1.getPackage)(str, (_b = options.version) !== null && _b !== void 0 ? _b : '*', !!options.all);
     // 询问
     if (!str) {
         str = yield readInput(zh_CN_json_1.default.line['input.name']);
