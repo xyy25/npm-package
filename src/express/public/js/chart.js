@@ -333,7 +333,6 @@ export default class Chart {
             (n.showNode || n.showRequiring) && 
             requirePaths[n.dataIndex] !== null && 
             vsbPaths[n.dataIndex] === null;
-        console.log(vsbNodes);
         while((rest = rest.filter(filter)).length) {
             rest.forEach(n => [n.showNode, n.showRequiring] = [false, false]); 
             console.log(vsbPaths = getVsbPaths(rest));
