@@ -15,10 +15,10 @@
                     "description": "Maximum depth of recursive searching."
                 },
                 "json": {
-                    "description": "Output result as JSON file, otherwise will print the result on the console."
+                    "description": "Output result as JSON file, otherwise will start the website view."
                 },
                 "noweb": {
-                    "description": "Do not start the view website after analyzing."
+                    "description": "Do not start the website view after analyzing."
                 },
                 "format": {
                     "description": "Automatically format JSON file to a more pretty looking."
@@ -27,13 +27,13 @@
                     "description": "Use default options without asking any questions."
                 },
                 "host": {
-                    "description": "The host the view website opens on."
+                    "description": "The host the website opens on."
                 },
                 "port": {
-                    "description": "The port the view website opens on."
+                    "description": "The port the website opens on."
                 },
-                "diagram": {
-                    "description": "Automatically convert result to DirectedDiagram data structure."
+                "proto": {
+                    "description": "Output result as the original recursive tree structure without converting it into diagram."
                 },
                 "console": {
                     "description": "Print the result on the console."
@@ -78,7 +78,7 @@
         "input.name": "Package name",
         "input.outJson": "Output as JSON",
         "input.outJsonDir": "Output file name",
-        "input.depth": "Recursion depth",
+        "input.depth": "Recursion max depth",
         "input.port": "Opening on port"
     },
     "logs": {

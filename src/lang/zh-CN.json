@@ -1,6 +1,11 @@
 {
     "description": "NPM包依赖分析器",
+    "version": "查看版本",
+    "help": "查看帮助",
     "commands": {
+        "help": {
+            "description": "查看命令帮助."
+        },
         "analyze": {
             "argument": [
                 { "description": "所需分析的根目录." }
@@ -15,13 +20,13 @@
                     "description": "设置最大递归深度."
                 },
                 "json": {
-                    "description": "将结果输出为JSON文件, 否则打印至命令行."
+                    "description": "将结果输出为JSON文件, 否则打开网页视图."
                 },
                 "noweb": {
                     "description": "完成分析后不启动网页视图."
                 },
                 "format": {
-                    "description": "是否自动格式化JSON文件."
+                    "description": "自动格式化JSON文件."
                 },
                 "default": {
                     "description": "不询问任何问题, 采用默认设置."
@@ -32,14 +37,14 @@
                 "port": {
                     "description": "视图网页开启的端口号."
                 },
-                "diagram": {
-                    "description": "是否将结果转化为DirectedDiagram有向图结构."
+                "proto": {
+                    "description": "输出树形的递归结果(不转化为可视化用的有向图结构)."
                 },
                 "console": {
-                    "description": "是否将结果打印至控制台."
+                    "description": "将结果打印至控制台."
                 },
                 "manager": {
-                    "description": "指定该项目的包管理器。"
+                    "description": "指定该项目的包管理器."
                 }
             }
         },
@@ -99,9 +104,9 @@
         },
         "utils/recurUtils.ts": {
             "coverage": "递归深度: %d, 覆盖率: %cv. 有 %len 个依赖包尚未分析到.",
-            "notInHash": "以下 %len 个依赖包在node_modules中存在且被扫描, 但没有被依赖分析检测到.",
+            "notInHash": "以下 %len 个依赖包在node_modules中存在且被扫描, 但没有被依赖分析覆盖到.",
             "notInHash2": "这些包有可能未被使用?",
-            "notInList": "以下 %len 个依赖包在node_modules被依赖分析检测到, 但未被文件扫描到.",
+            "notInList": "以下 %len 个依赖包在node_modules中已被依赖分析, 但未被文件扫描到.",
             "optNotMeet": "发现 %d 个可选依赖包没有安装.",
             "rangeInvalid": "发现 %d 个依赖包版本%rangeInvalid2.",
             "rangeInvalid2": "不合要求",

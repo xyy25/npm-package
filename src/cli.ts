@@ -37,7 +37,9 @@ const cmd = new Command();
 
 cmd.name('npmpkg-cli')
     .description(lang.description)
-    .version('0.0.1');
+    .version('0.0.1', undefined, (lang as any).version)
+    .addHelpCommand(true, (lang.commands as any).help?.description)
+    .showSuggestionAfterError(true);
 
 const managerOption = new Option('-m, --manager <packageManager>', lang.commands.analyze.options.manager.description)
         .choices(['auto', 'npm', 'yarn', 'pnpm'])
@@ -54,7 +56,7 @@ const defaultOption = new Option('-y, --default', lang.commands.analyze.options.
 
 
 cmd.command('analyze').description(lang.commands.analyze.description)
-    .argument('[string]', lang.commands.analyze.argument[0].description)
+    .argument('[package root]', lang.commands.analyze.argument[0].description)
     .addOption(managerOption)
     .addOption(scopeOption)
     .addOption(depthOption)
@@ -65,7 +67,7 @@ cmd.command('analyze').description(lang.commands.analyze.description)
     .option('-i, --noweb', lang.commands.analyze.options.noweb.description)
     .option('-h, --host', lang.commands.analyze.options.host.description)
     .option('-p, --port', lang.commands.analyze.options.port.description)
-    .option('--diagram', lang.commands.analyze.options.diagram.description)
+    .option('--proto', lang.commands.analyze.options.proto.description)
     .action(async (str, options) => {
         const cwd = process.cwd(); // 命令执行路径
         let { depth, noweb, default: def, host, port } = options; // 最大深度设置，默认为Infinity
@@ -85,7 +87,7 @@ cmd.command('analyze').description(lang.commands.analyze.description)
             }
         }
         const defOutFileName = join('outputs', `res-${path.basename(join(cwd, str))}.json`);
-        if(!def) { // 如果不设置默认，则询问一些问题
+        if(!def) { // 如果不设置使用默认设置-y，则询问一些问题
             if(Number.isNaN(depth)) {
                 depth = parseInt(await readInput(lang.line['input.depth'], '', 'Infinity')) || Infinity;
             }
@@ -103,6 +105,7 @@ cmd.command('analyze').description(lang.commands.analyze.description)
                 }
             }
         }
+        noweb ??= json;
         depth ||= Infinity;
         rl.close();
 
@@ -140,8 +143,8 @@ cmd.command('analyze').description(lang.commands.analyze.description)
             const notRequired = evaluate(depEval, pkgEx as string[]); 
             
             let res: any = depEval.result;
-            if(options.diagram) {
-                res = toDiagram(res, pkgJson);
+            if(!options.proto) {
+                res = toDiagram(res, pkgRoot, pkgJson);
                 // 如果未设置最大深度，有向图结构会自动附加上存在于node_modules中但没有被依赖覆盖到的包
                 if(depth === Infinity) {
                     res.push(...notRequired.map(e => toDepItemWithId(e))); 
@@ -171,7 +174,7 @@ cmd.command('analyze').description(lang.commands.analyze.description)
                 console.log(cyan(desc.jsonSaved.replace('%s', yellowBright(outFileName))));
             }
             if(!noweb) {
-                if(!options.diagram) res = toDiagram(res, pkgJson);
+                if(options.proto) res = toDiagram(res, pkgRoot, pkgJson);
                 const buffer = Buffer.from(JSON.stringify(res));
                 fs.writeFileSync(join(__dirname, 'express/public/res.json'), buffer);
                 (await import('./express')).default(port, host);
@@ -183,7 +186,7 @@ cmd.command('analyze').description(lang.commands.analyze.description)
 
 cmd.command('detect')
     .description(lang.commands.detect.description)
-    .argument('[string]', lang.commands.detect.argument[0].description)
+    .argument('[package root]', lang.commands.detect.argument[0].description)
     .addOption(managerOption)
     .addOption(depthOption)
     .addOption(defaultOption)
@@ -208,7 +211,7 @@ cmd.command('detect')
                 manager = getManagerType(pkgRoot);
             }
 
-            if(manager !== 'pnpm' && def) {
+            if(manager !== 'pnpm' && !def) {
                 depth = parseInt(await readInput(lang.line['input.depth'], '', 'Infinity')) || Infinity;
             }
             rl.close();
@@ -218,17 +221,15 @@ cmd.command('detect')
             
             if(manager === 'pnpm') {
                 res = detectPnpm(pkgRoot);
-                res.forEach(([o, l]) => {
+                options.show && res.forEach(([o, l]) => {
                     console.log('*', cyanBright(o));
                     l.forEach(e => console.log(' ->', green(e)));
                 });
             } else {
                 res = detect(pkgRoot, manager, depth);
-                res.forEach(e => console.log('-', green(e)));
+                options.show && res.forEach(e => console.log('-', green(e)));
             }
-            if(options.show) {
-                console.log(cyan(lang.logs["cli.ts"].detectPkg), res.length);
-            }
+            console.log(cyan(lang.logs["cli.ts"].detectPkg), res.length);
         } catch (e) {
             console.error(error(lang.commons.error + ':', e));
         }
@@ -236,7 +237,7 @@ cmd.command('detect')
 
 cmd.command('get')
     .description(lang.commands.get.description)
-    .argument('[string]', lang.commands.get.argument[0].description)
+    .argument('[package name]', lang.commands.get.argument[0].description)
     .option('-v, --version <string>', lang.commands.get.options.version.description)
     .option('-a, --all', lang.commands.get.options.all.description)
     .action(async (str, options) => {

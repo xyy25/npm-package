@@ -50,11 +50,11 @@ export const splitAt = (str: string, pos: number): [string, string] =>
 export const find = <T extends Item>(items: DirectedDiagram, item: T): number =>
     items.findIndex(e => toString(e) === toString(item));
     
-export const toDiagram = (depResult: DepResult, rootPkg?: PackageJson): DirectedDiagram => {
+export const toDiagram = (depResult: DepResult, rootPath?: string, rootPkg?: PackageJson): DirectedDiagram => {
     const res: DirectedDiagram = [{
         id: rootPkg?.name ?? 'root',
         version: rootPkg?.version ?? 'root',
-        path: '.',
+        path: rootPath ?? '.',
         meta: [],
         requiring: [],
         requiredBy: []
