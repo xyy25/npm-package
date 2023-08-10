@@ -27,7 +27,7 @@ export const getParentPath = (id: string, pkgPath: string): string =>
 export const createBar = (total: number): ProgressBar | null => {
     const outLength = process.stdout.columns;
     return new ProgressBar(
-            `Q${green(':queue')} ${yellowBright(':current')}/${yellow(':total')}` +
+            `:eff Q${green(':queue')} ${yellowBright(':current')}/${yellow(':total')}` +
             ` [:bar] ` + (outLength >= 100 ? ':nowComplete' : ''), {
                 total: total,
                 complete: yellowBright('▇'),

@@ -54,6 +54,12 @@
                 }
             }
         },
+        "view": {
+            "description": "Open a JSON file of data of package dependencies in website view.",
+            "argument": [
+                { "description": "JSON file path." }
+            ]
+        },
         "get": {
             "description": "Get the information of the package from 'registry.npmjs.org'.",
             "argument": [
@@ -83,7 +89,9 @@
     },
     "logs": {
         "cli.ts": {
-            "dirNotExist": "The target directory does not exist.",
+            "dirNotExist": "DIRECTORY NOT EXIST",
+            "fileNotExist": "FIRE NOT EXIST",
+            "notJsonFile": "TARGET IS NOT JSON FILE",
             "pkgJsonNotExist": "The root package.json of %s does not exist.",
             "detected": "Detected %s packages in the target directory.",
             "noDependency": "The project does not install any package.",

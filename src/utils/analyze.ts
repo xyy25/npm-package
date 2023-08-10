@@ -19,6 +19,7 @@ const { green, cyan, yellow, yellowBright } = chalk;
 
 // 进度条
 let bar: ProgressBar | null = null;
+const eff: string[] = "⠁⠂⠄⡀⢀⠠⠐⠈".split('');
 
 // 广度优先搜索node_modules函数
 export default function analyze(
@@ -240,6 +241,7 @@ export function analyzePackage(
         }
         const outLength = process.stdout.columns;
         bar?.tick({
+            'eff': eff[bar?.curr % eff.length],
             'queue': queue.length,
             'nowComplete': outLength <= 100 ? '' : 
                 (desc.nowComplete + ': ' + cyan(limit(`${range} ${id}`, outLength * 0.2)))

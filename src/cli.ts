@@ -1,5 +1,5 @@
 import { Command, Option } from 'commander';
-import path, { join } from 'path';
+import path, { join, resolve } from 'path';
 import fs from 'fs';
 import { getManagerType, readPackageJson, toDepItemWithId, toDiagram } from './utils';
 import { getPackage } from './utils/npmUtils';
@@ -19,7 +19,13 @@ const rl = readline.createInterface({
     output: process.stdout
 })
 
-const readInput = async (prompt: string, inputDesc: string = '', def: string = ''): Promise<string> => {
+type ReturnType<T> = T extends string ? string : T extends number ? number : never;
+
+const readInput = async <D extends string | number, R = ReturnType<D>> (
+    prompt: string, 
+    inputDesc: string = '', 
+    def: D = 'T' as D
+): Promise<R> => {
     if(inputDesc || def) {
         prompt += ' (';
         inputDesc && (prompt += inputDesc + (def && ', '));
@@ -28,8 +34,11 @@ const readInput = async (prompt: string, inputDesc: string = '', def: string = '
     }
     rl.setPrompt(prompt + cyan('> '));
     rl.prompt();
-    return await new Promise<string>(
-        res => rl.on('line', (line: string) => res(line || def))
+    return await new Promise<R>(
+        res => rl.on('line', (line: string) => {
+            const r = typeof def === 'string' ? line : parseInt(line)
+            res(r as R);
+        })
     );
 }
 
@@ -53,6 +62,10 @@ const jsonOption = new Option( '-j, --json [fileName]', lang.commands.analyze.op
 const jsonPrettyOption = new Option('--pretty, --format', lang.commands.analyze.options.format.description)
 const defaultOption = new Option('-y, --default', lang.commands.analyze.options.default.description)
         .default(false);
+const hostOption = new Option('-h, --host', lang.commands.analyze.options.host.description)
+    .default("127.0.0.1");
+const portOption = new Option('-p, --port', lang.commands.analyze.options.port.description)
+    .default(5500).argParser((v) => parseInt(v));
 
 
 cmd.command('analyze').description(lang.commands.analyze.description)
@@ -63,10 +76,10 @@ cmd.command('analyze').description(lang.commands.analyze.description)
     .addOption(jsonOption)
     .addOption(jsonPrettyOption)
     .addOption(defaultOption)
+    .addOption(hostOption)
+    .addOption(portOption)
     .option('-c, --console, --print', lang.commands.analyze.options.console.description)
     .option('-i, --noweb', lang.commands.analyze.options.noweb.description)
-    .option('-h, --host', lang.commands.analyze.options.host.description)
-    .option('-p, --port', lang.commands.analyze.options.port.description)
     .option('--proto', lang.commands.analyze.options.proto.description)
     .action(async (str, options) => {
         const cwd = process.cwd(); // 命令执行路径
@@ -81,15 +94,15 @@ cmd.command('analyze').description(lang.commands.analyze.description)
                 rl.close();
                 return;
             }
-            if(!fs.existsSync(join(cwd, str))) {
+            if(!fs.existsSync(resolve(str))) {
                 console.error(error(lang.logs['cli.ts'].dirNotExist));
                 str = undefined;
             }
         }
-        const defOutFileName = join('outputs', `res-${path.basename(join(cwd, str))}.json`);
+        const defOutFileName = join('outputs', `res-${path.basename(resolve(str))}.json`);
         if(!def) { // 如果不设置使用默认设置-y，则询问一些问题
             if(Number.isNaN(depth)) {
-                depth = parseInt(await readInput(lang.line['input.depth'], '', 'Infinity')) || Infinity;
+                depth = await readInput(lang.line['input.depth'], '', Infinity);
             }
             if(json === undefined) {
                 const input = await readInput(lang.line['input.outJson'], 'y/n', 'n');
@@ -100,8 +113,8 @@ cmd.command('analyze').description(lang.commands.analyze.description)
                         noweb = true;
                     }
                 } else if(!noweb) {
-                    port = port ?? parseInt(await readInput(lang.line['input.port'], '', '5500'));
-                    host = host ?? '127.0.0.1';
+                    port = await readInput(lang.line['input.port'], '', 5500);
+                    host = '127.0.0.1';
                 }
             }
         }
@@ -109,7 +122,7 @@ cmd.command('analyze').description(lang.commands.analyze.description)
         depth ||= Infinity;
         rl.close();
 
-        const pkgRoot = join(cwd, str); // 包的根目录
+        const pkgRoot = resolve(str); // 包的根目录
 
         try {
             if(!fs.existsSync(pkgRoot)) { // 目录不存在
@@ -160,8 +173,8 @@ cmd.command('analyze').description(lang.commands.analyze.description)
                 console.log(res);
             }
 
-            if(!fs.existsSync(join(cwd, 'outputs'))) {
-                fs.mkdirSync(join(cwd, 'outputs'));
+            if(!fs.existsSync(resolve('outputs'))) {
+                fs.mkdirSync(resolve('outputs'));
             }
             if(json) { // 输出JSON文件设置
                 // 自动创建outputs文件夹
@@ -169,7 +182,7 @@ cmd.command('analyze').description(lang.commands.analyze.description)
                 if(!outFileName.endsWith('.json')) {
                     outFileName += '.json';
                 }
-                const outFileUri = join(cwd, outFileName);
+                const outFileUri = resolve(outFileName);
                 fs.writeFileSync(outFileUri, Buffer.from(JSON.stringify(res, null, options.format ? "\t" : "")));
                 console.log(cyan(desc.jsonSaved.replace('%s', yellowBright(outFileName))));
             }
@@ -202,7 +215,7 @@ cmd.command('detect')
             if(!str) {
                 str = await readInput(lang.line['input.dir'])
             }
-            const pkgRoot = join(cwd, str); // 包的根目录
+            const pkgRoot = resolve(str); // 包的根目录
             const dirEx = fs.existsSync(pkgRoot);
             if(!dirEx) {
                 throw lang.logs['cli.ts'].dirNotExist;
@@ -232,6 +245,39 @@ cmd.command('detect')
             console.log(cyan(lang.logs["cli.ts"].detectPkg), res.length);
         } catch (e) {
             console.error(error(lang.commons.error + ':', e));
+        }
+    })
+
+cmd.command("view")
+    .alias("show")
+    .description(lang.commands.view.description)
+    .argument('[JSON uri]', lang.commands.view.argument[0].description)
+    .addOption(hostOption)
+    .addOption(portOption)
+    .action(async (str, options) => {
+        const cwd = process.cwd();
+    
+        if(!str) {
+            str = await readInput("输入文件路径");
+        }
+        rl.close();
+
+        try {
+            if(!str.endsWith('.json')) {
+                str += '.json';
+            }
+            const uri = resolve(str);
+            if(!fs.existsSync(uri) || !fs.lstatSync(uri).isFile()) {
+                throw lang.logs['cli.ts'].fileNotExist;
+            }
+
+            fs.cpSync(uri, join(__dirname, 'express/public/res.json'), { force: true });
+            
+            const { port, host } = options;
+            (await import('./express')).default(port, host);
+
+        } catch (e) {
+            console.error(error(lang.commons.error + ': ' + e));
         }
     })
 
