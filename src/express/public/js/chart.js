@@ -47,8 +47,8 @@ class Chart {
     init(initOptions) {
         this.options = {
             showExtraneous: true, // 显示游离顶点(无被依赖的额外包)
-            highlightRequiring: true, // 高亮入边(绿色)
-            highlightRequiredBy: true, // 高亮出边(橙色)
+            highlightRequiring: true, // 高亮出边(橙色)
+            highlightRequiredBy: true, // 高亮入边(绿色)
             highlightPath: true, // 高亮根出发路径(青色)
             fading: true, // 淡化非聚焦顶点
             simulationStop: false, // 暂停力导模拟
