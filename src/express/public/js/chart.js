@@ -37,11 +37,11 @@ class Chart {
     constructor(svg, data, initOptions = {}) {
         this.svg = svg;
         this.data = data;
-        this.init(initOptions);
         this.scale = {
             width: globalThis.innerWidth,
-            height: globalThis.innerWidth
+            height: globalThis.innerHeight
         }
+        this.init(initOptions);
     }
 
     init(initOptions) {
@@ -140,15 +140,14 @@ class Chart {
         // 绑定zoom事件，同时释放zoom双击事件
         svg.call(zoom).on("dblclick.zoom", () => {});
 
-        const [width, height] = 
-            ['width', 'height'].map(e => parseInt(svg.attr(e)));
+        const { width, height } = this.scale;
         // 左上角文字描述
         this.desc = svg
             .append("g")
             .append("text")
             .attr("id", "desc")
-            .attr("x", - width / 2 + 100)
-            .attr("y", - height / 2 + 100)
+            .attr("x", - width / 2)
+            .attr("y", - height / 2)
             .style('font-size', 24);
 
         // 边的组
