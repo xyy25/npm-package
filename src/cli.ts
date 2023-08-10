@@ -258,7 +258,7 @@ cmd.command("view")
         const cwd = process.cwd();
     
         if(!str) {
-            str = await readInput("输入文件路径");
+            str = await readInput(lang.line['input.jsonFile']);
         }
         rl.close();
 

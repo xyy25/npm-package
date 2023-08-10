@@ -1,18 +1,18 @@
-function getLength(x1, y1, x2, y2) {
+export function getLength(x1, y1, x2, y2) {
     return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
 }
 
-function limit(val, min = 0, max = Infinity) {
+export function limit(val, min = 0, max = Infinity) {
     return Math.max(Math.min(val, max), min);
 }
 
 // 判断字符串中是否含汉字
-function includeChinese(str) {
+export function includeChinese(str) {
     return str.match(/[\u4E00-\u9FA5]/) !== null;
 }
 
 // 计算两点的中心点(用于确认摆放在连接线上的文字的位置)
-function getCenter(x1, y1, x2, y2) {
+export function getCenter(x1, y1, x2, y2) {
     return { 
         x: (x1 + x2) / 2, 
         y: (y1 + y2) / 2
@@ -20,7 +20,7 @@ function getCenter(x1, y1, x2, y2) {
 }
 
 // 计算两点角度
-function getAngle([x1, y1], [x2, y2], deg = false, abs = false) {
+export function getAngle([x1, y1], [x2, y2], deg = false, abs = false) {
     var [dx, dy] = [x2 - x1, y2 - y1].map(e => (abs ? Math.abs(e) : e));
     let res = Math.atan2(dy, dx);
     deg && (res = res / Math.PI * 180);
@@ -29,7 +29,7 @@ function getAngle([x1, y1], [x2, y2], deg = false, abs = false) {
 
 // 求无权有向图某个起始顶点到所有其他顶点的最短路径，如果无法通达，则路径为null
 // @return (number[] | null)[]
-function getPaths(startIndex, nodes, getAdjacent, filter = () => true, getId = i => i) {
+export function getPaths(startIndex, nodes, getAdjacent, filter = () => true, getId = i => i) {
     const dists = new Array(nodes.length).fill(Infinity);
     const paths = new Array(nodes.length).fill(null);
     const queue = [];

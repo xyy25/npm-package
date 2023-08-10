@@ -1,4 +1,4 @@
-const nodeMenu = (ct) => {
+export default (ct) => {
     const { options: opt } = ct;
     const genTitle = (desc, judge = () => true, trueExpr = '开启', falseExpr = '关闭') => 
             `${desc}: ` + (judge() ? trueExpr : falseExpr);

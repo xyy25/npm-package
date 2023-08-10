@@ -1,4 +1,6 @@
-class Link { 
+import { getLength, getCenter, getPaths, getAngle, includeChinese, limit } from "./utils.js";
+import NodeMenu from "./chartMenu.js";
+export class Link { 
     constructor(source, target, meta) {
         this.source = source;
         this.target = target;
@@ -17,14 +19,14 @@ class Link {
         const p = getCenter(s.x, s.y, t.x, t.y);
         let angle = getAngle([s.x, s.y], [t.x, t.y], true, true);
         rotate && (angle -= 90);
-        if (s.x > t.x && s.y < t.y || s.x < t.x && s.y > t.y) {
+        if ((s.x > t.x && s.y < t.y) || (s.x < t.x && s.y > t.y)) {
             angle = -angle;
         }
         return `translate(${p.x}, ${p.y}) rotate(${angle})`;
     }
 }
 
-class Node {
+export class Node {
     constructor(dataIndex, data) {
         this.dataIndex = dataIndex;
         this.data = data;
@@ -33,7 +35,7 @@ class Node {
     }
 }
 
-class Chart {
+export default class Chart {
     constructor(svg, data, initOptions = {}) {
         this.svg = svg;
         this.data = data;
@@ -220,8 +222,8 @@ class Chart {
         ];
 
         const { dataIndex: i } = node;
-        const linkIn = link.filter(l => l.target == node).data();
-        const linkOut = link.filter(l => l.source == node).data();
+        const linkIn = link.filter(l => l.target === node).data();
+        const linkOut = link.filter(l => l.source === node).data();
         const r = v => typeof v === 'function' ? v(node, i, linkIn, linkOut) : v;
         // 根据判断数组获取顶点类型所映射的属性值的函数
         if(append) { // 根据nodeType现有的属性值增加类名
@@ -260,7 +262,7 @@ class Chart {
             .selectAll('text')
             .data(link.data())
             .join('text')
-            .attr('class', (d) => link.filter(e => d == e).attr('class'))
+            .attr('class', (d) => link.filter(e => d === e).attr('class'))
             .each(d => d.text = this.getLinkClass(d, 1, false))
             .each(d => d.rotate = includeChinese(d.text))
             .text(d => d.text)
@@ -349,7 +351,7 @@ class Chart {
 
     // 右键菜单事件
     updateOptions() {
-        this.circle.on('contextmenu', d3.contextMenu(nodeMenu(this)));
+        this.circle.on('contextmenu', d3.contextMenu(NodeMenu(this)));
     }
 
     // 根据顶点showNode和showRequiring属性的变化更新有向图
@@ -488,14 +490,14 @@ class Chart {
             const outFtr = d => outs.includes(d.dataIndex);
             circle.filter(outFtr).classed('out-node', true);
             label.filter(outFtr).classed('out-node', true);
-            link.filter(d => d.source == node).classed('out-link', true);
+            link.filter(d => d.source === node).classed('out-link', true);
         }
         // 将该顶点的入边和其源头顶点（被依赖包）显示为绿色
         if(hlrb) {
             const inFtr = d => ins.includes(d.dataIndex);      
             circle.filter(inFtr).classed('in-node', true);
             label.filter(inFtr).classed('in-node', true);
-            link.filter(d => d.target == node).classed('in-link', true);
+            link.filter(d => d.target === node).classed('in-link', true);
         }
         // 将根顶点到该顶点最短路径上的所有顶点和边（最短依赖路径）显示为青色
         const paths = requirePaths[node.dataIndex];
@@ -512,9 +514,9 @@ class Chart {
         
         // 显示所有上述边的文字标签
         const allUpFtr = d => 
-            hlrq && d.source == node ||
-            hlrb && d.target == node ||
-            hlp && onPath(paths)(d)
+            (hlrq && d.source === node) ||
+            (hlrb && d.target === node) ||
+            (hlp && onPath(paths)(d))
         this.showLinkNote(link.filter(allUpFtr));
 
         // 弱化所有上述之外顶点的存在感

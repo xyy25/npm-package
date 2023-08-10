@@ -90,7 +90,8 @@
         "input.outJson": "是否输出JSON文件",
         "input.outJsonDir": "输出的JSON文件名",
         "input.depth": "递归深度",
-        "input.port": "端口号"
+        "input.port": "端口号",
+        "input.jsonFile": "输入JSON文件名"
     },
     "logs": {
         "cli.ts": {

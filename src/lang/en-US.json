@@ -85,7 +85,8 @@
         "input.outJson": "Output as JSON",
         "input.outJsonDir": "Output file name",
         "input.depth": "Recursion max depth",
-        "input.port": "Opening on port"
+        "input.port": "Opening on port",
+        "input.jsonFile": "Your JSON file"
     },
     "logs": {
         "cli.ts": {

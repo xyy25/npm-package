@@ -13,24 +13,25 @@
     <link rel="stylesheet" href="./js/lib/css/d3-context-menu.css" type="text/css" />
     <script type="text/javascript" src="./js/lib/d3-context-menu.js"></script>
     <link rel="stylesheet" href="./css/chart.css" type="text/css" />
-    <script src="./js/utils.js"></script>
-    <script src="./js/chartMenu.js"></script>
-    <script src="./js/chart.js"></script>
+    <script src="./js/chart.js" type="module"></script>
     <script>
-        const myGlobal = {
+        const my = {
             chart: null,
             data: null
         }
+    </script>
+    <script type="module">
+        import Chart from './js/chart.js';
 
         d3.json('./res.json')
             .then(data => {
-                myGlobal.data = data;
+                my.data = data;
 
                 /*初始化宽高*/
                 const ct = d3.select("#chart");
                 //const [width, height] = ['width', 'height'].map(e => parseInt(ct.style(e)))
                 //const [width, height] = [1628, 900];
-                let { innerWidth: width, innerHeight: height } = this;
+                let { innerWidth: width, innerHeight: height } = window;
                 
                 // 这里我们将svg元素，和子group元素拆分
                 const svg = ct
@@ -58,7 +59,7 @@
                 }
                 d3.select(window).on('resize.updatesvg', updateWindow);
 
-                myGlobal.chart = new Chart(svg, data, { showExtraneous: false });
+                my.chart = new Chart(svg, data, { showExtraneous: false });
             })
     </script>
 </body>
