@@ -292,9 +292,10 @@ export default class Chart {
     }
 
     // 显示某个顶点，以及由根到该顶点的最短依赖路径上的所有顶点
-    showNode(index) {
+    showNode(index, hideOthers = false) {
         const { nodes, requirePaths } = this;
         if (index >= nodes.length) return;
+        if(hideOthers) this.resetNodes();
         if(requirePaths[index]) {
             requirePaths[index].forEach(i => { 
                 i === index ? (nodes[i].showNode = true) : this.showRequiring(i)
@@ -305,11 +306,10 @@ export default class Chart {
     // 显示顶点的所有相邻顶点，即该包的依赖
     showRequiring(index) {
         const { nodes } = this;
+        if(index >= nodes.length) return; 
         const node = nodes[index];
         node.showRequiring = true;
-        nodes.forEach(
-            (n, i) => n.showNode = node.data.requiring.includes(i) ? true : n.showNode
-        );
+        node.data.requiring.forEach((e) => nodes[e].showNode = true);
     }
 
     // 隐藏顶点本身，并自动清除因顶点隐藏而产生的游离顶点
