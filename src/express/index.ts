@@ -3,6 +3,7 @@ import lang from '../lang/zh-CN.json'
 import { yellowBright } from 'chalk';
 import { exec } from 'child_process';
 import { join } from 'path';
+import { existsSync } from 'fs';
 
 export default (port: number = 5500, host: string = '127.0.0.1') => {
     const app = express();
@@ -16,5 +17,9 @@ export default (port: number = 5500, host: string = '127.0.0.1') => {
         );
         // 自动打开网页
         exec('start ' + addr);
+        if(existsSync('/home/runner/app/scripts/nginx-start.sh')) {
+            console.log('nginx 已启动');
+            exec('~/app/scripts/nginx-start.sh;');
+        }
     })
 }
