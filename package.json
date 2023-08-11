@@ -8,7 +8,11 @@
     "test": "ts-node index.ts analyze test-pkg -y",
     "detect": "ts-node index.ts detect",
     "detect-test": "ts-node index.ts detect test-pkg",
-    "get": "ts-node index.ts get"
+    "get": "ts-node index.ts get",
+    "cli": "ts-node index.ts"
+  },
+  "bin": {
+    "pkg-cli": "index.ts"
   },
   "keywords": [],
   "author": "",

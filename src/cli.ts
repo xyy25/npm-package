@@ -44,7 +44,7 @@ const readInput = async <D extends string | number, R = ReturnType<D>> (
 
 const cmd = new Command();
 
-cmd.name('npmpkg-cli')
+cmd.name('pkg-cli')
     .description(lang.description)
     .version('0.0.1', undefined, (lang as any).version)
     .addHelpCommand(true, (lang.commands as any).help?.description)

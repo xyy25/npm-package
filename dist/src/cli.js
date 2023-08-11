@@ -53,7 +53,7 @@ const rl = readline_1.default.createInterface({
     input: process.stdin,
     output: process.stdout
 });
-const readInput = (prompt, inputDesc = '', def = '') => __awaiter(void 0, void 0, void 0, function* () {
+const readInput = (prompt, inputDesc = '', def = 'T') => __awaiter(void 0, void 0, void 0, function* () {
     if (inputDesc || def) {
         prompt += ' (';
         inputDesc && (prompt += inputDesc + (def && ', '));
@@ -62,10 +62,13 @@ const readInput = (prompt, inputDesc = '', def = '') => __awaiter(void 0, void 0
     }
     rl.setPrompt(prompt + cyan('> '));
     rl.prompt();
-    return yield new Promise(res => rl.on('line', (line) => res(line || def)));
+    return yield new Promise(res => rl.on('line', (line) => {
+        const r = typeof def === 'string' ? line : parseInt(line);
+        res(r);
+    }));
 });
 const cmd = new commander_1.Command();
-cmd.name('npmpkg-cli')
+cmd.name('pkg-cli')
     .description(zh_CN_json_1.default.description)
     .version('0.0.1', undefined, zh_CN_json_1.default.version)
     .addHelpCommand(true, (_a = zh_CN_json_1.default.commands.help) === null || _a === void 0 ? void 0 : _a.description)
@@ -82,6 +85,10 @@ const jsonOption = new commander_1.Option('-j, --json [fileName]', zh_CN_json_1.
 const jsonPrettyOption = new commander_1.Option('--pretty, --format', zh_CN_json_1.default.commands.analyze.options.format.description);
 const defaultOption = new commander_1.Option('-y, --default', zh_CN_json_1.default.commands.analyze.options.default.description)
     .default(false);
+const hostOption = new commander_1.Option('-h, --host', zh_CN_json_1.default.commands.analyze.options.host.description)
+    .default("127.0.0.1");
+const portOption = new commander_1.Option('-p, --port', zh_CN_json_1.default.commands.analyze.options.port.description)
+    .default(5500).argParser((v) => parseInt(v));
 cmd.command('analyze').description(zh_CN_json_1.default.commands.analyze.description)
     .argument('[package root]', zh_CN_json_1.default.commands.analyze.argument[0].description)
     .addOption(managerOption)
@@ -90,10 +97,10 @@ cmd.command('analyze').description(zh_CN_json_1.default.commands.analyze.descrip
     .addOption(jsonOption)
     .addOption(jsonPrettyOption)
     .addOption(defaultOption)
+    .addOption(hostOption)
+    .addOption(portOption)
     .option('-c, --console, --print', zh_CN_json_1.default.commands.analyze.options.console.description)
     .option('-i, --noweb', zh_CN_json_1.default.commands.analyze.options.noweb.description)
-    .option('-h, --host', zh_CN_json_1.default.commands.analyze.options.host.description)
-    .option('-p, --port', zh_CN_json_1.default.commands.analyze.options.port.description)
     .option('--proto', zh_CN_json_1.default.commands.analyze.options.proto.description)
     .action((str, options) => __awaiter(void 0, void 0, void 0, function* () {
     const cwd = process.cwd(); // 命令执行路径
@@ -107,15 +114,15 @@ cmd.command('analyze').description(zh_CN_json_1.default.commands.analyze.descrip
             rl.close();
             return;
         }
-        if (!fs_1.default.existsSync((0, path_1.join)(cwd, str))) {
+        if (!fs_1.default.existsSync((0, path_1.resolve)(str))) {
             console.error(error(zh_CN_json_1.default.logs['cli.ts'].dirNotExist));
             str = undefined;
         }
     }
-    const defOutFileName = (0, path_1.join)('outputs', `res-${path_1.default.basename((0, path_1.join)(cwd, str))}.json`);
+    const defOutFileName = (0, path_1.join)('outputs', `res-${path_1.default.basename((0, path_1.resolve)(str))}.json`);
     if (!def) { // 如果不设置使用默认设置-y，则询问一些问题
         if (Number.isNaN(depth)) {
-            depth = parseInt(yield readInput(zh_CN_json_1.default.line['input.depth'], '', 'Infinity')) || Infinity;
+            depth = yield readInput(zh_CN_json_1.default.line['input.depth'], '', Infinity);
         }
         if (json === undefined) {
             const input = yield readInput(zh_CN_json_1.default.line['input.outJson'], 'y/n', 'n');
@@ -127,15 +134,15 @@ cmd.command('analyze').description(zh_CN_json_1.default.commands.analyze.descrip
                 }
             }
             else if (!noweb) {
-                port = port !== null && port !== void 0 ? port : parseInt(yield readInput(zh_CN_json_1.default.line['input.port'], '', '5500'));
-                host = host !== null && host !== void 0 ? host : '127.0.0.1';
+                port = yield readInput(zh_CN_json_1.default.line['input.port'], '', 5500);
+                host = '127.0.0.1';
             }
         }
     }
     noweb !== null && noweb !== void 0 ? noweb : (noweb = json);
     depth || (depth = Infinity);
     rl.close();
-    const pkgRoot = (0, path_1.join)(cwd, str); // 包的根目录
+    const pkgRoot = (0, path_1.resolve)(str); // 包的根目录
     try {
         if (!fs_1.default.existsSync(pkgRoot)) { // 目录不存在
             throw zh_CN_json_1.default.logs['cli.ts'].dirNotExist;
@@ -175,8 +182,8 @@ cmd.command('analyze').description(zh_CN_json_1.default.commands.analyze.descrip
         if (options.console) {
             console.log(res);
         }
-        if (!fs_1.default.existsSync((0, path_1.join)(cwd, 'outputs'))) {
-            fs_1.default.mkdirSync((0, path_1.join)(cwd, 'outputs'));
+        if (!fs_1.default.existsSync((0, path_1.resolve)('outputs'))) {
+            fs_1.default.mkdirSync((0, path_1.resolve)('outputs'));
         }
         if (json) { // 输出JSON文件设置
             // 自动创建outputs文件夹
@@ -184,7 +191,7 @@ cmd.command('analyze').description(zh_CN_json_1.default.commands.analyze.descrip
             if (!outFileName.endsWith('.json')) {
                 outFileName += '.json';
             }
-            const outFileUri = (0, path_1.join)(cwd, outFileName);
+            const outFileUri = (0, path_1.resolve)(outFileName);
             fs_1.default.writeFileSync(outFileUri, Buffer.from(JSON.stringify(res, null, options.format ? "\t" : "")));
             console.log(cyan(desc.jsonSaved.replace('%s', yellowBright(outFileName))));
         }
@@ -217,7 +224,7 @@ cmd.command('detect')
         if (!str) {
             str = yield readInput(zh_CN_json_1.default.line['input.dir']);
         }
-        const pkgRoot = (0, path_1.join)(cwd, str); // 包的根目录
+        const pkgRoot = (0, path_1.resolve)(str); // 包的根目录
         const dirEx = fs_1.default.existsSync(pkgRoot);
         if (!dirEx) {
             throw zh_CN_json_1.default.logs['cli.ts'].dirNotExist;
@@ -246,6 +253,34 @@ cmd.command('detect')
     }
     catch (e) {
         console.error(error(zh_CN_json_1.default.commons.error + ':', e));
+    }
+}));
+cmd.command("view")
+    .alias("show")
+    .description(zh_CN_json_1.default.commands.view.description)
+    .argument('[JSON uri]', zh_CN_json_1.default.commands.view.argument[0].description)
+    .addOption(hostOption)
+    .addOption(portOption)
+    .action((str, options) => __awaiter(void 0, void 0, void 0, function* () {
+    const cwd = process.cwd();
+    if (!str) {
+        str = yield readInput(zh_CN_json_1.default.line['input.jsonFile']);
+    }
+    rl.close();
+    try {
+        if (!str.endsWith('.json')) {
+            str += '.json';
+        }
+        const uri = (0, path_1.resolve)(str);
+        if (!fs_1.default.existsSync(uri) || !fs_1.default.lstatSync(uri).isFile()) {
+            throw zh_CN_json_1.default.logs['cli.ts'].fileNotExist;
+        }
+        fs_1.default.cpSync(uri, (0, path_1.join)(__dirname, 'express/public/res.json'), { force: true });
+        const { port, host } = options;
+        (yield Promise.resolve().then(() => __importStar(require('./express')))).default(port, host);
+    }
+    catch (e) {
+        console.error(error(zh_CN_json_1.default.commons.error + ': ' + e));
     }
 }));
 cmd.command('get')

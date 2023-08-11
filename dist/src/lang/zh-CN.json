@@ -59,6 +59,12 @@
                 }
             }
         },
+        "view": {
+            "description": "打开一个依赖关系数据JSON文件的网页视图.",
+            "argument": [
+                { "description": "需要加载的JSON输出文件路径" }
+            ]
+        },
         "get": {
             "description": "从'registry.npmjs.org'获取包的信息.",
             "argument": [
@@ -84,11 +90,14 @@
         "input.outJson": "是否输出JSON文件",
         "input.outJsonDir": "输出的JSON文件名",
         "input.depth": "递归深度",
-        "input.port": "端口号"
+        "input.port": "端口号",
+        "input.jsonFile": "输入JSON文件名"
     },
     "logs": {
         "cli.ts": {
             "dirNotExist": "目录不存在!",
+            "fileNotExist": "文件不存在!",
+            "notJsonFile": "目标不是JSON文件!",
             "pkgJsonNotExist": "%s根目录下的package.json文件不存在!",
             "detected": "检测到 %s 个依赖包.",
             "noDependency": "该项目未安装任何依赖.",

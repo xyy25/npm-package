@@ -19,6 +19,7 @@ exports.orange = chalk_1.default.hex('#FFA500');
 const { green, cyan, yellow, yellowBright } = chalk_1.default;
 // 进度条
 let bar = null;
+const eff = "⠁⠂⠄⡀⢀⠠⠐⠈".split('');
 // 广度优先搜索node_modules函数
 function analyze(pkgRoot, manager, depth = Infinity, norm = true, // 包含dependencies
 dev = true, // 包含devDependencies
@@ -177,6 +178,7 @@ function analyzePackage(abs, depth, curPath, childPath, curItem, queue, depEval)
         }
         const outLength = process.stdout.columns;
         bar === null || bar === void 0 ? void 0 : bar.tick({
+            'eff': eff[(bar === null || bar === void 0 ? void 0 : bar.curr) % eff.length],
             'queue': queue.length,
             'nowComplete': outLength <= 100 ? '' :
                 (desc.nowComplete + ': ' + cyan((0, _1.limit)(`${range} ${id}`, outLength * 0.2)))

@@ -35,7 +35,7 @@ const getParentPath = (id, pkgPath) => path_1.default.join(pkgPath, ...id.split(
 exports.getParentPath = getParentPath;
 const createBar = (total) => {
     const outLength = process.stdout.columns;
-    return new progress_1.default(`Q${green(':queue')} ${yellowBright(':current')}/${yellow(':total')}` +
+    return new progress_1.default(`:eff Q${green(':queue')} ${yellowBright(':current')}/${yellow(':total')}` +
         ` [:bar] ` + (outLength >= 100 ? ':nowComplete' : ''), {
         total: total,
         complete: yellowBright('▇'),
