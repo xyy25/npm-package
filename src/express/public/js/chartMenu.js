@@ -1,9 +1,17 @@
+const genTitle = (desc, judge = () => true, trueExpr = '开启', falseExpr = '关闭') => 
+            `${desc}: ` + (judge() ? trueExpr : falseExpr);
+
 const MenuData = (ct) => {
     const { options: opt } = ct;
-    const genTitle = (desc, judge = () => true, trueExpr = '开启', falseExpr = '关闭') => 
-            `${desc}: ` + (judge() ? trueExpr : falseExpr);
     return [ 
-        { title: '隐藏依赖', action: (e) => (ct.hideBorders(e), ct.update()) },
+        { 
+            title: (e) => (e.showRequiring ? '收起' : '展开') + '依赖', 
+            action: (e) => ((
+                e.showRequiring ? 
+                    ct.hideBorders(e) : ct.showRequiring(e.dataIndex)
+                ), ct.update()),
+            disabled: (e) => !e.dataIndex
+        },
         { divider: true },
         { 
             title: (opt.simulationStop ? '继续' : '固定') + '移动', 
@@ -17,7 +25,11 @@ const MenuData = (ct) => {
         { divider: true },
         { title: '选项..', children: [
             {
-                title: genTitle('多余依赖包', () => opt.showExtraneous, '显示', '隐藏'),
+                title: genTitle('信息', () => opt.showDesc, '显示', '隐藏'),
+                action: () => (opt.showDesc = !opt.showDesc, ct.updateOptions())
+            },
+            {
+                title: genTitle('未使用包', () => opt.showExtraneous, '显示', '隐藏'),
                 action: () => {
                     opt.showExtraneous = !opt.showExtraneous;
                     ct.nodes.filter(n => ct.requirePaths[n.dataIndex] === null)

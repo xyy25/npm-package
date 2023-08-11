@@ -48,6 +48,7 @@ export default class Chart {
 
     init(initOptions) {
         this.options = {
+            showDesc: true, // 显示依赖包简要信息
             showExtraneous: true, // 显示游离顶点(无被依赖的额外包)
             highlightRequiring: true, // 高亮出边(橙色)
             highlightRequiredBy: true, // 高亮入边(绿色)
@@ -382,26 +383,6 @@ export default class Chart {
             .attr("class", (d) => ct.getLinkClass(d, 2))
             .attr("stroke-opacity", 0.6)
             .attr('marker-end', 'url(#marker)');
-
-        // 顶点标签
-        ct.label = this.nodeg
-            .selectAll("text")
-            .data(vsbNodes, d => d.dataIndex)
-            .join(
-                enter => labelEnter = enter.append('text'),
-                update => update,
-                exit => exit.remove()
-            )
-        labelEnter
-            .attr("index", (d) => d.dataIndex)
-            .each(d => d.r = (d.dataIndex ? 3.5 : 5) * (1 + d.data.requiring.length * 0.05))
-            .attr("class", (d) => ct.getNodeClass(d, 2))
-            .attr('dy', d => -d.r - 2)
-            .text(d => d.data.id + (
-                // 如果有同名包，则在标签上后缀版本
-                ct.nodes.filter(n => n.data.id === d.data.id).length >= 2 ?
-                    ('@' + d.data.version) : '' 
-            )).call(drag(simulation))
         
         // 顶点圆圈
         ct.circle = this.nodeg
@@ -416,6 +397,7 @@ export default class Chart {
         circleEnter 
             .attr("index", (d) => d.dataIndex)
             // 根顶点半径为5px起步，否则3.5px
+            .each(d => d.r = (d.dataIndex ? 3.5 : 5) * (1 + d.data.requiring.length * 0.05))
             .attr("r", (d) => d.r)
             .call(drag(simulation))
             .on("click", function(e) { ct.clickNode(this, e) })
@@ -436,7 +418,26 @@ export default class Chart {
         ct.circle.filter(d => d.data.requiring.length && !d.showRequiring)
             .append('title')
             .text('点击显示依赖');
-            
+
+        // 顶点标签
+        ct.label = this.nodeg
+            .selectAll("text")
+            .data(vsbNodes, d => d.dataIndex)
+            .join(
+                enter => labelEnter = enter.append('text'),
+                update => update,
+                exit => exit.remove()
+            )
+        labelEnter
+            .attr("index", (d) => d.dataIndex)
+            .attr("class", (d) => ct.getNodeClass(d, 2))
+            .attr('dy', d => -d.r - 2)
+            .text(d => d.data.id + (
+                // 如果有同名包，则在标签上后缀版本
+                ct.nodes.filter(n => n.data.id === d.data.id).length >= 2 ?
+                    ('@' + d.data.version) : '' 
+            )).call(drag(simulation))
+        
         // 更新力导模拟
         const { log2, max } = Math;
         const alpha = max(log2(1 + circleEnter.size()) * 0.1, 0.1);
@@ -465,18 +466,21 @@ export default class Chart {
             label, link, 
             requirePaths, 
             options: {
+                showDesc,
                 highlightRequiring: hlrq, 
                 highlightRequiredBy: hlrb,
                 highlightPath: hlp, fading
             }
         } = this;
-        desc
-            .call(appendLine, `名称: ${node.data.id}\n`)
-            .call(appendLine, `版本: ${node.data.version}\n`)
-            .call(appendLine, `目录: ${node.data.path}\n`)
-            .call(appendLine, `依赖: ${node.data.requiring.length}个包`)
-            .call(appendLine, this.getNodeClass(node, 1));
         console.log('悬停', node.dataIndex);
+        if(showDesc) {     
+            desc
+                .call(appendLine, `名称: ${node.data.id}\n`)
+                .call(appendLine, `版本: ${node.data.version}\n`)
+                .call(appendLine, `目录: ${node.data.path}\n`)
+                .call(appendLine, `依赖: ${node.data.requiring.length}个包`)
+                .call(appendLine, this.getNodeClass(node, 1));
+        }
 
         const { requiring: outs, requiredBy: ins } = node.data;
         // 返回一个函数：判断一条边link是否在路径顶点集nodeSet上，用于过滤边
