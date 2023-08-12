@@ -60,7 +60,8 @@ const questions = (lang: any, enable: boolean): QuestionCollection => {
         message: lang.line['input.outJsonDir'],
         askAnswered: true,
         when: (ans) => ans['json'],
-        default: (ans: any) => join('outputs', resbase(ans['pkgName'])),
+        default: (ans: any) => 
+            join('outputs', 'res-' + resbase(ans['pkgName'])),
         filter: (input) => outJsonRelUri(input),
     }, {
         type: 'number',
@@ -166,7 +167,7 @@ const action = async (str: string, options: any, lang: any) => {
                 fs.mkdirSync(resolve('outputs'));
             }
             // 如果json为布尔值true，则转换为目标文件路径字符串
-            json = json === true ? outJsonRelUri(join('outputs', pkgName)) : json;
+            json = json === true ? outJsonRelUri(join('outputs', 'res-' + pkgName)) : json;
             fs.writeFileSync(json, Buffer.from(JSON.stringify(res, null, options.format ? "\t" : "")));
             console.log(cyan(desc.jsonSaved.replace('%s', yellowBright(relative(cwd, json)))));
         }

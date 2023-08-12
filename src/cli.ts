@@ -1,5 +1,5 @@
 import { Command, Option } from 'commander';
-import { resolve, basename } from 'path';
+import { resolve, basename, dirname, join } from 'path';
 import { getPackage } from './utils/npmUtils';
 
 import chalk from 'chalk';
@@ -20,9 +20,10 @@ cmd.name('pkg-cli')
     .showSuggestionAfterError(true);
 
 export const outJsonRelUri = (relUri: string) => {
-    let baseName = basename(resolve(relUri));
+    let baseName = resbase(relUri);
+    let dirName = dirname(relUri);
     if(!baseName.endsWith('.json')) baseName += '.json';
-    return `res-${baseName}`;
+    return join(dirName, baseName);
 }
 
 export const resbase = (relUri: string) => basename(resolve(relUri));
