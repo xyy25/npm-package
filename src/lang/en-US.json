@@ -23,8 +23,8 @@
                 "format": {
                     "description": "Automatically format JSON file to a more pretty looking."
                 },
-                "default": {
-                    "description": "Use default options without asking any questions."
+                "question": {
+                    "description": "Ask questions for options."
                 },
                 "host": {
                     "description": "The host the website opens on."
@@ -84,6 +84,8 @@
         "input.name": "Package name",
         "input.outJson": "Output as JSON",
         "input.outJsonDir": "Output file name",
+        "input.manager": "Choose the package manager",
+        "input.scope": "Choose the scope",
         "input.depth": "Recursion max depth",
         "input.port": "Opening on port",
         "input.jsonFile": "Your JSON file"

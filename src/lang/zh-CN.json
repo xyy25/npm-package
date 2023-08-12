@@ -28,8 +28,8 @@
                 "format": {
                     "description": "自动格式化JSON文件."
                 },
-                "default": {
-                    "description": "不询问任何问题, 采用默认设置."
+                "question": {
+                    "description": "询问各种选项配置."
                 },
                 "host": {
                     "description": "视图网页开启的地址."
@@ -89,6 +89,8 @@
         "input.name": "输入包名",
         "input.outJson": "是否输出JSON文件",
         "input.outJsonDir": "输出的JSON文件名",
+        "input.manager": "选择目录的包管理器",
+        "input.scope": "选择搜索的范围",
         "input.depth": "递归深度",
         "input.port": "端口号",
         "input.jsonFile": "输入JSON文件名"
