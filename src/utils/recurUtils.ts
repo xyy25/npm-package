@@ -30,6 +30,7 @@ export const createBar = (total: number): ProgressBar | null => {
             `:eff Q${green(':queue')} ${yellowBright(':current')}/${yellow(':total')}` +
             ` [:bar] ` + (outLength >= 100 ? ':nowComplete' : ''), {
                 total: total,
+                head: chalk.red('▇'),
                 complete: yellowBright('▇'),
                 incomplete: black(' ')
         }); 

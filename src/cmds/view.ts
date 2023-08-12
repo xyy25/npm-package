@@ -3,18 +3,26 @@ import { error } from 'console';
 import { resolve, join } from 'path';
 import fs from 'fs';
 
-import { publicOptions as opts } from '../cli';
+import { getFiles, publicOptions as opts } from '../cli';
 import inquirer, { QuestionCollection } from 'inquirer';
+import inquirerAuto from "inquirer-autocomplete-prompt";
+
+inquirer.registerPrompt('auto', inquirerAuto);
 
 const questions = (lang: any, enable: boolean): QuestionCollection => {
     return !enable ? [] : [{
-        type: 'input',
+        type: 'auto',
         name: 'fileName',
         message: lang.line['input.jsonFile'],
         when: (ans) => ans['fileName'] === undefined,
         filter: (input) => input.endsWith('.json') ? input : input + '.json',
-        validate: (input: string) => {
-            if(fs.existsSync(resolve(input))) {
+        searchText: lang.line['status.searching'],
+        emptyText:  lang.line['status.noResult'],
+        source: (ans: any, input: string) => 
+            getFiles(ans, input, (file) => fs.lstatSync(file).isFile() && file.endsWith('.json')),
+        default: '.',
+        validate: (input: any) => {
+            if(input?.value && fs.existsSync(resolve(input.value))) {
                 return true;
             }
             return error(lang.logs['cli.ts'].dirNotExist);

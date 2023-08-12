@@ -99,7 +99,8 @@
             "detected": "Detected %s packages in the target directory.",
             "noDependency": "The project does not install any package.",
             "jsonSaved": "Analyze result has been saved to %s.",
-            "detectPkg": "CURRENT PACKAGES:"
+            "detectPkg": "CURRENT PACKAGES:",
+            "portInvalid": "Port must be between 1 and 65535."
         },
         "express.ts": {
             "start": "The generated view is now opened at %s"

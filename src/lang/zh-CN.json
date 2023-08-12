@@ -85,15 +85,17 @@
     },
     "line": {
         "default": "默认",
-        "input.dir": "输入包目录",
-        "input.name": "输入包名",
+        "input.dir": "输入目录",
+        "input.name": "输入依赖包的名称",
         "input.outJson": "是否输出JSON文件",
         "input.outJsonDir": "输出的JSON文件名",
         "input.manager": "选择目录的包管理器",
         "input.scope": "选择搜索的范围",
         "input.depth": "递归深度",
         "input.port": "端口号",
-        "input.jsonFile": "输入JSON文件名"
+        "input.jsonFile": "输入JSON文件名",
+        "status.noResult": "无结果...",
+        "status.searching": "搜索中..."
     },
     "logs": {
         "cli.ts": {
@@ -104,7 +106,8 @@
             "detected": "检测到 %s 个依赖包.",
             "noDependency": "该项目未安装任何依赖.",
             "jsonSaved": "分析结果已保存至%s.",
-            "detectPkg": "扫描到的依赖包文件数:"
+            "detectPkg": "扫描到的依赖包文件数:",
+            "portInvalid": "端口号必须在1到65535之间!"
         },
         "express.ts": {
             "start": "网页视图已在 %s 打开."

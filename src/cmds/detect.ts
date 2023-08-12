@@ -3,26 +3,32 @@ import { Command } from "commander";
 import { resolve } from "path";
 import fs from 'fs';
 
-import { error, publicOptions as opts, resbase } from "../cli";
+import { error, getDirs, publicOptions as opts, resbase } from "../cli";
 import { getManagerType } from "../utils";
 import detect, { detectPnpm } from "../utils/detect";
 import { PackageManager } from "../utils/types";
 import inquirer, { QuestionCollection } from "inquirer";
+import inquirerAuto from "inquirer-autocomplete-prompt";
 
 const { cyanBright, green, cyan } = chalk;
 
+inquirer.registerPrompt('auto', inquirerAuto);
+
 const questions = (lang: any, enable: boolean): QuestionCollection => {
     return !enable ? [] : [{
-        type: 'input',
-        name: 'pkgName',
+        type: 'auto',
+        name: 'pkg',
         message: lang.line['input.dir'],
-        validate: (input: string) => {
-            if(fs.existsSync(resolve(input))) {
+        searchText: lang.line['status.searching'],
+        emptyText:  lang.line['status.noResult'],
+        source: getDirs,
+        default: '.',
+        validate: (input: any) => {
+            if(input?.value && fs.existsSync(resolve(input.value))) {
                 return true;
             }
             return error(lang.logs['cli.ts'].dirNotExist);
-        },
-        default: '.'
+        }
     }, {
         type: 'list',
         name: 'manager',
@@ -34,7 +40,7 @@ const questions = (lang: any, enable: boolean): QuestionCollection => {
         type: 'number',
         name: 'depth',
         message: lang.line['input.depth'],
-        when: (ans) => ans['manager'] !== 'npm',
+        when: (ans) => ans['manager'] !== 'pnpm',
         default: Infinity
     }]
 }
@@ -47,26 +53,24 @@ function detectCommand(cmd: Command, lang: any) {
         .addOption(opts.depth)
         .addOption(opts.question)
         .option('--show', lang.commands.detect.options.show.description, false)
-        .action(async (str, options) => {
-            const cwd = process.cwd(); // 命令执行路径
-            
+        .action(async (str, options) => {    
             // 询问
             let ans = await inquirer.prompt(
-                questions(lang, !!options.question || !str), { pkgName: str }
+                questions(lang, !!options.question), { pkg: str }
             );
-            ans = {
-                ...options,
-                ...ans
-            }
+            ans = { ...options, ...ans };
             ans.depth ||= Infinity;
+            ans.pkg ??= '.';
 
-            let { pkgName, depth } = ans;
+            let { pkg, depth } = ans;
             let manager: PackageManager | 'auto' = ans.manager;
 
-            try {
-                const pkgRoot = resolve(pkgName); // 包的根目录
-                pkgName = resbase(pkgName);
+            const pkgRoot = resolve(pkg); // 包根目录的绝对路径
+            pkg = resbase(pkg);
 
+            console.log(ans);
+
+            try {
                 const dirEx = fs.existsSync(pkgRoot);
                 if(!dirEx) {
                     throw lang.logs['cli.ts'].dirNotExist;

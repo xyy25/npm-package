@@ -1,9 +1,10 @@
 import { Command } from "commander"
-import { error, publicOptions as opts, outJsonRelUri, resbase } from "../cli";
+import { error, getDirs, publicOptions as opts, outJsonRelUri, resbase } from "../cli";
 import { cyan, yellow, yellowBright } from "chalk";
-import { basename, join, relative, resolve } from "path";
+import { join, relative, resolve } from "path";
 import fs from 'fs';
 import inquirer, { QuestionCollection } from 'inquirer';
+import inquirerAuto from "inquirer-autocomplete-prompt";
 
 import { readPackageJson, getManagerType, toDiagram, toDepItemWithId } from "../utils";
 import detect from "../utils/detect";
@@ -11,18 +12,23 @@ import { evaluate } from "../utils/recurUtils";
 import { PackageManager } from "../utils/types";
 import analyze from "../utils/analyze";
 
+inquirer.registerPrompt('auto', inquirerAuto);
+
 const questions = (lang: any, enable: boolean): QuestionCollection => {
     return !enable ? [] : [{
-        type: 'input',
-        name: 'pkgName',
+        type: 'auto',
+        name: 'pkg',
         message: lang.line['input.dir'],
-        validate: (input: string) => {
-            if(fs.existsSync(resolve(input))) {
+        searchText: lang.line['status.searching'],
+        emptyText:  lang.line['status.noResult'],
+        source: getDirs,
+        default: '.',
+        validate: (input: any) => {
+            if(input?.value && fs.existsSync(resolve(input.value))) {
                 return true;
             }
             return error(lang.logs['cli.ts'].dirNotExist);
-        },
-        default: '.'
+        }
     }, {
         type: 'number',
         name: 'depth',
@@ -61,7 +67,7 @@ const questions = (lang: any, enable: boolean): QuestionCollection => {
         askAnswered: true,
         when: (ans) => ans['json'],
         default: (ans: any) => 
-            join('outputs', 'res-' + resbase(ans['pkgName'])),
+            join('outputs', 'res-' + resbase(ans['pkg'])),
         filter: (input) => outJsonRelUri(input),
     }, {
         type: 'number',
@@ -71,7 +77,7 @@ const questions = (lang: any, enable: boolean): QuestionCollection => {
         when: (ans) => !ans['json'],
         validate: (input) => {
             if(input <= 0 || input > 65536) {
-                return error('Port must between 1 and 65536!');
+                return error(lang.logs['cli.ts'].portInvalid);
             }
             return true;
         },
@@ -101,23 +107,21 @@ const action = async (str: string, options: any, lang: any) => {
 
     // 询问
     let ans = await inquirer.prompt(
-        questions(lang, options.question || !str), { pkgName: str }
+        questions(lang, !!options.question), { pkg: str }
     );
-    ans = {
-        ...options,
-        ...ans
-    }
+    ans = { ...options, ...ans };
     ans.noweb = ans.noweb ?? !!ans.json;
     ans.depth ||= Infinity;
+    ans.pkg ??= '.';
 
     let { 
-        pkgName, depth, noweb, host, port, scope
+        pkg, depth, noweb, host, port, scope
     } = ans;
     let json: string | boolean | undefined = ans.json;
     let manager: PackageManager | 'auto' = ans.manager;
 
-    const pkgRoot = resolve(pkgName); // 包的根目录
-    pkgName = resbase(pkgName);
+    const pkgRoot = resolve(pkg); // 包根目录的绝对路径
+    pkg = resbase(pkg); // 包的名称，如果缺省则为本目录
 
     console.log(ans);
 
@@ -127,7 +131,7 @@ const action = async (str: string, options: any, lang: any) => {
         }
         const pkgJson = readPackageJson(join(pkgRoot, 'package.json'));
         if(!pkgJson) { // package.json不存在
-            throw lang.logs['cli.ts'].pkgJsonNotExist.replace('%s', pkgName);
+            throw lang.logs['cli.ts'].pkgJsonNotExist.replace('%s', pkgRoot);
         }
         if(manager === 'auto') {
             manager = getManagerType(pkgRoot);
@@ -167,7 +171,7 @@ const action = async (str: string, options: any, lang: any) => {
                 fs.mkdirSync(resolve('outputs'));
             }
             // 如果json为布尔值true，则转换为目标文件路径字符串
-            json = json === true ? outJsonRelUri(join('outputs', 'res-' + pkgName)) : json;
+            json = json === true ? outJsonRelUri(join('outputs', 'res-' + pkg)) : json;
             fs.writeFileSync(json, Buffer.from(JSON.stringify(res, null, options.format ? "\t" : "")));
             console.log(cyan(desc.jsonSaved.replace('%s', yellowBright(relative(cwd, json)))));
         }

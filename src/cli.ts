@@ -1,5 +1,6 @@
 import { Command, Option } from 'commander';
-import { resolve, basename, dirname, join } from 'path';
+import { resolve, basename, dirname, join, normalize } from 'path';
+import fs from 'fs';
 import { getPackage } from './utils/npmUtils';
 
 import chalk from 'chalk';
@@ -18,15 +19,6 @@ cmd.name('pkg-cli')
     .version('0.0.1', undefined, (lang as any).version)
     .addHelpCommand(true, (lang.commands as any).help?.description)
     .showSuggestionAfterError(true);
-
-export const outJsonRelUri = (relUri: string) => {
-    let baseName = resbase(relUri);
-    let dirName = dirname(relUri);
-    if(!baseName.endsWith('.json')) baseName += '.json';
-    return join(dirName, baseName);
-}
-
-export const resbase = (relUri: string) => basename(resolve(relUri));
 
 export const publicOptions = {
     manager: new Option('-m, --manager <packageManager>', lang.commands.analyze.options.manager.description)
@@ -68,5 +60,43 @@ cmd.command('get')
         console.log(res);
     })
 
-cmd.parse();
+export const outJsonRelUri = (relUri: string) => {
+    let baseName = resbase(relUri);
+    let dirName = dirname(relUri);
+    if(!baseName.endsWith('.json')) baseName += '.json';
+    return join(dirName, baseName);
+}
 
+export const resbase = (relUri: string) => basename(resolve(relUri));
+
+export const getDirs = (ans: any, input: any) => 
+    getFiles(ans, input, (file: string) => fs.lstatSync(file).isDirectory());
+
+export const getFiles = (
+    ans: any, 
+    input: any, 
+    filter: (file: string) => boolean
+) => {
+    input ??= '.';
+    const inputAbs = resolve(input);
+    try {
+        if(!fs.existsSync(inputAbs) || !fs.lstatSync(inputAbs).isDirectory()) {
+            const parent = dirname(input), parAbs = dirname(inputAbs);
+            const base = basename(inputAbs);
+            if(!fs.existsSync(parAbs) || !fs.lstatSync(parAbs).isDirectory()) {
+                return [];
+            }
+            const files = fs.readdirSync(parAbs) ?? [];
+            return files
+                .filter(e => filter(join(parAbs, e)) && e.includes(base))
+                .map(e => normalize(join(parent, e)));
+        }
+        const files = fs.readdirSync(inputAbs) ?? [];
+        const list = files.filter(e => filter(join(inputAbs, e)));
+        return [input, ...list.map(e => join(input, e))].map(normalize);
+    } catch {
+        return [];
+    }
+}
+
+cmd.parse();
