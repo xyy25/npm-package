@@ -1,11 +1,12 @@
 import { Command } from "commander"
-import { error, getDirs, publicOptions as opts, outJsonRelUri, resbase } from "../cli";
 import { cyan, yellow, yellowBright } from "chalk";
 import { join, relative, resolve } from "path";
 import fs from 'fs';
 import inquirer, { QuestionCollection } from 'inquirer';
 import inquirerAuto from "inquirer-autocomplete-prompt";
 
+import { getDirs, outJsonRelUri, resbase } from '.';
+import { error, publicOptions as opts } from "../cli";
 import { readPackageJson, getManagerType, toDiagram, toDepItemWithId } from "../utils";
 import detect from "../utils/detect";
 import { evaluate } from "../utils/recurUtils";

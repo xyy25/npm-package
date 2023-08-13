@@ -1,6 +1,4 @@
 import { Command, Option } from 'commander';
-import { resolve, basename, dirname, join, normalize } from 'path';
-import fs from 'fs';
 import { getPackage } from './utils/npmUtils';
 
 import chalk from 'chalk';
@@ -9,6 +7,7 @@ import lang from './lang/zh-CN.json';
 import analyzeCommand from './cmds/analyze';
 import detectCommand from './cmds/detect';
 import viewCommand from './cmds/view';
+import { outJsonRelUri } from './cmds';
 
 export const error = chalk.bgBlack.bold.redBright;
 
@@ -59,44 +58,5 @@ cmd.command('get')
         const res = await getPackage(str, options.version ?? '*', !!options.all);
         console.log(res);
     })
-
-export const outJsonRelUri = (relUri: string) => {
-    let baseName = resbase(relUri);
-    let dirName = dirname(relUri);
-    if(!baseName.endsWith('.json')) baseName += '.json';
-    return join(dirName, baseName);
-}
-
-export const resbase = (relUri: string) => basename(resolve(relUri));
-
-export const getDirs = (ans: any, input: any) => 
-    getFiles(ans, input, (file: string) => fs.lstatSync(file).isDirectory());
-
-export const getFiles = (
-    ans: any, 
-    input: any, 
-    filter: (file: string) => boolean
-) => {
-    input ??= '.';
-    const inputAbs = resolve(input);
-    try {
-        if(!fs.existsSync(inputAbs) || !fs.lstatSync(inputAbs).isDirectory()) {
-            const parent = dirname(input), parAbs = dirname(inputAbs);
-            const base = basename(inputAbs);
-            if(!fs.existsSync(parAbs) || !fs.lstatSync(parAbs).isDirectory()) {
-                return [];
-            }
-            const files = fs.readdirSync(parAbs) ?? [];
-            return files
-                .filter(e => filter(join(parAbs, e)) && e.includes(base))
-                .map(e => normalize(join(parent, e)));
-        }
-        const files = fs.readdirSync(inputAbs) ?? [];
-        const list = files.filter(e => filter(join(inputAbs, e)));
-        return [input, ...list.map(e => join(input, e))].map(normalize);
-    } catch {
-        return [];
-    }
-}
 
 cmd.parse();

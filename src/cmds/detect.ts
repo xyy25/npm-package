@@ -2,13 +2,14 @@ import chalk from "chalk";
 import { Command } from "commander";
 import { resolve } from "path";
 import fs from 'fs';
+import inquirer, { QuestionCollection } from "inquirer";
+import inquirerAuto from "inquirer-autocomplete-prompt";
 
-import { error, getDirs, publicOptions as opts, resbase } from "../cli";
+import { error, publicOptions as opts } from "../cli";
+import { getDirs, resbase } from '.';
 import { getManagerType } from "../utils";
 import detect, { detectPnpm } from "../utils/detect";
 import { PackageManager } from "../utils/types";
-import inquirer, { QuestionCollection } from "inquirer";
-import inquirerAuto from "inquirer-autocomplete-prompt";
 
 const { cyanBright, green, cyan } = chalk;
 

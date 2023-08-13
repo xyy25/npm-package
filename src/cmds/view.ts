@@ -2,10 +2,11 @@ import { Command } from 'commander';
 import { error } from 'console';
 import { resolve, join } from 'path';
 import fs from 'fs';
-
-import { getFiles, publicOptions as opts } from '../cli';
 import inquirer, { QuestionCollection } from 'inquirer';
 import inquirerAuto from "inquirer-autocomplete-prompt";
+
+import { publicOptions as opts } from '../cli';
+import { getFiles } from '.';
 
 inquirer.registerPrompt('auto', inquirerAuto);
 
@@ -19,7 +20,7 @@ const questions = (lang: any, enable: boolean): QuestionCollection => {
         searchText: lang.line['status.searching'],
         emptyText:  lang.line['status.noResult'],
         source: (ans: any, input: string) => 
-            getFiles(ans, input, (file) => fs.lstatSync(file).isFile() && file.endsWith('.json')),
+            getFiles(ans, input, 1, (file) => fs.lstatSync(file).isFile() && file.endsWith('.json')),
         default: '.',
         validate: (input: any) => {
             if(input?.value && fs.existsSync(resolve(input.value))) {
