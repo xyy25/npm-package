@@ -28,6 +28,18 @@ const questions = (lang: any, enable: boolean): QuestionCollection => {
             }
             return error(lang.logs['cli.ts'].dirNotExist);
         }
+    }, {
+        type: 'number',
+        name: 'port',
+        message: lang.line['input.port'],
+        when: (ans) => !ans['json'],
+        validate: (input) => {
+            if(input <= 0 || input > 65536) {
+                return error(lang.logs['cli.ts'].portInvalid);
+            }
+            return true;
+        },
+        default: 5500
     }];
 }
 
@@ -42,7 +54,8 @@ function viewCommand(cmd: Command, lang: any) {
             let ans = await inquirer.prompt(
                 questions(lang, true), { fileName: str }
             );
-            let { fileName } = ans;
+            ans = { ...options, ...ans };
+            let { fileName, host, port } = ans;
 
             try {
                 if(!fileName.endsWith('.json')) {
@@ -55,7 +68,6 @@ function viewCommand(cmd: Command, lang: any) {
 
                 fs.cpSync(uri, join(__dirname, 'express/public/res.json'), { force: true });
                 
-                const { port, host } = options;
                 (await import('../express')).default(port, host);
 
             } catch (e) {
