@@ -15,6 +15,7 @@ const questions = (lang: any, enable: boolean): QuestionCollection => {
         type: 'auto',
         name: 'fileName',
         message: lang.line['input.jsonFile'],
+        prefix: String.fromCodePoint(0x1F4D1), // 📑
         when: (ans) => ans['fileName'] === undefined,
         filter: (input) => input.endsWith('.json') ? input : input + '.json',
         searchText: lang.line['status.searching'],
@@ -32,6 +33,7 @@ const questions = (lang: any, enable: boolean): QuestionCollection => {
         type: 'number',
         name: 'port',
         message: lang.line['input.port'],
+        prefix: String.fromCodePoint(0x1F4E8), // 📨
         when: (ans) => !ans['json'],
         validate: (input) => {
             if(input <= 0 || input > 65536) {

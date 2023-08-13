@@ -20,6 +20,7 @@ const questions = (lang: any, enable: boolean): QuestionCollection => {
         type: 'auto',
         name: 'pkg',
         message: lang.line['input.dir'],
+        prefix: String.fromCodePoint(0x1F4C1), // 📁
         searchText: lang.line['status.searching'],
         emptyText:  lang.line['status.noResult'],
         source: getDirs,
@@ -34,6 +35,7 @@ const questions = (lang: any, enable: boolean): QuestionCollection => {
         type: 'list',
         name: 'manager',
         message: lang.line['input.manager'],
+        prefix: String.fromCodePoint(0x1F9F0), // 🧰
         when: (ans) => !ans['manager'],
         choices: ['auto', 'npm', 'yarn', 'pnpm'],
         default: 'auto'
@@ -41,6 +43,7 @@ const questions = (lang: any, enable: boolean): QuestionCollection => {
         type: 'number',
         name: 'depth',
         message: lang.line['input.depth'],
+        prefix: String.fromCodePoint(0x1F50D), // 🔍
         when: (ans) => ans['manager'] !== 'pnpm',
         default: Infinity
     }]

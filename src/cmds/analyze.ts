@@ -20,6 +20,7 @@ const questions = (lang: any, enable: boolean): QuestionCollection => {
         type: 'auto',
         name: 'pkg',
         message: lang.line['input.dir'],
+        prefix: String.fromCodePoint(0x1F4C1), // 📁
         searchText: lang.line['status.searching'],
         emptyText:  lang.line['status.noResult'],
         source: getDirs,
@@ -33,18 +34,21 @@ const questions = (lang: any, enable: boolean): QuestionCollection => {
     }, {
         type: 'number',
         name: 'depth',
+        prefix: String.fromCodePoint(0x1F50D), // 🔍
         message: lang.line['input.depth'],
         default: Infinity
     }, {
         type: 'list',
         name: 'manager',
         message: lang.line['input.manager'],
+        prefix: String.fromCodePoint(0x1F9F0), // 🧰
         choices: ['auto', 'npm', 'yarn', 'pnpm'],
         default: 'auto'
     }, {
         type: 'checkbox',
         name: 'scope',
         message: lang.line['input.scope'],
+        prefix: String.fromCodePoint(0x1F4C7), // 📇
         choices: [
             { name:'norm', checked: true },
             { name:'dev', checked: true }, 
@@ -60,11 +64,13 @@ const questions = (lang: any, enable: boolean): QuestionCollection => {
         type: 'confirm',
         name: 'json',
         message: lang.line['input.outJson'],
+        prefix: String.fromCodePoint(0x1F4C4), // 📄
         default: false
     }, {
         type: 'input',
         name: 'json',
         message: lang.line['input.outJsonDir'],
+        prefix: String.fromCodePoint(0x1F4DD), // 📝
         askAnswered: true,
         when: (ans) => ans['json'],
         default: (ans: any) => 
@@ -74,6 +80,7 @@ const questions = (lang: any, enable: boolean): QuestionCollection => {
         type: 'number',
         name: 'port',
         message: lang.line['input.port'],
+        prefix: String.fromCodePoint(0x1F4E8), // 📨
         askAnswered: true,
         when: (ans) => !ans['json'],
         validate: (input) => {
