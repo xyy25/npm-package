@@ -1,9 +1,10 @@
+import { ContextMenu } from "./lib/d3-context-menu";
 import Chart, { Node } from "./chart";
 
 const genTitle = (desc: string, judge = () => true, trueExpr = '开启', falseExpr = '关闭') => 
         `${desc}: ` + (judge() ? trueExpr : falseExpr);
 
-export const nodeMenu = (ct: Chart) => {
+export const nodeMenu = (ct: Chart): ContextMenu.MenuItems<any, Node> => {
     const { options: opt } = ct;
     
     return [ 
@@ -40,7 +41,7 @@ export const nodeMenu = (ct: Chart) => {
                     ct.update();
                 }
             },
-            { devider: true },
+            { divider: true },
             { 
                 title: genTitle('入边高亮', () => opt.highlightRequiredBy), 
                 action: () => (opt.highlightRequiredBy = !opt.highlightRequiredBy, ct.updateOptions())

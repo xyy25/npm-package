@@ -1,4 +1,4 @@
-export function getLength(x1, y1, x2, y2) {
+export function getLength([x1, y1], [x2, y2]) {
     return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
 }
 
@@ -13,10 +13,10 @@ export function includeChinese(str) {
 
 // 计算两点的中心点(用于确认摆放在连接线上的文字的位置)
 export function getCenter(x1, y1, x2, y2) {
-    return { 
-        x: (x1 + x2) / 2, 
-        y: (y1 + y2) / 2
-    }
+    return [
+        (x1 + x2) / 2, 
+        (y1 + y2) / 2
+    ]
 }
 
 // 计算两点角度

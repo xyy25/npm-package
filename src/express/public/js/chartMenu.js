@@ -37,7 +37,7 @@ const MenuData = (ct) => {
                     ct.update();
                 }
             },
-            { devider: true },
+            { divider: true },
             { 
                 title: genTitle('入边高亮', () => opt.highlightRequiredBy), 
                 action: () => (opt.highlightRequiredBy = !opt.highlightRequiredBy, ct.updateOptions())

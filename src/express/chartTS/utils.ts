@@ -1,6 +1,8 @@
 import { Node } from './chart'
 
-export function getLength(x1: number, y1: number, x2: number, y2: number) {
+export type PosTuple = [number, number];
+
+export function getLength([x1, y1]: PosTuple, [x2, y2]: PosTuple) {
     return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
 }
 
@@ -13,19 +15,12 @@ export function includeChinese(str: string): boolean {
     return str.match(/[\u4E00-\u9FA5]/) !== null;
 }
 
-export type Pos = {
-    x: number,
-    y: number
-};
-
-export type PosTuple = [number, number];
-
 // 计算两点的中心点(用于确认摆放在连接线上的文字的位置)
-export function getCenter(x1: number, y1: number, x2: number, y2: number): Pos {
-    return { 
-        x: (x1 + x2) / 2, 
-        y: (y1 + y2) / 2
-    }
+export function getCenter([x1, y1]: PosTuple, [x2, y2]: PosTuple): PosTuple {
+    return [
+        (x1 + x2) / 2, 
+        (y1 + y2) / 2
+    ]
 }
 
 // 计算两点角度

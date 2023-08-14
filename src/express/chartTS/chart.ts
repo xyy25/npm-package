@@ -1,10 +1,11 @@
+/* 力导图封装类的ts版本，与chart.js需要同步更新，为之后留作备用 */
 import { DiagramNode, DirectedDiagram, LinkMeta } from "./types";
 import { nodeMenu } from "./chartMenu";
 import { getLength, getCenter, getAngle, getPaths, includeChinese, limit } from "./utils";
 import D3Menu from "./lib/d3-context-menu";
 import d3 from 'd3';
 
-const createMenu = D3Menu(d3);
+const createMenu = D3Menu<any, any>(d3);
 
 export class Link { 
     rotate: boolean = false
@@ -18,19 +19,19 @@ export class Link {
     length() {
         const { x: x1, y: y1 } = this.source;
         const { x: x2, y: y2 } = this.target;
-        return getLength(x1, y1, x2, y2);
+        return getLength([x1, y1], [x2, y2]);
     };
 
     // 获取边上标签的位置
     getNoteTransform(rotate = false) {
         const { source: s, target: t } = this;
-        const p = getCenter(s.x, s.y, t.x, t.y);
+        const [x, y] = getCenter([s.x, s.y], [t.x, t.y]);
         let angle = getAngle([s.x, s.y], [t.x, t.y], true, true);
         rotate && (angle -= 90);
         if ((s.x > t.x && s.y < t.y) || (s.x < t.x && s.y > t.y)) {
             angle = -angle;
         }
-        return `translate(${p.x}, ${p.y}) rotate(${angle})`;
+        return `translate(${x}, ${y}) rotate(${angle})`;
     }
 }
 
@@ -84,7 +85,7 @@ export default class Chart {
             simulationStop: false, // 暂停力导模拟
             ...initOptions
         }
-        this.init(initOptions);
+        this.init();
     }
     scale: Scale
     options: ChartOption
@@ -102,7 +103,7 @@ export default class Chart {
     label: d3.Selection<SVGTextElement | d3.BaseType, Node, any, any> = d3.selectAll('');
     simulation: d3.Simulation<Node, Link> = d3.forceSimulation();
     
-    init(initOptions: Partial<ChartOption>) {
+    init() {
         this.initData();
         this.initDiagram();
         this.initSimulation();
@@ -317,13 +318,17 @@ export default class Chart {
     }
 
     // 显示每条边上附加的文字标注
-    showLinkNote(link: typeof this.link) {
+    showLinkNote(
+        linkFilter: d3.ValueFn<any, Link, boolean>, 
+        text: d3.ValueFn<any, Link, string> = 
+            (d: Link) => this.getLinkClass(d, 1, false)
+    ) {
         this.linkNote = this.linkg
             .selectAll('text')
-            .data(link.data())
+            .data(this.link.filter(linkFilter).data())
             .join('text')
-            .attr('class', (d) => link.filter(e => d === e).attr('class'))
-            .each(d => d.text = this.getLinkClass(d, 1, false))
+            .attr('class', (d) => this.link.filter(linkFilter).attr('class'))
+            .each((d, i, g) => d.text = text(d, i, g))
             .each(d => d.rotate = includeChinese(d.text))
             .text(d => d.text)
             // 如果标注带有汉字则转为竖排显示
@@ -439,14 +444,17 @@ export default class Chart {
                 enter => linkEnter = enter.append("line"),
                 update => update, 
                 exit => exit.remove()
-            )
+            );
 
         linkEnter
             .attr("from", (d: any) => d.source.dataIndex)
             .attr("to", (d: any) => d.target.dataIndex)
             .attr("class", (d: any) => ct.getLinkClass(d, 2))
             .attr("stroke-opacity", 0.6)
-            .attr('marker-end', 'url(#marker)');
+            .attr('marker-end', 'url(#marker)')
+            .on('mouseover', (e: Link) => ct.showLinkNote(
+                d => d === e, d => d.meta.range
+            )).on('mouseleave', () => ct.hideLinkNote());
 
         // 顶点圆圈
         ct.circle = this.nodeg
@@ -584,7 +592,7 @@ export default class Chart {
             (hlrq && d.source === node) ||
             (hlrb && d.target === node) ||
             (hlp && onPath(paths)(d))
-        this.showLinkNote(link.filter(allUpFtr));
+        this.showLinkNote(allUpFtr);
 
         // 弱化所有上述之外顶点的存在感
         if(fading) {
