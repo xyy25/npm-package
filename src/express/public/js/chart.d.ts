@@ -83,16 +83,8 @@ declare class Chart {
     initDiagram(): void;
     initSimulation(): void;
     tick(): void;
-    getNodeClass<I extends number, L extends NodeClassifyArray[0][I]>(
-        node: Node, 
-        vi: I, 
-        append: boolean = true
-    ): ResolveNode<L>;
-    getLinkClass<I extends number, L extends LinkClassifyArray[0][I]>(
-        link: Link, 
-        vi: I, 
-        append: boolean = true
-    ): ResolveLink<L>;
+    getNodeClass<I extends number>(node: Node, vi: I, append: boolean = true): ResolveNode<NodeClassifyArray[0][I]>;
+    getLinkClass<I extends number>(link: Link, vi: I, append: boolean = true): ResolveLink<LinkClassifyArray[0][I]>;
     showLinkNote(
         linkFilter: d3.ValueFn<any, Link, boolean>, 
         text: d3.ValueFn<any, Link, string> = 
