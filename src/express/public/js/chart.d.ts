@@ -16,7 +16,7 @@ export declare class Link {
     text: string
 
     length(): number;
-    getNoteTransform(rotate: boolean): string;
+    getNoteTransform(rotate: boolean = false): string;
 }
 
 export declare class Node {
