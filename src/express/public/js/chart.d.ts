@@ -83,12 +83,20 @@ declare class Chart {
     initDiagram(): void;
     initSimulation(): void;
     tick(): void;
-    getNodeClass(node: Node, vi: number, append: boolean = true): string;
-    getLinkClass(link: Link, vi: number, append: boolean = true): string;
+    getNodeClass<I extends number, L extends NodeClassifyArray[0][I]>(
+        node: Node, 
+        vi: I, 
+        append: boolean = true
+    ): ResolveNode<L>;
+    getLinkClass<I extends number, L extends LinkClassifyArray[0][I]>(
+        link: Link, 
+        vi: I, 
+        append: boolean = true
+    ): ResolveLink<L>;
     showLinkNote(
         linkFilter: d3.ValueFn<any, Link, boolean>, 
         text: d3.ValueFn<any, Link, string> = 
-            (d: Link) => this.getLinkClass(d, 1, false)
+            (d: Link) => this.getLinkClass(d, 1, false) ?? ''
     ): void;
     hideLinkNote(): void;
     showNode(index: number, hideOthers: boolean = false): void;
@@ -100,6 +108,22 @@ declare class Chart {
     clickNode(eThis: any, node: Node): void;
     mouseOverNode(eThis: any, node: Node): void;
 }
+
+declare type ResolveNode<T> = T extends NodeIterCallback<infer P> ? P : T;
+declare type NodeIterCallback<RetType = string> = (n: Node, i: number, li: d3.Selection<any, Link, any, any>, lo: typeof li) => RetType;
+declare type NodeClassifyArray = [
+    boolean | NodeIterCallback<boolean>, 
+    string | NodeIterCallback | undefined | null, 
+    string | NodeIterCallback | undefined | null
+][];
+
+declare type ResolveLink<T> = T extends LinkIterCallback<infer P> ? P : T;
+declare type LinkIterCallback<RetType = string> = (link: Link, source: Node, target: Node) => RetType;
+declare type LinkClassifyArray = [
+    boolean | LinkIterCallback<boolean>, 
+    string | LinkIterCallback | undefined | null, 
+    string | LinkIterCallback | undefined | null
+][];
 
 declare const drag: (simulation: d3.Simulation<any, any>) => void;
 declare const appendLine: (

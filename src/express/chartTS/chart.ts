@@ -254,15 +254,15 @@ export default class Chart {
     }
 
     // 根据顶点的属性特征，获取顶点的样式类型名（可重叠）
-    getNodeClass(node: Node, vi: number, append = true): string {
+    getNodeClass(node: Node, vi: number, append = true): string | null {
         const { requirePaths, link } = this;
         // 顶点类型判断数组
         // [判断方法, 顶点类型名, 样式类名（在chart.scss中定义）, ...(可以继续附加一些值)]，下标越大优先级越高
-        type ClassIterCallback<RetType = string> = (n: Node, i: number, li: typeof linkIn, lo: typeof linkOut) => RetType;
+        type NodeIterCallback<RetType = string> = (n: Node, i: number, li: typeof linkIn, lo: typeof linkOut) => RetType;
         type NodeClassifyArray = [
-            boolean | ClassIterCallback<boolean>, 
-            string | ClassIterCallback | undefined | null, 
-            string | ClassIterCallback | undefined | null
+            boolean | NodeIterCallback<boolean>, 
+            string | NodeIterCallback | undefined | null, 
+            string | NodeIterCallback | undefined | null
         ][]
         const nodeType: NodeClassifyArray = [
             [true, "", "node"],
@@ -289,7 +289,7 @@ export default class Chart {
     }
 
     // 根据边的属性特征，获取边的样式类型名(可重叠)
-    getLinkClass(link: Link, vi: number, append = true): string {
+    getLinkClass(link: Link, vi: number, append = true): string | null {
         type LinkIterCallback<RetType = string> = (link: Link, source: Node, target: Node) => RetType;
         type LinkClassifyArray = [
             boolean | LinkIterCallback<boolean>, 
@@ -321,7 +321,7 @@ export default class Chart {
     showLinkNote(
         linkFilter: d3.ValueFn<any, Link, boolean>, 
         text: d3.ValueFn<any, Link, string> = 
-            (d: Link) => this.getLinkClass(d, 1, false)
+            (d: Link) => this.getLinkClass(d, 1, false) ?? ''
     ) {
         this.linkNote = this.linkg
             .selectAll('text')
