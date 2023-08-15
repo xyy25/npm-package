@@ -68,7 +68,7 @@ function viewCommand(cmd: Command, lang: any) {
                     throw lang.logs['cli.ts'].fileNotExist;
                 }
 
-                fs.cpSync(uri, join(__dirname, 'express/public/res.json'), { force: true });
+                fs.cpSync(uri, join(__dirname, '../express/public/res.json'), { force: true });
                 
                 (await import('../express')).default(port, host);
 

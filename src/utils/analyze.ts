@@ -46,7 +46,7 @@ export default function analyze(
     };
 
     if (
-        depth <= 0 || 
+        depth < 0 || 
         !fs.existsSync(pkgRoot) || 
         !fs.existsSync(abs(PACKAGE_JSON))
     ) { return depEval; }

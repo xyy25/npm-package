@@ -16,7 +16,7 @@ export default function detect(
 {
     const abs = (...path: string[]): string => join(pkgRoot, ...path);
     if(
-        depth <= 0 || 
+        depth < 0 || 
         !existsSync(pkgRoot) || 
         !existsSync(abs(NODE_MODULES))
     ) { return []; }

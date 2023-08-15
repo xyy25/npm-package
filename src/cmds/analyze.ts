@@ -21,6 +21,7 @@ const questions = (lang: any, enable: boolean): QuestionCollection => {
         name: 'pkg',
         message: lang.line['input.dir'],
         prefix: String.fromCodePoint(0x1F4C1), // 📁
+        suffix: ' >',
         searchText: lang.line['status.searching'],
         emptyText:  lang.line['status.noResult'],
         source: getDirs,
@@ -119,7 +120,7 @@ const action = async (str: string, options: any, lang: any) => {
     );
     ans = { ...options, ...ans };
     ans.noweb = ans.noweb ?? !!ans.json;
-    ans.depth ||= Infinity;
+    ans.depth !== 0 && (ans.depth ||= Infinity);
     ans.pkg ??= '.';
 
     let { 
