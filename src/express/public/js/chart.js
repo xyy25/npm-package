@@ -205,55 +205,55 @@ export default class Chart {
             .attr('textLength', limitLen);
     }
 
+    // 顶点类型判断数组
+    // [判断方法, 顶点类型名, 样式类名（在chart.scss中定义）, ...(可以继续附加一些值)]，下标越大优先级越高
+    nodeType = [
+        [true, "", "node"],
+        [true, "", "hidden-node"], // 未展开边的默认顶点
+        [(n) => n.showRequiring && n.data.requiring.length, "", "transit-node"], // 已展开边，有入边有出边的顶点，即有依赖且被依赖的包
+        [(n, i, li) => li.length && li.every(l => l.meta.depthEnd), "递归终点", "depth-end-node"], // 所有的入边均为递归深度到达最大的边的顶点
+        [(n) => !n.data.requiring.length, "", "terminal-node"], // 无出边的顶点，即无依赖的包
+        [(n, i) => this.requirePaths[i] === null, "未使用", "free-node"], // 无法通向根顶点的顶点，即不必要的包
+        [(n, i) => n.data.path === null, "未安装", "not-found-node"], // 没有安装的包
+        [(n) => n.data.requiredBy.includes(0), "主依赖", "direct-node"], // 根顶点的相邻顶点，即被项目直接依赖的包
+        [(n, i) => !i, "主目录", "root-node"], // 根顶点，下标为0的顶点，代表根目录的项目包
+    ];
+
     // 根据顶点的属性特征，获取顶点的样式类型名（可重叠）
     getNodeClass(node, vi, append = true) {
-        const { requirePaths, link } = this;
-        // 顶点类型判断数组
-        // [判断方法, 顶点类型名, 样式类名（在chart.scss中定义）, ...(可以继续附加一些值)]，下标越大优先级越高
-        const nodeType = [
-            [true, "", "node"],
-            [true, "", "hidden-node"], // 未展开边的默认顶点
-            [(n) => n.showRequiring && n.data.requiring.length, "", "transit-node"], // 已展开边，有入边有出边的顶点，即有依赖且被依赖的包
-            [(n, i, li) => li.length && li.every(l => l.meta.depthEnd), "递归终点", "depth-end-node"], // 所有的入边均为递归深度到达最大的边的顶点
-            [(n) => !n.data.requiring.length, "", "terminal-node"], // 无出边的顶点，即无依赖的包
-            [(n, i) => requirePaths[i] === null, "未使用", "free-node"], // 无法通向根顶点的顶点，即不必要的包
-            [(n, i) => n.data.path === null, "未安装", "not-found-node"], // 没有安装的包
-            [(n) => n.data.requiredBy.includes(0), "主依赖", "direct-node"], // 根顶点的相邻顶点，即被项目直接依赖的包
-            [(n, i) => !i, "主目录", "root-node"], // 根顶点，下标为0的顶点，代表根目录的项目包
-        ];
-
+        const { link } = this;
         const { dataIndex: i } = node;
         const linkIn = link.filter(l => l.target === node).data();
         const linkOut = link.filter(l => l.source === node).data();
         const r = v => typeof v === 'function' ? v(node, i, linkIn, linkOut) : v;
         // 根据判断数组获取顶点类型所映射的属性值的函数
         if(append) { // 根据nodeType现有的属性值增加类名
-            return nodeType.reduce((o, e) => r(e[0]) && e[vi] ? o.concat(r(e[vi])) : o, []).join(" ");
+            return this.nodeType.reduce((o, e) => r(e[0]) && e[vi] ? o.concat(r(e[vi])) : o, []).join(" ");
         } else {
-            return nodeType.reduce((o, e) => r(e[0]) && e[vi] ? r(e[vi]) : o, nodeType[0][vi]);
+            return this.nodeType.reduce((o, e) => r(e[0]) && e[vi] ? r(e[vi]) : o, this.nodeType[0][vi] ?? null);
         }
     }
 
+    linkType = [
+        [true, "", "link"],
+        [(l) => l.meta.optional, "", "optional-link"], // 可选依赖表示为虚线（chart.scss中定义）
+        [(l) => l.meta.type === "dev", "开发", null], // 开发依赖(devDependecies)的边
+        [(l) => l.meta.type === "peer", "同级", null], // 同级依赖(peerDependencies)的边
+        [(l) => l.meta.depthEnd, "", "depth-end-link"], // 递归深度达到上限的边
+        [(l) => !l.meta.optional && l.meta.invalid, (l) => l.meta.range, "invalid-link"], // 非法依赖版本的边，标签显示合法版本范围
+        [(l, i, t) => !l.meta.optional && t.data.path === null, "未安装", "invalid-link"] // 未安装该依赖的边，样式和非法一致
+    ];
+
     // 根据边的属性特征，获取边的样式类型名(可重叠)
     getLinkClass(link, vi, append = true) {
-        const linkType = [
-            [true, "", "link"],
-            [(l) => l.meta.optional, "", "optional-link"], // 可选依赖表示为虚线（chart.scss中定义）
-            [(l) => l.meta.type === "dev", "开发", null], // 开发依赖(devDependecies)的边
-            [(l) => l.meta.type === "peer", "同级", null], // 同级依赖(peerDependencies)的边
-            [(l) => l.meta.depthEnd, "", "depth-end-link"], // 递归深度达到上限的边
-            [(l) => !l.meta.optional && l.meta.invalid, (l) => l.meta.range, "invalid-link"], // 非法依赖版本的边，标签显示合法版本范围
-            [(l, i, t) => !l.meta.optional && t.data.path === null, "未安装", "invalid-link"] // 未安装该依赖的边，样式和非法一致
-        ];
-
         const { source: s,  target: t } = link;
         const r = v => typeof v === 'function' ? v(link, s, t) : v;
         if(append) {
-            return linkType.reduce(
+            return this.linkType.reduce(
                 (o, e) => r(e[0]) && e[vi] ? o.concat(r(e[vi])) : o, []
             ).join(" ");
         } else {
-            return linkType.reduce((o, e) => r(e[0]) && e[vi] ? r(e[vi]) : o, linkType[0][vi]);
+            return this.linkType.reduce((o, e) => r(e[0]) && e[vi] ? r(e[vi]) : o, this.linkType[0][vi] ?? null);
         }
     }
 

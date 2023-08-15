@@ -75,6 +75,9 @@ declare class Chart {
     label: d3.Selection<SVGTextElement | d3.BaseType, Node, any, any>
     simulation: d3.Simulation<Node, Link>
 
+    nodeType: Chart.NodeClassifyArray
+    linkType: Chart.LinkClassifyArray
+
     init(): void;
     initData(): void;
     resetNodes(): void;
@@ -83,8 +86,8 @@ declare class Chart {
     initDiagram(): void;
     initSimulation(): void;
     tick(): void;
-    getNodeClass<I extends number>(node: Node, vi: I, append: boolean = true): ResolveNode<NodeClassifyArray[0][I]>;
-    getLinkClass<I extends number>(link: Link, vi: I, append: boolean = true): ResolveLink<LinkClassifyArray[0][I]>;
+    getNodeClass<I extends number>(node: Node, vi: I, append: boolean = true): Chart.ResolveNode<(typeof this.nodeType)[0][I]>;
+    getLinkClass<I extends number>(link: Link, vi: I, append: boolean = true): Chart.ResolveLink<(typeof this.linkType)[0][I]>;
     showLinkNote(
         linkFilter: d3.ValueFn<any, Link, boolean>, 
         text: d3.ValueFn<any, Link, string> = 
@@ -101,21 +104,23 @@ declare class Chart {
     mouseOverNode(eThis: any, node: Node): void;
 }
 
-declare type ResolveNode<T> = T extends NodeIterCallback<infer P> ? P : T;
-declare type NodeIterCallback<RetType = string> = (n: Node, i: number, li: d3.Selection<any, Link, any, any>, lo: typeof li) => RetType;
-declare type NodeClassifyArray = [
-    boolean | NodeIterCallback<boolean>, 
-    string | NodeIterCallback | undefined | null, 
-    string | NodeIterCallback | undefined | null
-][];
+namespace Chart {
+    declare type ResolveNode<T> = T extends NodeIterCallback<infer P> ? P : T;
+    declare type NodeIterCallback<RetType = string> = (n: Node, i: number, li: d3.Selection<any, Link, any, any>, lo: typeof li) => RetType;
+    declare type NodeClassifyArray = [
+        boolean | NodeIterCallback<boolean>, 
+        string | NodeIterCallback | null, 
+        string | NodeIterCallback | null
+    ][];
 
-declare type ResolveLink<T> = T extends LinkIterCallback<infer P> ? P : T;
-declare type LinkIterCallback<RetType = string> = (link: Link, source: Node, target: Node) => RetType;
-declare type LinkClassifyArray = [
-    boolean | LinkIterCallback<boolean>, 
-    string | LinkIterCallback | undefined | null, 
-    string | LinkIterCallback | undefined | null
-][];
+    declare type ResolveLink<T> = T extends LinkIterCallback<infer P> ? P : T;
+    declare type LinkIterCallback<RetType = string> = (link: Link, source: Node, target: Node) => RetType;
+    declare type LinkClassifyArray = [
+        boolean | LinkIterCallback<boolean>, 
+        string | LinkIterCallback | null, 
+        string | LinkIterCallback | null
+    ][];
+}
 
 declare const drag: (simulation: d3.Simulation<any, any>) => void;
 declare const appendLine: (

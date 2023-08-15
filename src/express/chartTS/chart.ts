@@ -65,6 +65,24 @@ export type Scale = {
     height: number
 }
 
+namespace Chart {
+    export type ResolveNode<T> = T extends NodeIterCallback<infer P> ? P : T;
+    type NodeIterCallback<RetType = string> = (n: Node, i: number, li: Link[], lo: typeof li) => RetType;
+    export type NodeClassifyArray = [
+        boolean | NodeIterCallback<boolean>, 
+        string | NodeIterCallback | null, 
+        string | NodeIterCallback | null
+    ][]
+
+    export type ResolveLink<T> = T extends LinkIterCallback<infer P> ? P : T;
+    type LinkIterCallback<RetType = string> = (link: Link, source: Node, target: Node) => RetType;
+    export type LinkClassifyArray = [
+        boolean | LinkIterCallback<boolean>, 
+        string | LinkIterCallback | null, 
+        string | LinkIterCallback | null
+    ][]
+}
+
 export default class Chart {
     constructor(
         public svg: d3.Selection<any, any, any, any>, 
@@ -253,28 +271,23 @@ export default class Chart {
             .attr('textLength', limitLen);
     }
 
+    // 顶点类型判断数组
+    // [判断方法, 顶点类型名, 样式类名（在chart.scss中定义）, ...(可以继续附加一些值)]，下标越大优先级越高
+    readonly nodeType: Chart.NodeClassifyArray = [
+        [true, "", "node"],
+        [true, "", "hidden-node"], // 未展开边的默认顶点
+        [(n) => n.showRequiring && !!n.data.requiring.length, "", "transit-node"], // 已展开边，有入边有出边的顶点，即有依赖且被依赖的包
+        [(n, i, li) => !!li.length && li.every(l => l.meta.depthEnd), "递归终点", "depth-end-node"], // 所有的入边均为递归深度到达最大的边的顶点
+        [(n) => !n.data.requiring.length, "", "terminal-node"], // 无出边的顶点，即无依赖的包
+        [(n, i) => this.requirePaths[i] === null, "未使用", "free-node"], // 无法通向根顶点的顶点，即不必要的包
+        [(n, i) => n.data.path === null, "未安装", "not-found-node"], // 没有安装的包
+        [(n) => n.data.requiredBy.includes(0), "主依赖", "direct-node"], // 根顶点的相邻顶点，即被项目直接依赖的包
+        [(n, i) => !i, "主目录", "root-node"], // 根顶点，下标为0的顶点，代表根目录的项目包
+    ];
+
     // 根据顶点的属性特征，获取顶点的样式类型名（可重叠）
-    getNodeClass(node: Node, vi: number, append = true): string | null {
-        const { requirePaths, link } = this;
-        // 顶点类型判断数组
-        // [判断方法, 顶点类型名, 样式类名（在chart.scss中定义）, ...(可以继续附加一些值)]，下标越大优先级越高
-        type NodeIterCallback<RetType = string> = (n: Node, i: number, li: typeof linkIn, lo: typeof linkOut) => RetType;
-        type NodeClassifyArray = [
-            boolean | NodeIterCallback<boolean>, 
-            string | NodeIterCallback | undefined | null, 
-            string | NodeIterCallback | undefined | null
-        ][]
-        const nodeType: NodeClassifyArray = [
-            [true, "", "node"],
-            [true, "", "hidden-node"], // 未展开边的默认顶点
-            [(n) => n.showRequiring && !!n.data.requiring.length, "", "transit-node"], // 已展开边，有入边有出边的顶点，即有依赖且被依赖的包
-            [(n, i, li) => !!li.length && li.every(l => l.meta.depthEnd), "递归终点", "depth-end-node"], // 所有的入边均为递归深度到达最大的边的顶点
-            [(n) => !n.data.requiring.length, "", "terminal-node"], // 无出边的顶点，即无依赖的包
-            [(n, i) => requirePaths[i] === null, "未使用", "free-node"], // 无法通向根顶点的顶点，即不必要的包
-            [(n, i) => n.data.path === null, "未安装", "not-found-node"], // 没有安装的包
-            [(n) => n.data.requiredBy.includes(0), "主依赖", "direct-node"], // 根顶点的相邻顶点，即被项目直接依赖的包
-            [(n, i) => !i, "主目录", "root-node"], // 根顶点，下标为0的顶点，代表根目录的项目包
-        ];
+    getNodeClass<I extends number>(node: Node, vi: I, append = true): Chart.ResolveNode<(typeof this.nodeType)[0][I]> {
+        const { link } = this;
 
         const { dataIndex: i } = node;
         const linkIn = link.filter(l => l.target === node).data();
@@ -282,38 +295,32 @@ export default class Chart {
         const r = (v: any) => typeof v === 'function' ? v(node, i, linkIn, linkOut) : v;
         // 根据判断数组获取顶点类型所映射的属性值的函数
         if(append) { // 根据nodeType现有的属性值增加类名
-            return nodeType.reduce((o, e) => r(e[0]) && e[vi] ? o.concat(r(e[vi])) : o, []).join(" ");
+            return this.nodeType.reduce((o, e) => r(e[0]) && e[vi] ? o.concat(r(e[vi])) : o, []).join(" ") as any;
         } else {
-            return nodeType.reduce((o, e) => r(e[0]) && e[vi] ? r(e[vi]) : o, nodeType[0][vi] as string);
+            return this.nodeType.reduce((o, e) => r(e[0]) && e[vi] ? r(e[vi]) : o, this.nodeType[0][vi] ?? null) as any;
         }
     }
 
-    // 根据边的属性特征，获取边的样式类型名(可重叠)
-    getLinkClass(link: Link, vi: number, append = true): string | null {
-        type LinkIterCallback<RetType = string> = (link: Link, source: Node, target: Node) => RetType;
-        type LinkClassifyArray = [
-            boolean | LinkIterCallback<boolean>, 
-            string | LinkIterCallback | undefined | null, 
-            string | LinkIterCallback | undefined | null
-        ][]
-        const linkType: LinkClassifyArray = [
-            [true, "", "link"],
-            [(l) => l.meta.optional, "", "optional-link"], // 可选依赖表示为虚线（chart.scss中定义）
-            [(l) => l.meta.type === "dev", "开发", null], // 开发依赖(devDependecies)的边
-            [(l) => l.meta.type === "peer", "同级", null], // 同级依赖(peerDependencies)的边
-            [(l) => l.meta.depthEnd, "", "depth-end-link"], // 递归深度达到上限的边
-            [(l) => !l.meta.optional && l.meta.invalid, (l) => l.meta.range, "invalid-link"], // 非法依赖版本的边，标签显示合法版本范围
-            [(l, i, t) => !l.meta.optional && t.data.path === null, "未安装", "invalid-link"] // 未安装该依赖的边，样式和非法一致
-        ];
+    readonly linkType: Chart.LinkClassifyArray = [
+        [true, "", "link"],
+        [(l) => l.meta.optional, "", "optional-link"], // 可选依赖表示为虚线（chart.scss中定义）
+        [(l) => l.meta.type === "dev", "开发", null], // 开发依赖(devDependecies)的边
+        [(l) => l.meta.type === "peer", "同级", null], // 同级依赖(peerDependencies)的边
+        [(l) => l.meta.depthEnd, "", "depth-end-link"], // 递归深度达到上限的边
+        [(l) => !l.meta.optional && l.meta.invalid, (l) => l.meta.range, "invalid-link"], // 非法依赖版本的边，标签显示合法版本范围
+        [(l, i, t) => !l.meta.optional && t.data.path === null, "未安装", "invalid-link"] // 未安装该依赖的边，样式和非法一致
+    ];
 
+    // 根据边的属性特征，获取边的样式类型名(可重叠)
+    getLinkClass<I extends number>(link: Link, vi: I, append = true): Chart.ResolveLink<(typeof this.linkType)[0][I]> {
         const { source: s,  target: t } = link;
         const r = (v: any) => typeof v === 'function' ? v(link, s, t) : v;
         if(append) {
-            return linkType.reduce(
+            return this.linkType.reduce(
                 (o, e) => r(e[0]) && e[vi] ? o.concat(r(e[vi])) : o, []
-            ).join(" ");
+            ).join(" ") as any;
         } else {
-            return linkType.reduce((o, e) => r(e[0]) && e[vi] ? r(e[vi]) : o, linkType[0][vi] as string);
+            return this.linkType.reduce((o, e) => r(e[0]) && e[vi] ? r(e[vi]) : o, this.linkType[0][vi] ?? null) as any;
         }
     }
 
@@ -465,7 +472,7 @@ export default class Chart {
                 update => update, 
                 exit => exit.remove()
             )
-            .attr("class", (d: any) => ct.getNodeClass(d, 2))
+            .attr("class", (d: Node) => ct.getNodeClass(d, 2))
         circleEnter 
             .attr("index", (d: any) => d.dataIndex)
             // 根顶点半径为5px起步，否则3.5px

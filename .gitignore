@@ -9,6 +9,7 @@ log/
 run/
 scripts/
 .vscode/
+.idea/
 .git/
 .config/
 .1024.nix
