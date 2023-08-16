@@ -22,6 +22,7 @@ export declare class Link {
 export declare class Node {
     dataIndex: number
     data: DiagramNode
+    temp: boolean
     vx: number
     vy: number
     x: number
@@ -31,7 +32,8 @@ export declare class Node {
     r: number
     constructor(
         dataIndex: number, 
-        data: DiagramNode
+        data: DiagramNode,
+        temp: boolean = false
     )
 }
 
@@ -58,7 +60,6 @@ declare class Chart {
     )
     svg: d3.Selection<any, any, any, any>
     data: DirectedDiagram
-    initOptions: Partial<ChartOption>
     scale: Scale
     options: ChartOption
     nodes: Node[]

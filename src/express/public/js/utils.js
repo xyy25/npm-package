@@ -29,11 +29,16 @@ export function getAngle([x1, y1], [x2, y2], deg = false, abs = false) {
 
 // 求无权有向图某个起始顶点到所有其他顶点的最短路径，如果无法通达，则路径为null
 // @return (number[] | null)[]
-export function getPaths(startIndex, nodes, getAdjacent, filter = () => true, getId = i => i) {
+export function getPaths(
+    startIndex,
+    nodes,
+    getAdjacent,
+    filter = () => true
+) {
     const dists = new Array(nodes.length).fill(Infinity);
     const paths = new Array(nodes.length).fill(null);
     const queue = [];
-    const stNode = nodes[getId(startIndex)];
+    const stNode = nodes[startIndex];
  
     queue.push({ i: startIndex, v: stNode, p: [startIndex], d: 0 });
     while(queue.length) {
@@ -41,11 +46,11 @@ export function getPaths(startIndex, nodes, getAdjacent, filter = () => true, ge
         if(d >= dists[i]) continue;
         dists[i] = d;
         paths[i] = p;
-        if(!filter(v)) continue; // 边过滤器，如果不符合要求则不考虑其相邻顶点
+        if(!filter(v)) continue; // 边过滤器，如果不符合要求则不考虑其邻接顶点
 
-        // 遍历相邻顶点
-        for(const wi of getAdjacent(v)) {
-            const w = nodes[getId(wi)];
+        // 遍历邻接顶点
+        for(const wi of getAdjacent(i)) {
+            const w = nodes[wi];
             if(!w) continue;
 
             queue.push({ i: wi, v: w, p: p.concat(wi), d: d + 1 });
@@ -53,4 +58,120 @@ export function getPaths(startIndex, nodes, getAdjacent, filter = () => true, ge
     }
 
     return paths;
+}
+
+// 查找一组可能不连通的顶点中所有无入边的顶点(root)，并按由它们出发的连通子图分组
+export function getDiagramGroups(
+    nodes, 
+    getAdjacent,
+    getRevAdjacent
+) {
+    const roots = [...nodes.entries()]
+        .filter(e => !getRevAdjacent(e[0]).length);
+    const groups = [];
+    for(const [root] of roots) {
+        const path = getPaths(root, nodes, getAdjacent);
+        groups.push(nodes.filter((e, i) => path[i] !== null));
+    }
+    return groups;
+}
+
+// Tarjan算法求有向图所有的强连通分量(scc)
+// 返回强连通分量的数组，含三条属性：包括每个分量所含顶点及分量间的有向关系
+export function getScc(startIndex, nodes, getAdjacent, getRevAdjacent) {
+    const { min } = Math;
+    const components = [];
+    const dfn = new Array(nodes.length).fill(Infinity); // 该顶点最小遍历到的深度
+    const low = new Array(nodes.length).fill(Infinity); // 该顶点可通达顶点列表中的最小dfn
+    const stack = [];
+    const dfs = (v, d = 0) => {
+        stack.push(v);
+        dfn[v] = d;
+        low[v] = min(low[v], d);
+        for(const w of getAdjacent(v)) {
+            const wAt = stack.indexOf(w);
+            if(dfn[w] === Infinity) {
+                dfs(w, d + 1);
+                low[v] = min(low[v], low[w]);
+            } else if(wAt >= 0) {
+                low[v] = min(low[v], dfn[w]);
+            } 
+        }
+        if(dfn[v] === low[v]) {
+            const vAt = stack.indexOf(v);
+            components.push(stack.splice(vAt));
+        }
+    }
+    dfs(startIndex);
+    const map = new Map();
+    components.forEach((c, i) => c.forEach(v => map.set(v, i)));
+    return components.map((c, i) => {
+        const reduceMap = (prop) => (o, v) => o.concat(prop(v).map(e => map.get(e)));
+        const outs = c.reduce(reduceMap(getAdjacent), []);
+        const outer = { outs: [...new Set(outs)] } // 分量对外有向关系
+        const inner = c.reduce( // 分量内部有向关系
+            (o, v) => o.concat(getAdjacent(v).filter(e => map.get(e) === i).map(e => [v, e])), 
+        []) 
+        if(getRevAdjacent) {
+            const ins = c.reduce(reduceMap(getRevAdjacent), []);
+            outer.ins = [...new Set(ins)];
+        }
+        return { nodes: c, inner, outer };
+    });
+}
+
+// Johnson算法：求有向图中的所有环
+export function getCircuits(nodes, getAdjacent) {
+    const res = [];
+    const B = new Array(nodes.length).fill(new Set());
+    const blocked = new Array(nodes.length).fill(false);
+    const stack = [];
+    
+    const unblock = (u) => {
+        blocked[u] = false;
+        for(const w of B[u]) {
+            B[u].delete(w);
+            if(blocked[w]) unblock(w);
+        }
+    }
+    const circuit = (ak, s, v = s) => {
+        let f = false;
+        stack.push(v);
+        blocked[v] = true;
+        const adjv = ak.inner
+            .filter(e => e[0] === v)
+            .map(e => e[1]);
+        for(const w of adjv) {
+            if(w === s) {
+                res.push(stack.slice());
+                f = true;
+            } else if(!blocked[w]) {
+                if(circuit(ak, s, w))
+                    f = true;
+            }
+        }
+        if(f) unblock(v);
+        else for(const w of adjv) {
+            B[w].add(v);
+        }
+        stack.pop();
+        return f;
+    }
+
+    const sccs = getScc(0, nodes, getAdjacent)
+        .filter(e => e.nodes.length > 1);
+
+    for(const scc of sccs) {
+        stack.splice(0);
+        const s = scc.nodes[0];
+        const vk = scc.nodes;
+        for(const v of vk) {
+            blocked[v] = false;
+            B[v] = new Set();
+        }
+        
+        circuit(scc, s);
+    }
+
+    return res;
 }

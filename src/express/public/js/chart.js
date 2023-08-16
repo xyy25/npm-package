@@ -27,9 +27,10 @@ export class Link {
 }
 
 export class Node {
-    constructor(dataIndex, data) {
+    constructor(dataIndex, data, temp = false) {
         this.dataIndex = dataIndex;
         this.data = data;
+        this.temp = temp;
         [this.vx, this.vy] = [0, 0];
         [this.x, this.y] = [0, 0];
     }
@@ -80,7 +81,7 @@ export default class Chart {
         const { nodes } = this;
 
         // 计算由根顶点到所有顶点的依赖路径
-        this.requirePaths = getPaths(0, nodes, e => e.data.requiring);
+        this.requirePaths = getPaths(0, nodes, i => nodes[i].data.requiring);
         
         this.vsbNodes = []; // 实际显示的顶点
         this.vsbLinks = []; // 实际显示的边
@@ -206,7 +207,7 @@ export default class Chart {
     }
 
     // 顶点类型判断数组
-    // [判断方法, 顶点类型名, 样式类名（在chart.scss中定义）, ...(可以继续附加一些值)]，下标越大优先级越高
+    // [判断函数, 顶点类型名, 样式类名（在chart.scss中定义）, ...(可以继续附加一些值)]，下标越大优先级越高
     nodeType = [
         [true, "", "node"],
         [true, "", "hidden-node"], // 未展开边的默认顶点
@@ -215,7 +216,7 @@ export default class Chart {
         [(n) => !n.data.requiring.length, "", "terminal-node"], // 无出边的顶点，即无依赖的包
         [(n, i) => this.requirePaths[i] === null, "未使用", "free-node"], // 无法通向根顶点的顶点，即不必要的包
         [(n, i) => n.data.path === null, "未安装", "not-found-node"], // 没有安装的包
-        [(n) => n.data.requiredBy.includes(0), "主依赖", "direct-node"], // 根顶点的相邻顶点，即被项目直接依赖的包
+        [(n) => n.data.requiredBy.includes(0), "主依赖", "direct-node"], // 根顶点的邻接顶点，即被项目直接依赖的包
         [(n, i) => !i, "主目录", "root-node"], // 根顶点，下标为0的顶点，代表根目录的项目包
     ];
 
@@ -296,14 +297,15 @@ export default class Chart {
         const { nodes, requirePaths } = this;
         if (index >= nodes.length) return;
         if(hideOthers) this.resetNodes();
-        if(requirePaths[index]) {
-            requirePaths[index].forEach(i => { 
+        const path = requirePaths[index];
+        if(path !== null) {
+            path.forEach(i => {
                 i === index ? (nodes[i].showNode = true) : this.showRequiring(i)
             });
         } else { nodes[index].showNode = true; }
     }
 
-    // 显示顶点的所有相邻顶点，即该包的依赖
+    // 显示顶点的所有邻接顶点，即该包的依赖
     showRequiring(index) {
         const { nodes } = this;
         if(index >= nodes.length) return; 
@@ -319,14 +321,14 @@ export default class Chart {
             n => !excludes.includes(n) && n.dataIndex && 
                 !nodes[0].data.requiring.includes(n.dataIndex)
         ); 
-        // 根顶点和其相邻顶点无法隐藏
+        // 根顶点和其邻接顶点无法隐藏
         if(!all.includes(node)) return;
 
         if(!keepNode) [node.showNode, node.showRequiring] = [false, false];
         // 隐藏所有当前无法通向根顶点的顶点，防止额外游离顶点产生
         // 获取当前所有显示顶点通向根顶点的路径，无路径者(游离)为null
         const getVsbPaths = (nodeSet) => getPaths(0, nodeSet, 
-            n => n.data.requiring, 
+            i => nodeSet[i].data.requiring, 
             n => n.showNode && n.showRequiring); 
         let rest = all, vsbPaths = getVsbPaths(nodes);
         // 过滤，每次仅保留满足无法通向根顶点条件的顶点，并进行循环操作

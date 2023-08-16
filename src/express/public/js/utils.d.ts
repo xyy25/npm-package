@@ -29,7 +29,39 @@ export function getAngle(
 export function getPaths(
     startIndex: number, 
     nodes: Node[], 
-    getAdjacent: (node: Node) => number[], 
-    filter: (node: Node) => boolean = (node: Node) => true, 
-    getId: (i: number) => number = (i: number) => i
-): number[][];
+    getAdjacent: (i: number) => number[], 
+    filter: (node: Node) => boolean = (node: Node) => true
+): (number[] | null)[];
+
+export function getDiagramGroups(
+    nodes: Node[], 
+    getAdjacent: (i: number) => number[],
+    getRevAdjacent: (i: number) => number[]
+): Node[][]
+
+// 求强连通分量返回的数组元素结构
+export type SCComponent = { 
+    nodes: number[], // 该分量所含的顶点在有向图顶点数组中的下标
+    inner: [number, number][], // 该分量的内部边，使用的是顶点在有向图顶点数组里的下标
+    outer: { // 该分量的外部边，使用的是【每个分量在返回数组中的下标】
+        ins?: number[], // 只有传参里传入了顶点入边的获取方法getRevAdjacent，才有此属性
+        outs: number[]
+    }
+}
+
+export function getScc(
+    startIndex: number,
+    nodes: Node[],
+    getAdjacent: (i: number) => number[],
+    getRevAdjacent?: (i: number) => number[]
+): SCComponent[]
+
+export function getCircuits(
+    nodes: Node[],
+    getAdjacent: (i: number) => number[]
+): number[][]
+
+export interface LinkNode<Datum> {
+    data: Datum
+    next: LinkNode<Datum> | null
+}

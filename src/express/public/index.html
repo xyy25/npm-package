@@ -14,14 +14,18 @@
     <script type="text/javascript" src="./js/lib/d3-context-menu.js"></script>
     <link rel="stylesheet" href="./css/chart.css" type="text/css" />
     <script src="./js/chart.js" type="module"></script>
+    <script src="./js/utils.js" type="module"></script>
     <script>
         const my = {
             chart: null,
-            data: null
+            data: null,
+            utils: null
         }
     </script>
     <script type="module">
         import Chart from './js/chart.js';
+        import * as utils from './js/utils.js';
+        my.utils = utils;
 
         d3.json('./res.json')
             .then(data => {
