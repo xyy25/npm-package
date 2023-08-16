@@ -78,7 +78,12 @@ export function getDiagramGroups(
 
 // Tarjan算法求有向图所有的强连通分量(scc)
 // 返回强连通分量的数组，含三条属性：包括每个分量所含顶点及分量间的有向关系
-export function getScc(startIndex, nodes, getAdjacent, getRevAdjacent) {
+export function getScc(
+    startIndex, 
+    nodes, 
+    getAdjacent, 
+    getRevAdjacent
+) {
     const { min } = Math;
     const components = [];
     const dfn = new Array(nodes.length).fill(Infinity); // 该顶点最小遍历到的深度
@@ -120,58 +125,78 @@ export function getScc(startIndex, nodes, getAdjacent, getRevAdjacent) {
     });
 }
 
-// Johnson算法：求有向图中的所有环
-export function getCircuits(nodes, getAdjacent) {
-    const res = [];
-    const B = new Array(nodes.length).fill(new Set());
-    const blocked = new Array(nodes.length).fill(false);
-    const stack = [];
-    
-    const unblock = (u) => {
-        blocked[u] = false;
-        for(const w of B[u]) {
-            B[u].delete(w);
-            if(blocked[w]) unblock(w);
-        }
-    }
-    const circuit = (ak, s, v = s) => {
-        let f = false;
-        stack.push(v);
-        blocked[v] = true;
-        const adjv = ak.inner
-            .filter(e => e[0] === v)
-            .map(e => e[1]);
-        for(const w of adjv) {
-            if(w === s) {
-                res.push(stack.slice());
-                f = true;
-            } else if(!blocked[w]) {
-                if(circuit(ak, s, w))
-                    f = true;
+// 求图中的所有环
+// 无向图深度搜索
+// 有向图采用Johnson算法（返回所有存在的循环依赖）
+export function getCircuits(nodes, getAdjacent, directed = true) {
+    const res = [], stack = [];
+    if(directed) {
+        const B = new Array(nodes.length).fill(new Set());
+        const blocked = new Array(nodes.length).fill(false);
+        
+        const unblock = (u) => {
+            blocked[u] = false;
+            for(const w of B[u]) {
+                B[u].delete(w);
+                if(blocked[w]) unblock(w);
             }
         }
-        if(f) unblock(v);
-        else for(const w of adjv) {
-            B[w].add(v);
+        const circuit = (ak, s, v = s) => {
+            let f = false;
+            stack.push(v);
+            blocked[v] = true;
+            const adjv = ak.inner
+                .filter(e => e[0] === v)
+                .map(e => e[1]);
+            for(const w of adjv) {
+                if(w === s) {
+                    res.push(stack.slice());
+                    f = true;
+                } else if(!blocked[w]) {
+                    if(circuit(ak, s, w))
+                        f = true;
+                }
+            }
+            if(f) unblock(v);
+            else for(const w of adjv) {
+                B[w].add(v);
+            }
+            stack.pop();
+            return f;
         }
-        stack.pop();
-        return f;
-    }
 
-    const sccs = getScc(0, nodes, getAdjacent)
-        .filter(e => e.nodes.length > 1);
+        const sccs = getScc(0, nodes, getAdjacent)
+            .filter(e => e.nodes.length > 1);
 
-    for(const scc of sccs) {
-        stack.splice(0);
-        const s = scc.nodes[0];
-        const vk = scc.nodes;
-        for(const v of vk) {
-            blocked[v] = false;
-            B[v] = new Set();
+        for(const scc of sccs) {
+            stack.splice(0);
+            const s = scc.nodes[0];
+            const vk = scc.nodes;
+            for(const v of vk) {
+                blocked[v] = false;
+                B[v] = new Set();
+            }
+            
+            circuit(scc, s);
         }
-        
-        circuit(scc, s);
+    } else {
+        // const dfs = (v) => {
+        //     stack.push(v);
+        //     if (stack.length === nodes.length - 1) {
+        //         for(const w of getAdjacent(v)) {
+        //             if(w > stack[1] && !stack.includes(w) && getAdjacent(w).includes(stack[0]));
+        //                 res.push(stack.slice());
+        //         }
+        //     } else {
+        //         for(const w of getAdjacent(v)) {
+        //             if(w > stack[0] && !stack.includes(w));
+        //                 dfs(w);
+        //         }
+        //     }
+        //     stack.pop();
+        // }
+        // nodes.forEach((e, i) => dfs(i));
+        throw "Not implemented.";
     }
-
     return res;
 }
