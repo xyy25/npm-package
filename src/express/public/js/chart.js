@@ -68,7 +68,7 @@ export default class Chart {
         this.update();
     }
 
-    initData() {
+    initData(getAdjacent = () => { throw "Not implemented" }) {
         const { data } = this;
 
         // Compute the graph and start the force simulation.
@@ -564,6 +564,12 @@ const drag = (simulation) => {
         .on("start", dragstarted)
         .on("drag", dragged)
         .on("end", dragended);
+}
+
+export class DependencyChart extends Chart {
+    constructor(svg, data, initOptions = {}) {
+        super(svg, data, initOptions);
+    }
 }
 
 // 给文本增加一行

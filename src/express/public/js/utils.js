@@ -85,18 +85,18 @@ export function getScc(
     getRevAdjacent
 ) {
     const { min } = Math;
-    const components = [];
-    const dfn = new Array(nodes.length).fill(Infinity); // 该顶点最小遍历到的深度
+    const components = [], stack = [];
+    const dfn = new Array(nodes.length).fill(Infinity); // 该顶点遍历到的次序
     const low = new Array(nodes.length).fill(Infinity); // 该顶点可通达顶点列表中的最小dfn
-    const stack = [];
-    const dfs = (v, d = 0) => {
+    let d = 0;
+    const dfs = (v) => {
         stack.push(v);
-        dfn[v] = d;
+        dfn[v] = ++d;
         low[v] = min(low[v], d);
         for(const w of getAdjacent(v)) {
             const wAt = stack.indexOf(w);
             if(dfn[w] === Infinity) {
-                dfs(w, d + 1);
+                dfs(w);
                 low[v] = min(low[v], low[w]);
             } else if(wAt >= 0) {
                 low[v] = min(low[v], dfn[w]);
@@ -125,78 +125,56 @@ export function getScc(
     });
 }
 
-// 求图中的所有环
-// 无向图深度搜索
-// 有向图采用Johnson算法（返回所有存在的循环依赖）
-export function getCircuits(nodes, getAdjacent, directed = true) {
+// 求有向图中的所有环，采用Johnson算法（返回所有存在的循环依赖）
+export function getCircuits(nodes, getAdjacent) {
     const res = [], stack = [];
-    if(directed) {
-        const B = new Array(nodes.length).fill(new Set());
-        const blocked = new Array(nodes.length).fill(false);
-        
-        const unblock = (u) => {
-            blocked[u] = false;
-            for(const w of B[u]) {
-                B[u].delete(w);
-                if(blocked[w]) unblock(w);
-            }
+    const B = new Array(nodes.length).fill(new Set());
+    const blocked = new Array(nodes.length).fill(false);
+    
+    const unblock = (u) => {
+        blocked[u] = false;
+        for(const w of B[u]) {
+            B[u].delete(w);
+            if(blocked[w]) unblock(w);
         }
-        const circuit = (ak, s, v = s) => {
-            let f = false;
-            stack.push(v);
-            blocked[v] = true;
-            const adjv = ak.inner
-                .filter(e => e[0] === v)
-                .map(e => e[1]);
-            for(const w of adjv) {
-                if(w === s) {
-                    res.push(stack.slice());
+    }
+    const circuit = (ak, s, v = s) => {
+        let f = false;
+        stack.push(v);
+        blocked[v] = true;
+        const adjv = ak.inner
+            .filter(e => e[0] === v)
+            .map(e => e[1]);
+        for(const w of adjv) {
+            if(w === s) {
+                res.push(stack.slice());
+                f = true;
+            } else if(!blocked[w]) {
+                if(circuit(ak, s, w))
                     f = true;
-                } else if(!blocked[w]) {
-                    if(circuit(ak, s, w))
-                        f = true;
-                }
             }
-            if(f) unblock(v);
-            else for(const w of adjv) {
-                B[w].add(v);
-            }
-            stack.pop();
-            return f;
         }
-
-        const sccs = getScc(0, nodes, getAdjacent)
-            .filter(e => e.nodes.length > 1);
-
-        for(const scc of sccs) {
-            stack.splice(0);
-            const s = scc.nodes[0];
-            const vk = scc.nodes;
-            for(const v of vk) {
-                blocked[v] = false;
-                B[v] = new Set();
-            }
-            
-            circuit(scc, s);
+        if(f) unblock(v);
+        else for(const w of adjv) {
+            B[w].add(v);
         }
-    } else {
-        // const dfs = (v) => {
-        //     stack.push(v);
-        //     if (stack.length === nodes.length - 1) {
-        //         for(const w of getAdjacent(v)) {
-        //             if(w > stack[1] && !stack.includes(w) && getAdjacent(w).includes(stack[0]));
-        //                 res.push(stack.slice());
-        //         }
-        //     } else {
-        //         for(const w of getAdjacent(v)) {
-        //             if(w > stack[0] && !stack.includes(w));
-        //                 dfs(w);
-        //         }
-        //     }
-        //     stack.pop();
-        // }
-        // nodes.forEach((e, i) => dfs(i));
-        throw "Not implemented.";
+        stack.pop();
+        return f;
+    }
+
+    const sccs = getScc(0, nodes, getAdjacent)
+        .filter(e => e.nodes.length > 1);
+
+    for(const scc of sccs) {
+        stack.splice(0);
+        const s = scc.nodes[0];
+        const vk = scc.nodes;
+        for(const v of vk) {
+            blocked[v] = false;
+            B[v] = new Set();
+        }
+        
+        circuit(scc, s);
     }
     return res;
 }

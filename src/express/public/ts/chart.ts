@@ -3,7 +3,7 @@ import { DiagramNode, DirectedDiagram, LinkMeta } from "./types";
 import { nodeMenu } from "./chartMenu";
 import { getLength, getCenter, getAngle, getPaths, includeChinese, limit } from "./utils";
 import D3Menu from "./lib/d3-context-menu";
-import d3 from 'd3';
+import * as d3 from 'd3';
 
 const createMenu = D3Menu<any, any>(d3);
 
@@ -112,14 +112,14 @@ export default class Chart {
     vsbNodes: Node[] = []
     vsbLinks: Link[] = []
     requirePaths: (number[] | null) [] = []
-    g: d3.Selection<SVGGElement, any, any, any> = d3.select('');
-    desc: d3.Selection<SVGTextElement, any, any, any> = d3.select('');
-    linkg: d3.Selection<SVGGElement, any, any, any> = d3.select('');
-    nodeg: d3.Selection<SVGGElement, any, any, any> = d3.select('');
-    link: d3.Selection<SVGLineElement | d3.BaseType, Link, any, any> = d3.selectAll('');
-    linkNote: d3.Selection<SVGTextElement | d3.BaseType, Link, any, any> = d3.selectAll('');
-    circle: d3.Selection<SVGCircleElement | d3.BaseType, Node, any, any> = d3.selectAll('');
-    label: d3.Selection<SVGTextElement | d3.BaseType, Node, any, any> = d3.selectAll('');
+    g: d3.Selection<SVGGElement, any, any, any> = d3.select('body');
+    desc: d3.Selection<SVGTextElement, any, any, any> = d3.select('body');
+    linkg: d3.Selection<SVGGElement, any, any, any> = d3.select('body');
+    nodeg: d3.Selection<SVGGElement, any, any, any> = d3.select('body');
+    link: d3.Selection<SVGLineElement | d3.BaseType, Link, any, any> = d3.selectAll('body');
+    linkNote?: d3.Selection<SVGTextElement | d3.BaseType, Link, any, any>;
+    circle: d3.Selection<SVGCircleElement | d3.BaseType, Node, any, any> = d3.selectAll('body');
+    label: d3.Selection<SVGTextElement | d3.BaseType, Node, any, any> = d3.selectAll('body');
     simulation: d3.Simulation<Node, Link> = d3.forceSimulation();
     
     init() {
@@ -363,7 +363,7 @@ export default class Chart {
     }
 
     hideLinkNote() {
-        this.linkNote.remove();
+        this.linkNote?.remove();
     }
 
     // 显示某个顶点，以及由根到该顶点的最短依赖路径上的所有顶点
