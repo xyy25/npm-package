@@ -298,7 +298,7 @@ export default class Chart {
         
         this.linkNote
             .append('textPath')
-            .attr('xlink:href', d => `#link${d.source.dataIndex}:${d.target.dataIndex}`)
+            .attr('xlink:href', d => `#link${d.source.dataIndex}-${d.target.dataIndex}`)
             .attr('startOffset', "50%")
             .text(d => d.text)
             .text(d => d.getNoteFlip() ? d.text.split('').reverse().join('') : d.text);
@@ -398,13 +398,41 @@ export default class Chart {
             );
 
         linkEnter
-            .attr("id", (d: Link) => `link${d.source.dataIndex}:${d.target.dataIndex}`)
+            .attr("id", (d: Link) => `link${d.source.dataIndex}-${d.target.dataIndex}`)
             .attr("class", (d: Link) => ct.getLinkClass(d, 2))
             .attr("stroke-opacity", 0.6)
             .attr('marker-end', 'url(#marker)')
             .on('mouseover', (e: Link) => ct.showLinkNote(
                 d => d === e, d => d.meta.range
             )).on('mouseout', () => ct.hideLinkNote());
+
+        // 将重叠的边弯曲成曲线显示
+        const linkMap = new Map();
+        ct.link.each(e => {
+            const { 
+                source: { dataIndex: si }, 
+                target: { dataIndex: ti } 
+            } = e, { max, min } = Math;
+            e.curve = 0;
+            const key = `${min(si, ti)}-${max(si, ti)}`;
+            if(!linkMap.has(key)) {
+                linkMap.set(key, [e]);
+            } else {
+                linkMap.get(key).push(e);
+            }
+        })
+        for(const links of linkMap.values()) {
+            if(links.length <= 1) continue;
+            const odd = !!(links.length % 2);
+            
+            for(let [i, link] of links.entries()) {
+                if(odd && !i) continue;
+                odd && i--;
+                link.curve = ((i >> 1) + 1) * 45 * (i % 2 ? -1 : 1);
+                if(link.target.dataIndex > link.source.dataIndex) 
+                    link.curve = -link.curve;
+            }
+        }
 
         // 顶点圆圈
         ct.circle = this.nodeg
