@@ -33,6 +33,7 @@ declare class Chart {
     nodes: Node[]
     vsbNodes: Node[]
     vsbLinks: Link[]
+    marked: number[]
     requirePaths: number[][]
     g: d3.Selection<SVGGElement, any, any, any>
     desc: d3.Selection<SVGTextElement, any, any, any>
@@ -63,10 +64,15 @@ declare class Chart {
             (d: Link) => this.getLinkClass(d, 1, false) ?? ''
     ): void;
     hideLinkNote(): void;
-    showNode(index: number, hideOthers: boolean = false): void;
-    showRequiring(index: number): void;
-    hideNode(node: Node, keepNode: boolean = false, excludes: Node[] = []): void;
-    hideBorders(node: Node): void;
+    showNode(indices: number | number[], hideOthers: boolean = false): void;
+    showOutBorders(...indices: number[]): void;
+    showInBorders(...indices: number[]): void;
+    hideNode(...indices: number[]): void;
+    hideOutBorders(...indices: number[]): void;
+    markNode(...indices: number[]): void;
+    unmarkNode(...indices: number[]): void;
+    getVsbPaths(nodeSet: Node[]): (number[] | null)[];
+    clearAway(includes: (n: Node) => boolean): void;
     updateOptions(): void;
     update(): void;
     clickNode(eThis: any, node: Node): void;

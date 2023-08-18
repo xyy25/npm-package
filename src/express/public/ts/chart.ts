@@ -68,6 +68,7 @@ export default class Chart {
     nodes: Node[] = []
     vsbNodes: Node[] = []
     vsbLinks: Link[] = []
+    marked: number[] = []
     requirePaths: (number[] | null) [] = []
     g: d3.Selection<SVGGElement, any, any, any> = d3.select('body');
     desc: d3.Selection<SVGTextElement, any, any, any> = d3.select('body');
@@ -107,6 +108,7 @@ export default class Chart {
         
         this.vsbNodes = []; // 实际显示的顶点
         this.vsbLinks = []; // 实际显示的边
+        this.marked = []; // 标记的顶点
 
         this.resetNodes();
         this.updateNodes();
@@ -122,6 +124,7 @@ export default class Chart {
             // 初始化有向图时，只显示根顶点、直接顶点、游离顶点
             n.showNode = !i || requiredBy.includes(0);
             n.showNode ||= showExtraneous && ct.requirePaths[i] === null;
+            n.showNode ||= ct.marked.includes(n.dataIndex);
             n.showRequiring = !i;
         })
     }
@@ -235,6 +238,7 @@ export default class Chart {
         [(n, i) => this.requirePaths[i] === null, "未使用", "free-node"], // 无法通向根顶点的顶点，即不必要的包
         [(n, i) => n.data.dir === null, "未安装", "not-found-node"], // 没有安装的包
         [(n) => n.data.requiredBy.includes(0), "主依赖", "direct-node"], // 根顶点的邻接顶点，即被项目直接依赖的包
+        [(n, i) => this.marked.includes(i), "标记中", "mark-node"], // 标记中的顶点
         [(n, i) => !i, "主目录", "root-node"], // 根顶点，下标为0的顶点，代表根目录的项目包
     ];
 
@@ -309,44 +313,115 @@ export default class Chart {
     }
 
     // 显示某个顶点，以及由根到该顶点的最短依赖路径上的所有顶点
-    showNode(index: number, hideOthers: boolean = false) {
+    showNode(indices: number | number[], hideOthers: boolean = false) {
         const { nodes, requirePaths } = this;
-        if (index >= nodes.length) return;
         if(hideOthers) this.resetNodes();
-        const path = requirePaths[index];
-        if(path !== null) {
-            path.forEach(i => {
-                i === index ? (nodes[i].showNode = true) : this.showRequiring(i)
-            });
-        } else { nodes[index].showNode = true; }
+        if(!Array.isArray(indices)) {
+            indices = [indices];
+        }
+        indices = indices.filter(i => i >= 0 && i < nodes.length);
+        for(const index of indices) {
+            nodes[index].showNode = true;
+            const path = requirePaths[index];
+            if(path !== null) {
+                path.pop();
+                this.showOutBorders(...path);
+            }
+        }
     }
 
     // 显示顶点的所有邻接顶点，即该包的依赖
-    showRequiring(index: number) {
+    showOutBorders(...indices: number[]) {
         const { nodes } = this;
-        if(index >= nodes.length) return; 
-        const node = nodes[index];
-        node.showRequiring = true;
-        node.data.requiring.forEach((e) => nodes[e].showNode = true);
+        indices = indices.filter(i => i >= 0 && i < nodes.length && nodes[i].showNode);
+        for(const index of indices) {
+            const node = nodes[index];
+            node.showRequiring = true;
+            node.data.requiring.forEach((i) => nodes[i].showNode = true);
+        }
     }
 
-    // 隐藏顶点本身，并自动清除因顶点隐藏而产生的游离顶点
-    hideNode(node: Node, keepNode = false, excludes: Node[] = []) {
-        const { nodes, vsbNodes, requirePaths } = this;
-        const all = vsbNodes.filter(
-            n => !excludes.includes(n) && n.dataIndex && 
-                !nodes[0].data.requiring.includes(n.dataIndex)
-        ); 
-        // 根顶点和其邻接顶点无法隐藏
-        if(!all.includes(node)) return;
+    // 显示顶点的所有入边邻接顶点，即依赖该包的包
+    showInBorders(...indices: number[]) {
+        const { nodes } = this;
+        indices = indices.filter(i => i >= 0 && i < nodes.length && nodes[i].showNode);
+        for(const index of indices) {
+            const node = nodes[index];
+            this.showNode(node.data.requiredBy);
+            this.showOutBorders(...node.data.requiredBy);
+        }
+    }
 
-        if(!keepNode) [node.showNode, node.showRequiring] = [false, false];
-        // 隐藏所有当前无法通向根顶点的顶点，防止额外游离顶点产生
-        // 获取当前所有显示顶点通向根顶点的路径，无路径者(游离)为null
-        const getVsbPaths = (nodeSet: Node[]) => getPaths(0, nodeSet, 
-            i => nodes[i].data.requiring, 
-            n => n.showNode && n.showRequiring); 
-        let rest = all, vsbPaths = getVsbPaths(nodes);
+    // 隐藏顶点本身
+    hideNode(...indices: number[]) {
+        const { nodes, marked } = this;
+        // 根顶点和其邻接顶点无法隐藏
+        indices = indices.filter(i => i > 0 && i < nodes.length 
+            && !marked.includes(i) && !nodes[0].data.requiring.includes(i));
+        if(!indices.length) return; 
+
+        indices.forEach(i => nodes[i].showNode = false);
+        this.hideOutBorders(...indices);
+    }
+    
+    // 隐藏顶点的所有边，不隐藏顶点本身，自动清除因依赖隐藏而产生的游离顶点
+    hideOutBorders(...indices: number[]) {
+        const { nodes, marked } = this;
+        indices = indices.filter(i => i > 0 && i < nodes.length);
+        const operNodes = indices.map(i => nodes[i]);
+        operNodes.forEach(n => n.showRequiring = false);
+        
+        // 根顶点和其邻接顶点无法隐藏
+        const includes = (n: Node) => !indices.includes(n.dataIndex) && 
+            !!n.dataIndex && !marked.includes(n.dataIndex) && 
+            !nodes[0].data.requiring.includes(n.dataIndex)
+        const toHide = operNodes.reduce<Node[]>(
+            (o, n) => o.concat(n.data.requiring.map(i => nodes[i]))
+        , []).filter(includes);
+        toHide.forEach(n => [n.showNode, n.showRequiring] = [false, false]);
+
+        this.clearAway(includes);
+    }
+
+    // 标记顶点，标记中的顶点无法被隐藏，未显示的顶点无法标记
+    markNode(...indices: number[]) {
+        const { nodes } = this;
+        indices = indices.filter(i => i >= 0 && i < nodes.length && nodes[i].showNode);
+        this.marked.push(...indices);
+        this.circle.filter(n => indices.includes(n.dataIndex))
+            .classed('mark-node', true);
+        this.label.filter(n => indices.includes(n.dataIndex))
+            .classed('mark-node', true);
+    }
+
+    // 取消标记顶点
+    unmarkNode(...indices: number[]) {
+        const { nodes, requirePaths } = this;
+        indices = indices.filter(i => i >= 0 && i < nodes.length);
+        this.marked = this.marked.filter(i => !indices.includes(i));
+        this.circle.filter(n => indices.includes(n.dataIndex))
+            .classed('mark-node', false);
+        this.label.filter(n => indices.includes(n.dataIndex))
+            .classed('mark-node', false);
+        // 隐藏正在游离的
+        const vsbPaths = this.getVsbPaths();
+        const away = indices.filter(i => vsbPaths[i] === null && requirePaths[i] !== null);
+        this.hideNode(...away);
+        if(away.length) this.update();
+    }
+
+    // 获取当前所有显示顶点通向根顶点的路径，无路径者(游离)为null
+    getVsbPaths(nodeSet: Node[] = this.nodes): (number[] | null)[] { 
+        return getPaths(0, nodeSet, 
+            i => this.nodes[i].data.requiring, 
+            n => n.showNode && n.showRequiring
+        );
+    }; 
+
+    // 隐藏所有因当前依赖关系被隐藏而无法通向根顶点的顶点，防止额外游离顶点产生
+    clearAway(includes: (n: Node) => boolean) {
+        const { requirePaths } = this;
+        let rest = this.vsbNodes.filter(includes), vsbPaths = this.getVsbPaths();
         // 过滤，每次仅保留满足无法通向根顶点条件的顶点，并进行循环操作
         const filter = (n: Node) => 
             (n.showNode || n.showRequiring) && 
@@ -354,17 +429,8 @@ export default class Chart {
             vsbPaths[n.dataIndex] === null;
         while((rest = rest.filter(filter)).length) {
             rest.forEach(n => [n.showNode, n.showRequiring] = [false, false]); 
-            console.log(vsbPaths = getVsbPaths(rest));
+            console.log(vsbPaths = this.getVsbPaths(rest));
         }
-    }
-    
-    // 隐藏顶点的所有边，不隐藏顶点本身
-    hideBorders(node: Node) {
-        if(!node.dataIndex) return;
-        node.showRequiring = false;
-        this.vsbNodes
-            .filter(n => node.data.requiring.includes(n.dataIndex))
-            .forEach(n => this.hideNode(n, true, [node]));
     }
 
     // 右键菜单事件
@@ -505,7 +571,7 @@ export default class Chart {
         const { data: { requiring }, dataIndex: i } = node;
         console.log('点击顶点', i, eThis, node, this.requirePaths[i]);
         if(!requiring.length) return;
-        this.showRequiring(i);
+        this.showOutBorders(i);
         this.update();
     }
     
@@ -529,6 +595,7 @@ export default class Chart {
                 .call(appendLine, `版本: ${node.data.version}\n`)
                 .call(appendLine, `目录: ${node.data.dir}\n`)
                 .call(appendLine, `依赖: ${node.data.requiring.length}个包`)
+                .call(appendLine, `应用: ${node.data.requiredBy.length}个包`)
                 .call(appendLine, this.getNodeClass(node, 1));
         }
 

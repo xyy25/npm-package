@@ -69,6 +69,11 @@ text.not-found-node {
   fill: rgb(135, 46, 68);
 }
 
+text.mark-node {
+  fill: rgb(204, 90, 14);
+  text-decoration: underline;
+}
+
 circle.direct-node {
   stroke: #c84;
 }

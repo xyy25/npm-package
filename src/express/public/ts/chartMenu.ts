@@ -13,16 +13,28 @@ export const nodeMenu = (ct: Chart): ContextMenu.MenuItems<any, Node> => {
             title: (e: Node) => (e.showRequiring ? '收起' : '展开') + '依赖', 
             action: (e: Node) => ((
                 e.showRequiring ? 
-                    ct.hideBorders(e) : ct.showRequiring(e.dataIndex)
+                    ct.hideOutBorders(e.dataIndex) : 
+                    ct.showOutBorders(e.dataIndex)
                 ), ct.update()),
             disabled: (e: Node) => !e.dataIndex
         },
+        { 
+            title: '查看使用', 
+            action: (e) => (ct.showInBorders(e.dataIndex), ct.update()),
+            disabled: (e) => !e.dataIndex
+        },
+        {
+            title: (e) => ct.marked.includes(e.dataIndex) ? '取消标记' : '标记顶点', 
+            action: (e) => (ct.marked.includes(e.dataIndex) ? 
+                    ct.unmarkNode(e.dataIndex) : ct.markNode(e.dataIndex), 
+                console.log('当前标记', ct.marked), ct.updateOptions())
+        },
         { divider: true },
         { 
-            title: (opt.simulationStop ? '继续' : '固定') + '移动', 
+            title: (opt.simulationStop ? '开启运动' : '固定视图'), 
             action: () => {
-                ct.simulation?.stop(); 
-                opt.simulationStop = !opt.simulationStop; 
+                opt.simulationStop = !opt.simulationStop;
+                ct.simulation[opt.simulationStop ? 'stop' : 'restart']();
                 ct.updateOptions();
             }
         },

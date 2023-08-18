@@ -105,6 +105,13 @@ path.link {
     }
 }
 
+.mark-node {
+    @at-root text#{&} {
+        fill: rgb(204, 90, 14);
+        text-decoration: underline;
+    }
+}
+
 .direct-node {
     @at-root circle#{&} {
         stroke: #c84;
