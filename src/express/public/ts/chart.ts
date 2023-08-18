@@ -1,55 +1,12 @@
 /* 力导图封装类的ts版本，与chart.js需要同步更新，为之后留作备用 */
-import { DiagramNode, DirectedDiagram, LinkMeta } from "./types";
-import { nodeMenu } from "./chartMenu";
-import { getLength, getCenter, getAngle, getPaths, includeChinese, limit } from "./utils";
-import D3Menu from "./lib/d3-context-menu";
 import * as d3 from 'd3';
+import D3Menu from "./lib/d3-context-menu";
+import { DiagramNode, DirectedDiagram } from "./types";
+import { nodeMenu } from "./chartMenu";
+import { getPaths, includeChinese, limit } from "./utils";
+import { Node, Link } from './chartNode';
 
 const createMenu = D3Menu<any, any>(d3);
-
-export class Link { 
-    rotate: boolean = false
-    text: string = ""
-    constructor(
-        public source: Node, 
-        public target: Node, 
-        public meta: LinkMeta
-    ) {}
-
-    length() {
-        const { x: x1, y: y1 } = this.source;
-        const { x: x2, y: y2 } = this.target;
-        return getLength([x1, y1], [x2, y2]);
-    };
-
-    // 获取边上标签的位置
-    getNoteTransform(rotate = false) {
-        const { source: s, target: t } = this;
-        const [x, y] = getCenter([s.x, s.y], [t.x, t.y]);
-        let angle = getAngle([s.x, s.y], [t.x, t.y], true, true);
-        rotate && (angle -= 90);
-        if ((s.x > t.x && s.y < t.y) || (s.x < t.x && s.y > t.y)) {
-            angle = -angle;
-        }
-        return `translate(${x}, ${y}) rotate(${angle})`;
-    }
-}
-
-export class Node {
-    vx: number; vy: number;
-    x: number; y: number;
-    showNode: boolean = false
-    showRequiring: boolean = false
-    r: number = 0
-    constructor(
-        public dataIndex: number, 
-        public data: DiagramNode,
-        public temp: boolean = false
-    ) {
-        [this.vx, this.vy] = [0, 0];
-        [this.x, this.y] = [0, 0];
-    }
-}
 
 export type ChartOption = {
     showDesc: boolean,
@@ -221,12 +178,13 @@ export default class Chart {
             .style('font-size', 24);
 
         // 边的组
-        this.linkg = g.append("g");
+        this.linkg = g.append("g").attr("id", "linkg");
         // 顶点的组
-        this.nodeg = g.append("g");
+        this.nodeg = g.append("g").attr("id", "nodeg");
+
         const { linkg, nodeg } = this;
 
-        this.link = linkg.selectAll("line");
+        this.link = linkg.selectAll("path");
         this.label = nodeg.selectAll("text");
         this.circle = nodeg.selectAll("circle");
     }
@@ -258,18 +216,12 @@ export default class Chart {
             .attr("dx", function(this: any) {
                 return - this.getBBox().width / 2;
             });
-        // 线的两端应该在结点圆的边上
-        const { sin, cos } = Math;
-        const proj = (d: Link, cir: Node, ofs: number, f: (n: number) => number) =>
-            (cir.r + ofs) * f(getAngle([d.source.x, d.source.y], [d.target.x, d.target.y]));
-        this.link
-            .attr("x1", d => d.source.x + proj(d, d.source, 0, cos))
-            .attr("y1", d => d.source.y + proj(d, d.source, 0, sin))
-            .attr("x2", d => d.target.x - proj(d, d.target, -2, cos))
-            .attr("y2", d => d.target.y - proj(d, d.target, -2, sin));
+        this.link.attr("d", d => d.getLinkPath());
         this.linkNote
-            ?.attr('transform', d => d.getNoteTransform(d.rotate))
-            .attr('textLength', limitLen);
+            ?.attr('textLength', limitLen)
+            .attr('rotate', d => d.getNoteFlip() ? '180' : '0')
+            .select('textPath')
+            .text(d => d.getNoteFlip() ? d.text.split('').reverse().join('') : d.text);
     }
 
     // 顶点类型判断数组
@@ -281,7 +233,7 @@ export default class Chart {
         [(n, i, li) => !!li.length && li.every(l => l.meta.depthEnd), "递归终点", "depth-end-node"], // 所有的入边均为递归深度到达最大的边的顶点
         [(n) => !n.data.requiring.length, "", "terminal-node"], // 无出边的顶点，即无依赖的包
         [(n, i) => this.requirePaths[i] === null, "未使用", "free-node"], // 无法通向根顶点的顶点，即不必要的包
-        [(n, i) => n.data.path === null, "未安装", "not-found-node"], // 没有安装的包
+        [(n, i) => n.data.dir === null, "未安装", "not-found-node"], // 没有安装的包
         [(n) => n.data.requiredBy.includes(0), "主依赖", "direct-node"], // 根顶点的邻接顶点，即被项目直接依赖的包
         [(n, i) => !i, "主目录", "root-node"], // 根顶点，下标为0的顶点，代表根目录的项目包
     ];
@@ -309,7 +261,7 @@ export default class Chart {
         [(l) => l.meta.type === "peer", "同级", null], // 同级依赖(peerDependencies)的边
         [(l) => l.meta.depthEnd, "", "depth-end-link"], // 递归深度达到上限的边
         [(l) => !l.meta.optional && l.meta.invalid, (l) => l.meta.range, "invalid-link"], // 非法依赖版本的边，标签显示合法版本范围
-        [(l, i, t) => !l.meta.optional && t.data.path === null, "未安装", "invalid-link"] // 未安装该依赖的边，样式和非法一致
+        [(l, i, t) => !l.meta.optional && t.data.dir === null, "未安装", "invalid-link"] // 未安装该依赖的边，样式和非法一致
     ];
 
     // 根据边的属性特征，获取边的样式类型名(可重叠)
@@ -335,31 +287,21 @@ export default class Chart {
             .selectAll('text')
             .data(this.link.filter(linkFilter).data())
             .join('text')
-            .attr('class', (d) => this.link.filter(linkFilter).attr('class'))
+            .attr('class', (d) => this.link.filter(e => d === e).attr('class'))
             .each((d, i, g) => d.text = text(d, i, g))
             .each(d => d.rotate = includeChinese(d.text))
-            .text(d => d.text)
             // 如果标注带有汉字则转为竖排显示
             .classed('chinese-note', d => d.rotate)
-            .attr('transform', d => d.getNoteTransform(d.rotate))
+            .attr('text-anchor', 'middle')
             .attr('textLength', limitLen)
-
-        this.linkNote.filter(':not(.chinese-note)')
-            .attr('dx', offset(0, null))
-            .attr('dy', offset(null, 10));
-        this.linkNote.filter('.chinese-note')
-            .attr('dx', offset(5, null))
-            .attr('dy', offset(null, 0));
+            .attr('rotate', d => d.getNoteFlip() ? '180' : '0')
         
-        function offset(x: number | null, y: number | null): (this: any) => number { 
-            return function(this: any) {
-                const { width: w, height: h } = this.getBBox();
-                let res = 0;
-                res += x !== null ? -w / 2 + x : 0;
-                res += y !== null ? -h / 2 + y : 0;
-                return res;
-            }
-        }
+        this.linkNote
+            .append('textPath')
+            .attr('xlink:href', d => `#link${d.source.dataIndex}:${d.target.dataIndex}`)
+            .attr('startOffset', "50%")
+            .text(d => d.text)
+            .text(d => d.getNoteFlip() ? d.text.split('').reverse().join('') : d.text);
     }
 
     hideLinkNote() {
@@ -447,23 +389,22 @@ export default class Chart {
 
         // 有向边
         ct.link = this.linkg
-            .selectAll("line")
+            .selectAll("path")
             .data(vsbLinks, (d: any) => d.dataIndex)
             .join(
-                enter => linkEnter = enter.append("line"),
+                enter => linkEnter = enter.append("path"),
                 update => update, 
                 exit => exit.remove()
             );
 
         linkEnter
-            .attr("from", (d: any) => d.source.dataIndex)
-            .attr("to", (d: any) => d.target.dataIndex)
-            .attr("class", (d: any) => ct.getLinkClass(d, 2))
+            .attr("id", (d: Link) => `link${d.source.dataIndex}:${d.target.dataIndex}`)
+            .attr("class", (d: Link) => ct.getLinkClass(d, 2))
             .attr("stroke-opacity", 0.6)
             .attr('marker-end', 'url(#marker)')
             .on('mouseover', (e: Link) => ct.showLinkNote(
                 d => d === e, d => d.meta.range
-            )).on('mouseleave', () => ct.hideLinkNote());
+            )).on('mouseout', () => ct.hideLinkNote());
 
         // 顶点圆圈
         ct.circle = this.nodeg
@@ -558,7 +499,7 @@ export default class Chart {
             desc
                 .call(appendLine, `名称: ${node.data.id}\n`)
                 .call(appendLine, `版本: ${node.data.version}\n`)
-                .call(appendLine, `目录: ${node.data.path}\n`)
+                .call(appendLine, `目录: ${node.data.dir}\n`)
                 .call(appendLine, `依赖: ${node.data.requiring.length}个包`)
                 .call(appendLine, this.getNodeClass(node, 1));
         }

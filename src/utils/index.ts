@@ -16,12 +16,12 @@ export function getManagerType(pkgRoot: string): PackageManager {
 }
 
 // 获取包根目录下的README.md文件
-export const getREADME = (id: string, path?: string): string | null => {
+export const getREADME = (id: string, dir?: string): string | null => {
     try {
         const files = ['README.md', 'Readme.md', 'readme.md'];
         const exists = files.filter(e => 
-            fs.existsSync(join(path ?? '', id, e)) &&
-            fs.lstatSync(join(path ?? '', id, e)).isFile()
+            fs.existsSync(join(dir ?? '', id, e)) &&
+            fs.lstatSync(join(dir ?? '', id, e)).isFile()
         );
         
         return exists.length ? fs.readFileSync(exists[0]).toString() : null; 
@@ -33,11 +33,11 @@ export const getREADME = (id: string, path?: string): string | null => {
 export const countMatches = (str: string, matcher: RegExp | string): number => 
     str.match(new RegExp(matcher, "g"))?.length ?? 0;
 
-type Item = { id?: string, version: string, path: string | null };
+type Item = { id?: string, version: string, dir: string | null };
 
 export const toString = <T extends Item>(depItem: T, id?: string): string => {
     if((id = id ?? depItem.id) === undefined) return '';
-    return join(depItem.path ?? '', id + '@' + depItem.version);
+    return join(depItem.dir ?? '', id + '@' + depItem.version);
 }
 
 export const limit = (str: string, length: number): string => 
@@ -50,11 +50,11 @@ export const splitAt = (str: string, pos: number): [string, string] =>
 export const find = <T extends Item>(items: DirectedDiagram, item: T): number =>
     items.findIndex(e => toString(e) === toString(item));
     
-export const toDiagram = (depResult: DepResult, rootPath?: string, rootPkg?: PackageJson): DirectedDiagram => {
+export const toDiagram = (depResult: DepResult, rootDir?: string, rootPkg?: PackageJson): DirectedDiagram => {
     const res: DirectedDiagram = [{
         id: rootPkg?.name ?? 'root',
         version: rootPkg?.version ?? 'root',
-        path: rootPath ?? '.',
+        dir: rootDir ?? '.',
         meta: [],
         requiring: [],
         requiredBy: []
@@ -63,10 +63,10 @@ export const toDiagram = (depResult: DepResult, rootPath?: string, rootPkg?: Pac
     const dfs = (dep: DepResult, originIndex: number = 0) => {
         for(const [id, item] of Object.entries(dep)) {
             const { 
-                requires, version, path, meta
+                requires, version, dir, meta
             } = item;
             const newItem: DiagramNode = { 
-                id, version, path, 
+                id, version, dir, 
                 meta: [], requiring: [], 
                 requiredBy: [originIndex]
             };
@@ -96,10 +96,10 @@ export const toDiagram = (depResult: DepResult, rootPath?: string, rootPkg?: Pac
 }
 
 export const toDepItemWithId = (itemStr: string): DiagramNode => {
-    const splitPathId = (itemUri: string, version: string, pos: number): DiagramNode => {
-        const [path, id] = splitAt(itemUri, pos);
+    const splitDirId = (itemUri: string, version: string, pos: number): DiagramNode => {
+        const [dir, id] = splitAt(itemUri, pos);
         return { 
-            id: id.slice(1), version, path, 
+            id: id.slice(1), version, dir, 
             meta: [], requiring: [], requiredBy: [] 
         }
     }
@@ -109,20 +109,20 @@ export const toDepItemWithId = (itemStr: string): DiagramNode => {
     if(sepAfterAt) { // 应对没有@版本的异常状态（虽然几乎用不到）
         if(sepAfterAt > 1) {
             const lastSep = atPos + post.lastIndexOf(sep);
-            return splitPathId(itemStr, '', lastSep);
+            return splitDirId(itemStr, '', lastSep);
         }
-        return splitPathId(itemStr, '', atPos - 1);
+        return splitDirId(itemStr, '', atPos - 1);
     }
     const areaAtPos = pre.lastIndexOf('@');
     if(areaAtPos < 0) {
-        return splitPathId(pre, post.slice(1), pre.lastIndexOf(sep));
+        return splitDirId(pre, post.slice(1), pre.lastIndexOf(sep));
     }
     const [preArea, postArea] = splitAt(pre, areaAtPos);
     sepAfterAt = postArea.match(/\/|\\/g)?.length ?? 0;
     if(sepAfterAt > 1) {
-        return splitPathId(pre, post.slice(1), pre.lastIndexOf(sep));
+        return splitDirId(pre, post.slice(1), pre.lastIndexOf(sep));
     }
-    return splitPathId(pre, post.slice(1), areaAtPos - 1);
+    return splitDirId(pre, post.slice(1), areaAtPos - 1);
 }
 
 export const compareVersion = (versionA: string, versionB: string): -1 | 0 | 1 => {

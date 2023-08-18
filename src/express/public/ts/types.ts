@@ -64,7 +64,7 @@ export type DepResult = {
 
 export type DepItem = {
     version: string; // 【顶点属性】该依赖包实际使用的版本（即在node_modules里存在的版本）
-    path: string | null; // 【顶点属性】该依赖包安装的相对路径
+    dir: string | null; // 【顶点属性】该依赖包安装的相对路径
     requires?: DepResult; // 【顶点属性】该依赖包的子依赖列表（若无依赖或已经计算过，则没有这条）
     meta: LinkMeta;
 };
@@ -73,7 +73,7 @@ export type DepItem = {
 export type DiagramNode = {
     id: string;
     version: string;
-    path: string | null;
+    dir: string | null;
     meta: LinkMeta[];
     requiring: number[];
     requiredBy: number[];
@@ -98,19 +98,19 @@ dia [
         {
             id: 'pinus',
             version: '0.3.0',
-            path: '\\node_modules',
+            dir: '\\node_modules',
             requiring: [1, 2],
             requiredBy: []
         }, { 
             id: 'axios', 
             version: '1.4.0', 
-            path: '\\node_modules'
+            dir: '\\node_modules'
             requiring: [2],
             requiredBy: [0]
         }, {
             id: 'commander',
             version: '1.0.0',
-            path: '\\node_modules'
+            dir: '\\node_modules'
             requiring: [],
             requiredBy: [0, 1]
         }

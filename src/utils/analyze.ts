@@ -1,4 +1,4 @@
-import path, { join, relative, sep } from 'path';
+import { join, sep } from 'path';
 import { satisfies } from 'semver';
 import fs from 'fs';
 import chalk from 'chalk';
@@ -29,9 +29,10 @@ export default function analyze(
     norm: boolean = true, // 包含dependencies
     dev: boolean = true, // 包含devDependencies
     peer: boolean = true, // 包含peerDependencies
-    pkgCount?: number
+    pkgCount?: number,
+    relDir: string = '.', // 该包如果不是根目录的主项目（默认是），则从该相对目录下的package.json开始扫描
 ): DepEval {
-    const abs = (...path: string[]): string => join(pkgRoot, ...path);
+    const abs = (...dir: string[]): string => join(pkgRoot, ...dir);
     const depEval: DepEval = { 
         // 分析结果
         result: {},
@@ -51,7 +52,7 @@ export default function analyze(
         !fs.existsSync(abs(PACKAGE_JSON))
     ) { return depEval; }
 
-    const rootPkgJson = readPackageJson(abs(PACKAGE_JSON));
+    const rootPkgJson = readPackageJson(abs(relDir, PACKAGE_JSON));
     if(!rootPkgJson) {
         return depEval;
     }
@@ -81,20 +82,27 @@ export default function analyze(
     const queue: QueueItem[] = [];
     Object.entries(allDeps).forEach(([type, deps]) => queue.push(
         ...Object.entries(deps).map(([id, range]) =>
-            new QueueItem(id, range, 'ROOT', type as DependencyType, { 
-                norm: false, optional: true, dev: false,
-                peer: rootPeerMeta?.[id]?.optional ?? false
-            }[type], 1, NODE_MODULES, depEval.result
+            new QueueItem(
+                id, range, 
+                relDir === '.' ? 'ROOT' : relDir + '@' + rootPkgJson.version, 
+                type as DependencyType, { 
+                    norm: false, optional: true, dev: false,
+                    peer: rootPeerMeta?.[id]?.optional ?? false
+                }[type], 1, NODE_MODULES, depEval.result
     ))));
 
-    if(manager === 'pnpm') {
-        while(queue.length) {
-            doPnpmBfs(abs, depth, queue, depEval);
-        }
-    } else {
-        while (queue.length) {
-            doBfs(abs, depth, queue, depEval);
-        }
+    // 根据包管理器类型选择不同的广搜方法
+    let analyzer;
+    switch(manager) {
+        case 'pnpm': 
+            analyzer = doPnpmBfs; 
+            break;
+        default:
+            analyzer = doBfs;
+    }
+
+    while (queue.length) {
+        analyzer(abs, depth, queue, depEval);
     }
     
     console.log(cyan('\n' + desc.analyzed.replace("%d", yellowBright(depEval.analyzed.size))));
@@ -103,7 +111,7 @@ export default function analyze(
 
 // npm 和 yarn 的搜索方法：从内到外
 function doBfs(
-    abs: (...path: string[]) => string,
+    abs: (...dir: string[]) => string,
     depth: number,
     queue: QueueItem[],
     depEval: DepEval
@@ -113,23 +121,23 @@ function doBfs(
     const p = queue.shift();
     if (!p) return;
     const { id, range, by } = p;
-    let pth = p.path;
+    let curDir = p.dir;
 
     // 寻找依赖包的安装位置
     while (true) {
         // console.log('current', id, range, pth);
         // 对每一个包进行依赖分析
-        if(analyzePackage(abs, depth, pth, join(pth, id, NODE_MODULES), p, queue, depEval)) {
+        if(analyzePackage(abs, depth, curDir, join(curDir, id, NODE_MODULES), p, queue, depEval)) {
             break;
         }
 
-        if(!pth || pth === sep || pth === NODE_MODULES) {
+        if(!curDir || curDir === sep || curDir === NODE_MODULES) {
             const type = p.type === 'norm' ? '' : p.type;
             // 如果已到达根目录还是没找到，说明该依赖未安装
             (p.optional ? optionalNotMeet : notFound)
                 .push(`${id} ${range} ${type} REQUIRED BY ${by}`);
             p.target[id] = {
-                version: "NOT_FOUND", path: null, 
+                version: "NOT_FOUND", dir: null, 
                 meta: { 
                     range, type: p.type,  depthEnd: p.depth > depth,
                     optional: p.optional, invalid: false
@@ -138,9 +146,9 @@ function doBfs(
             break;
         } else {
             // 在本目录的node_modules未找到包，则转到上级目录继续
-            pth = pth.slice(
+            curDir = curDir.slice(
                 0,
-                pth.lastIndexOf(NODE_MODULES + sep) + NODE_MODULES.length
+                curDir.lastIndexOf(NODE_MODULES + sep) + NODE_MODULES.length
             );
         }
     }
@@ -148,10 +156,10 @@ function doBfs(
 
 // 对每一个包进行依赖分析
 export function analyzePackage(
-    abs: (...path: string[]) => string,
+    abs: (...dir: string[]) => string,
     depth: number,
-    curPath: string,
-    childPath: string,
+    curDir: string,
+    childDir: string,
     curItem: QueueItem,
     queue: QueueItem[],
     depEval: DepEval,
@@ -159,15 +167,15 @@ export function analyzePackage(
     const { id, by, range } = curItem;
     const { rangeInvalid, analyzed: hash } = depEval;
 
-    const pkgPath = join(curPath, id);
-    const pkgJsonPath = join(pkgPath, PACKAGE_JSON);
+    const pkgDir = join(curDir, id);
+    const pkgJsonDir = join(pkgDir, PACKAGE_JSON);
 
     if (
-        !fs.existsSync(abs(pkgPath)) ||
-        !fs.existsSync(abs(pkgJsonPath))
+        !fs.existsSync(abs(pkgDir)) ||
+        !fs.existsSync(abs(pkgJsonDir))
     ) { return false; }
 
-    const pkg = readPackageJson(abs(pkgJsonPath));
+    const pkg = readPackageJson(abs(pkgJsonDir));
     if (!pkg) {
         return false;
     }
@@ -182,12 +190,12 @@ export function analyzePackage(
     // 如果该包版本不符合range要求
     if (range !== 'latest' && !satisfies(pkg.version, range)) {
         invalid = true;
-        rangeInvalid.push(`${id} REQUIRED ${range} BUT ${pkg.version} BY ${by}`);
+        rangeInvalid.push(`${id} REQUIRE ${range} BUT ${pkg.version} BY ${by}`);
     }
     
     const item: DepItem = {
         version: pkg.version,
-        path: curPath,
+        dir: curDir,
         meta: {
             range,
             type: curItem.type,
@@ -220,7 +228,7 @@ export function analyzePackage(
             const q = (e: [string, string], type: DependencyType, optional: boolean) =>
                 new QueueItem(
                     e[0], e[1], itemStr, type, optional, 
-                    curItem.depth + 1, childPath, 
+                    curItem.depth + 1, childDir, 
                     curItem.target[id].requires as DepResult
                 );
 
@@ -258,18 +266,18 @@ export function analyzePackage(
     "axios": {
         version: "1.4.0",
         range: "^1.4.0",
-        path: "\\node_modules",
+        dir: "\\node_modules",
         requires: {
             "ws": {
                 version: "8.12.0",
                 range: "~8.12.0",
-                path: "\\node_modules\\axios\\node_modules",
+                dir: "\\node_modules\\axios\\node_modules",
                 requires: { ... }
             },
             "commander": {
                 version: "11.0.0",
                 range: "^11.0.0",
-                path: "\\node_modules",
+                dir: "\\node_modules",
                 requires: { ... }
             }
         }
@@ -277,14 +285,14 @@ export function analyzePackage(
     "commander": {
         version: "11.0.0",
         range: "^11.0.0",
-        path: "\\node_modules",
+        dir: "\\node_modules",
         // 该包的requires已经在"axios"."commander".requires中被搜索过
         // 所以不再搜索
     },
     "ws": {
         version: "8.13.0",
         range: "^8.13.0",
-        path: "\\node_modules",
+        dir: "\\node_modules",
         requires: { ... }
     }
 }

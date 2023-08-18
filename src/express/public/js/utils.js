@@ -12,7 +12,7 @@ export function includeChinese(str) {
 }
 
 // 计算两点的中心点(用于确认摆放在连接线上的文字的位置)
-export function getCenter(x1, y1, x2, y2) {
+export function getCenter([x1, y1], [x2, y2]) {
     return [
         (x1 + x2) / 2, 
         (y1 + y2) / 2
@@ -76,8 +76,9 @@ export function getDiagramGroups(
     return groups;
 }
 
-// Tarjan算法求有向图所有的强连通分量(scc)
-// 返回强连通分量的数组，含三条属性：包括每个分量所含顶点及分量间的有向关系
+// Tarjan算法求有向图所有的强连通分量(SCC)
+// SCC构成一个新的有向图的顶点，且该有向图必为有向无环图(DAG)
+// 返回所有SCC的数组，每个数组元素含三条属性描述一个SCC：包括每个分量所含顶点、内部顶点间的关系，及分量间的关系
 export function getScc(
     startIndex, 
     nodes, 
@@ -102,19 +103,21 @@ export function getScc(
                 low[v] = min(low[v], dfn[w]);
             } 
         }
-        if(dfn[v] === low[v]) {
+        if(dfn[v] === low[v]) { 
+            // 将该顶点之上的栈元素全部出栈，记入一个分量中
             const vAt = stack.indexOf(v);
             components.push(stack.splice(vAt));
         }
     }
     dfs(startIndex);
+    // 结果返回结构处理
     const map = new Map();
     components.forEach((c, i) => c.forEach(v => map.set(v, i)));
     return components.map((c, i) => {
         const reduceMap = (prop) => (o, v) => o.concat(prop(v).map(e => map.get(e)));
         const outs = c.reduce(reduceMap(getAdjacent), []);
-        const outer = { outs: [...new Set(outs)] } // 分量对外有向关系
-        const inner = c.reduce( // 分量内部有向关系
+        const outer = { outs: [...new Set(outs)] } // 分量对外(分量之间)的有向关系
+        const inner = c.reduce( // 分量内部顶点间的有向关系
             (o, v) => o.concat(getAdjacent(v).filter(e => map.get(e) === i).map(e => [v, e])), 
         []) 
         if(getRevAdjacent) {

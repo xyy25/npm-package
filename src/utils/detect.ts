@@ -14,7 +14,7 @@ export default function detect(
     depth: number = Infinity
 ): string[]
 {
-    const abs = (...path: string[]): string => join(pkgRoot, ...path);
+    const abs = (...dir: string[]): string => join(pkgRoot, ...dir);
     if(
         depth < 0 || 
         !existsSync(pkgRoot) || 
@@ -29,30 +29,30 @@ export default function detect(
     // 如果包管理器是npm或yarn的扁平结构
     const res: Set<string> = new Set();
     
-    const countPkg = (modPath: string, pkgId: string) =>  {
-        const ver = readPackageJson(abs(modPath, pkgId, PACKAGE_JSON))?.version ?? '';
-        const pkgStr = toString({ version: ver, path: modPath }, pkgId);
+    const countPkg = (modDir: string, pkgId: string) =>  {
+        const ver = readPackageJson(abs(modDir, pkgId, PACKAGE_JSON))?.version ?? '';
+        const pkgStr = toString({ version: ver, dir: modDir }, pkgId);
         res.add(pkgStr);
-        (detect(abs(modPath, pkgId), manager, depth - 1) as string[])
-            .forEach(e => res.add(join(modPath, pkgId, e)));
+        (detect(abs(modDir, pkgId), manager, depth - 1) as string[])
+            .forEach(e => res.add(join(modDir, pkgId, e)));
     }
 
     for(const pkgId of readdirSync(abs(NODE_MODULES))) {
-        const modPath = NODE_MODULES;
+        const modDir = NODE_MODULES;
         if(
-            !lstatSync(abs(modPath, pkgId)).isDirectory()
+            !lstatSync(abs(modDir, pkgId)).isDirectory()
             || pkgId.startsWith('.')
         ) {
             continue;
         } else if(pkgId.startsWith('@')) {
-            const areaPath = join(modPath, pkgId);
-            const areaPkgs = readdirSync(abs(areaPath));
+            const areaDir = join(modDir, pkgId);
+            const areaPkgs = readdirSync(abs(areaDir));
             for(const areaPkgId of areaPkgs) {
-                if(lstatSync(abs(areaPath, areaPkgId)).isDirectory())
-                countPkg(areaPath, areaPkgId);
+                if(lstatSync(abs(areaDir, areaPkgId)).isDirectory())
+                countPkg(areaDir, areaPkgId);
             }
         } else {
-            countPkg(modPath, pkgId);
+            countPkg(modDir, pkgId);
         }
     }
     return [...res];
@@ -61,58 +61,58 @@ export default function detect(
 const DOT_PNPM = '.pnpm';
 
 export function detectPnpm(pkgRoot: string): [string, string[]][] {
-    const abs = (...path: string[]): string => join(pkgRoot, ...path);
+    const abs = (...dir: string[]): string => join(pkgRoot, ...dir);
     const res = new Map<string, string[]>();
 
-    const countPkg = (modPath: string, pkgId: string) => { // 登记一个依赖包
-        const pkgPath = join(modPath, pkgId);
-        const lstat = lstatSync(abs(pkgPath));
+    const countPkg = (modDir: string, pkgId: string) => { // 登记一个依赖包
+        const pkgDir = join(modDir, pkgId);
+        const lstat = lstatSync(abs(pkgDir));
         // 如果目录是符号链接，则找它所指向的源目录，并放到一个组里
         if(lstat.isSymbolicLink()) { 
-            const org = readlinkSync(abs(pkgPath));
-            let orgPath;
+            const org = readlinkSync(abs(pkgDir));
+            let orgDir;
             if(sep === '/') { // linux下，org是相对地址
-                orgPath = join(modPath, pkgId, "..", org);
+                orgDir = join(modDir, pkgId, "..", org);
             } else { // windows下，org是绝对地址
-                orgPath = relative(pkgRoot, org);
+                orgDir = relative(pkgRoot, org);
             }
-            const ver = readPackageJson(abs(orgPath, PACKAGE_JSON))?.version ?? '';
-            const orgStr = orgPath + (ver ? '@' + ver : '');
+            const ver = readPackageJson(abs(orgDir, PACKAGE_JSON))?.version ?? '';
+            const orgStr = orgDir + (ver ? '@' + ver : '');
             if(!res.has(orgStr)) {
-                res.set(orgStr, [pkgPath]);
+                res.set(orgStr, [pkgDir]);
             } else {
-                res.get(orgStr)?.push(pkgPath);
+                res.get(orgStr)?.push(pkgDir);
             }
         } else {
-            const ver = readPackageJson(abs(pkgPath, PACKAGE_JSON))?.version ?? '';
-            const pkgStr = toString({ version: ver, path: modPath }, pkgId);
-            res.set(pkgStr, [pkgPath]);
+            const ver = readPackageJson(abs(pkgDir, PACKAGE_JSON))?.version ?? '';
+            const pkgStr = toString({ version: ver, dir: modDir }, pkgId);
+            res.set(pkgStr, [pkgDir]);
         }
-        detectPkg(join(modPath, pkgId));
+        detectPkg(join(modDir, pkgId));
     }
 
-    const readPkgs = (relPath: string) => { // 读node_modules文件夹
-        for(const name of readdirSync(abs(relPath))) {
-            if(name.startsWith('.') || lstatSync(abs(relPath, name)).isFile()) {
+    const readPkgs = (relDir: string) => { // 读node_modules文件夹
+        for(const name of readdirSync(abs(relDir))) {
+            if(name.startsWith('.') || lstatSync(abs(relDir, name)).isFile()) {
                 continue;
             } else if(name.startsWith('@')) {
-                readPkgs(join(relPath, name));
+                readPkgs(join(relDir, name));
             } else {
-                countPkg(relPath, name);
+                countPkg(relDir, name);
             }
         }
     }
 
     const detectPkg = (relRoot: string) => { // 读内含node_modules文件夹的目录
-        const modPath = join(relRoot, NODE_MODULES);
-        if(existsSync(abs(modPath))) {
-            readPkgs(modPath);
+        const modDir = join(relRoot, NODE_MODULES);
+        if(existsSync(abs(modDir))) {
+            readPkgs(modDir);
         }
     
-        const pnpmPath = join(modPath, DOT_PNPM);
-        if(existsSync(abs(pnpmPath))) {
-            for(const name of readdirSync(abs(pnpmPath))) {
-                detectPkg(join(pnpmPath, name));
+        const pnpmDir = join(modDir, DOT_PNPM);
+        if(existsSync(abs(pnpmDir))) {
+            for(const name of readdirSync(abs(pnpmDir))) {
+                detectPkg(join(pnpmDir, name));
             }
         }
     }

@@ -1,5 +1,6 @@
 import { ContextMenu } from "./lib/d3-context-menu";
-import Chart, { Node } from "./chart";
+import Chart from "./chart";
+import { Node } from "./chartNode";
 
 const genTitle = (desc: string, judge = () => true, trueExpr = '开启', falseExpr = '关闭') => 
         `${desc}: ` + (judge() ? trueExpr : falseExpr);

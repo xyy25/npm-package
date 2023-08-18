@@ -1,41 +1,9 @@
 import * as d3 from 'd3';
 import { LinkMeta, DiagramNode } from '../../../utils/types';
+import { PosTuple } from './utils';
+import { Node, Link } from './chartNode';
 
 export = Chart;
-
-export declare class Link {
-    constructor(
-        source: Node,
-        target: Node,
-        meta: LinkMeta
-    )
-    source: Node
-    target: Node
-    meta: LinkMeta
-    rotate: boolean
-    text: string
-
-    length(): number;
-    getNoteTransform(rotate: boolean = false): string;
-}
-
-export declare class Node {
-    dataIndex: number
-    data: DiagramNode
-    temp: boolean
-    vx: number
-    vy: number
-    x: number
-    y: number
-    showNode: boolean
-    showRequiring: boolean
-    r: number
-    constructor(
-        dataIndex: number, 
-        data: DiagramNode,
-        temp: boolean = false
-    )
-}
 
 export declare type ChartOption = {
     showDesc: boolean,

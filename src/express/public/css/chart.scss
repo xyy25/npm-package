@@ -12,6 +12,10 @@ $cn-fonts: '方正准圆简体', '青鸟华光准圆', '有爱圆体 CN', '幼�
             drop-shadow(0 0 $bold $clr);
 }
 
+path.link {
+    fill: none;
+}
+
 .chinese-note {
     writing-mode: tb-rl;
 }
@@ -30,7 +34,7 @@ $cn-fonts: '方正准圆简体', '青鸟华光准圆', '有爱圆体 CN', '幼�
 
 .link {
     @at-root {
-        line#{&} {
+        path#{&} {
             stroke: #999;
         }
         text#{&} {
@@ -83,7 +87,7 @@ $cn-fonts: '方正准圆简体', '青鸟华光准圆', '有爱圆体 CN', '幼�
         }
     }
     &-link {
-        @at-root line#{&} {
+        @at-root path#{&} {
             stroke: rgb(201, 109, 109);
         }
     }
@@ -133,11 +137,11 @@ $cn-fonts: '方正准圆简体', '青鸟华光准圆', '有爱圆体 CN', '幼�
     }
 }
 
-line.optional-link {
+path.optional-link {
     stroke-dasharray: 8 2 2 2;
 }
 
-line.invalid-link {
+path.invalid-link {
     stroke: rgb(201, 109, 109);
     stroke-width: 2px;
 }
@@ -145,7 +149,7 @@ line.invalid-link {
 .in {
     &-link {
         @at-root {
-            line#{&} {
+            path#{&} {
                 stroke: green;
             }
             text#{&} {
@@ -168,7 +172,7 @@ line.invalid-link {
 .out{
     &-link {
         @at-root { 
-            line#{&} {
+            path#{&} {
                 stroke: orange;
             }
             text#{&} {
@@ -191,7 +195,7 @@ line.invalid-link {
 .path{
     &-link {
         @at-root { 
-            line#{&} {
+            path#{&} {
                 stroke: cyan;
             }
             text#{&} {
@@ -218,7 +222,7 @@ text.invalid-link {
 
 .focus {
     &-link {
-        @at-root line#{&} {
+        @at-root path#{&} {
             stroke: black;
         }
     }

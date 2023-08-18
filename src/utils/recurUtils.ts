@@ -16,13 +16,13 @@ export class QueueItem {
         public type: DependencyType, // 包的依赖类型
         public optional: boolean, // 当前包是否为可选
         public depth: number, // 当前深度
-        public path: string,
+        public dir: string,
         public target: DepResult
     ) {}
 };
 
-export const getParentPath = (id: string, pkgPath: string): string =>
-    path.join(pkgPath, ...id.split("/").map(() => ".."));
+export const getParentDir = (id: string, pkgDir: string): string =>
+    path.join(pkgDir, ...id.split("/").map(() => ".."));
 
 export const createBar = (total: number): ProgressBar | null => {
     const outLength = process.stdout.columns;

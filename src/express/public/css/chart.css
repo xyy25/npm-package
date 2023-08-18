@@ -1,4 +1,8 @@
 @charset "UTF-8";
+path.link {
+  fill: none;
+}
+
 .chinese-note {
   writing-mode: tb-rl;
 }
@@ -12,7 +16,7 @@ text.node {
   font-size: 11px;
 }
 
-line.link {
+path.link {
   stroke: #999;
 }
 
@@ -52,7 +56,7 @@ circle.depth-end-node {
   fill: rgb(201, 109, 109);
 }
 
-line.depth-end-link {
+path.depth-end-link {
   stroke: rgb(201, 109, 109);
 }
 
@@ -88,16 +92,16 @@ text.except-node {
   fill: #ddd;
 }
 
-line.optional-link {
+path.optional-link {
   stroke-dasharray: 8 2 2 2;
 }
 
-line.invalid-link {
+path.invalid-link {
   stroke: rgb(201, 109, 109);
   stroke-width: 2px;
 }
 
-line.in-link {
+path.in-link {
   stroke: green;
 }
 
@@ -113,7 +117,7 @@ text.in-node {
   fill: green;
 }
 
-line.out-link {
+path.out-link {
   stroke: orange;
 }
 
@@ -129,7 +133,7 @@ text.out-node {
   fill: rgb(204, 90, 14);
 }
 
-line.path-link {
+path.path-link {
   stroke: cyan;
 }
 
@@ -150,7 +154,7 @@ text.invalid-link {
   filter: drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45));
 }
 
-line.focus-link {
+path.focus-link {
   stroke: black;
 }
 
