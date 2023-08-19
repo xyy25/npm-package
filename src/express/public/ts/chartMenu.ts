@@ -65,6 +65,9 @@ export const nodeMenu = (ct: Chart): ContextMenu.MenuItems<any, Node> => {
                 title:  genTitle('路径高亮', () => opt.highlightPath),
                 action: () => (opt.highlightPath = !opt.highlightPath, ct.updateOptions())
             }, {
+                title:  genTitle('分量高亮', () => opt.highlightComponent),
+                action: () => (opt.highlightComponent = !opt.highlightComponent, ct.updateOptions())
+            }, {
                 title:  genTitle('背景淡化', () => opt.fading),
                 action: () => (opt.fading = !opt.fading, ct.updateOptions())
             }

@@ -75,14 +75,17 @@ export class Link {
 export class Node {
     vx: number; vy: number;
     x: number; y: number;
+    mate: number[];
     showNode: boolean = false
     showRequiring: boolean = false
-    r: number = 0
+    r: number = 3.5
+    s: number = 1.5
     constructor(
         public dataIndex: number, 
         public data: DiagramNode,
         public temp: boolean = false
     ) {
+        this.mate = [dataIndex];
         [this.vx, this.vy] = [0, 0];
         [this.x, this.y] = [0, 0];
     }

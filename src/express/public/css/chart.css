@@ -7,10 +7,6 @@ path.link {
   writing-mode: tb-rl;
 }
 
-circle.node {
-  stroke-width: 1.5px;
-}
-
 text.node {
   font-family: Monaco, Hack, Consolas, "方正准圆简体", "青鸟华光准圆", "有爱圆体 CN", "幼圆", sans-serif;
   font-size: 11px;
@@ -79,7 +75,6 @@ circle.direct-node {
 }
 
 circle.root-node {
-  stroke-width: 2px;
   stroke: rgb(174, 32, 77);
 }
 
@@ -89,12 +84,14 @@ text.root-node {
 }
 
 circle.except-node {
-  stroke: #ddd;
-  fill: #ddd;
+  stroke: #aaa;
+  fill: #aaa;
+  opacity: 35%;
 }
 
 text.except-node {
-  fill: #ddd;
+  fill: #aaa;
+  opacity: 50%;
 }
 
 path.optional-link {
@@ -159,14 +156,18 @@ text.invalid-link {
   filter: drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45)) drop-shadow(0 0 0.1px rgb(56, 45, 45));
 }
 
-path.focus-link {
-  stroke: black;
-}
-
-circle.focus-node {
+circle.focus-component {
   stroke: red;
 }
 
-text.focus-node {
+path.focus-component {
+  stroke: rgb(235, 33, 33);
+}
+
+text.focus-component {
   fill: red;
+}
+
+text.focus-node {
+  text-decoration: underline;
 }/*# sourceMappingURL=chart.css.map */

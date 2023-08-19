@@ -22,9 +22,6 @@ path.link {
 
 .node {
     @at-root {
-        circle#{&} {
-            stroke-width: 1.5px;
-        }
         text#{&} {
             font-family: $en-fonts, $cn-fonts, sans-serif;
             font-size: 11px;
@@ -121,7 +118,6 @@ path.link {
 .root-node {
     @at-root {
         circle#{&} {
-            stroke-width: 2px;
             stroke: rgb(174, 32, 77);
         }
 
@@ -135,11 +131,13 @@ path.link {
 .except-node {
     @at-root {
         circle#{&} {
-            stroke: #ddd;
-            fill: #ddd;
+            stroke: #aaa;
+            fill: #aaa;
+            opacity: 35%;
         }
         text#{&} {
-            fill: #ddd;
+            fill: #aaa;
+            opacity: 50%;
         }
     }
 }
@@ -153,8 +151,8 @@ path.invalid-link {
     stroke-width: 2px;
 }
 
-.in {
-    &-link {
+.in- {
+    &link {
         @at-root {
             path#{&} {
                 stroke: green;
@@ -164,7 +162,7 @@ path.invalid-link {
             }
         }
     }
-    &-node {
+    &node {
         @at-root {
             circle#{&} {
                 fill: green;
@@ -176,8 +174,8 @@ path.invalid-link {
     }
 }
 
-.out{
-    &-link {
+.out- {
+    &link {
         @at-root { 
             path#{&} {
                 stroke: orange;
@@ -187,7 +185,7 @@ path.invalid-link {
             }
         }
     }
-    &-node {
+    &node {
         @at-root {
             circle#{&} {
                 fill: orange;
@@ -199,8 +197,8 @@ path.invalid-link {
     }
 }
 
-.path{
-    &-link {
+.path-{
+    &link {
         @at-root { 
             path#{&} {
                 stroke: cyan;
@@ -210,7 +208,7 @@ path.invalid-link {
             }
         }
     }
-    &-node {
+    &node {
         @at-root {
             circle#{&} {
                 fill: cyan;
@@ -227,20 +225,20 @@ text.invalid-link {
     @include backshade(rgb(56, 45, 45));
 }
 
-.focus {
-    &-link {
-        @at-root path#{&} {
-            stroke: black;
+.focus-component {
+    @at-root {
+        circle#{&} {
+            stroke: red;
+        }
+        path#{&} {
+            stroke: rgb(235, 33, 33);
+        }
+        text#{&} {
+            fill: red;
         }
     }
-    &-node {
-        @at-root {
-            circle#{&} {
-                stroke: red;
-            }
-            text#{&} {
-                fill: red;
-            }
-        }
-    }
+}
+
+text.focus-node {
+    text-decoration: underline;
 }

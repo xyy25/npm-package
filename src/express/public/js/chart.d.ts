@@ -1,6 +1,6 @@
 import * as d3 from 'd3';
 import { LinkMeta, DiagramNode } from '../../../utils/types';
-import { PosTuple } from './utils';
+import { PosTuple, SCComponent } from './utils';
 import { Node, Link } from './chartNode';
 
 export = Chart;
@@ -11,6 +11,7 @@ export declare type ChartOption = {
     highlightRequiring: boolean,
     highlightRequiredBy: boolean,
     highlightPath: boolean,
+    highlightComponent: boolean,
     fading: boolean,
     simulationStop: boolean
 }
@@ -74,7 +75,7 @@ declare class Chart {
     getVsbPaths(nodeSet: Node[]): (number[] | null)[];
     clearAway(includes: (n: Node) => boolean): void;
     updateOptions(): void;
-    update(): void;
+    update(alpha?: number): void;
     clickNode(eThis: any, node: Node): void;
     mouseOverNode(eThis: any, node: Node): void;
 }

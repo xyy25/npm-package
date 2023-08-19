@@ -33,7 +33,9 @@ export declare class Node {
     y: number
     showNode: boolean
     showRequiring: boolean
+    mate: number[]
     r: number
+    s: number
     constructor(
         dataIndex: number, 
         data: DiagramNode,

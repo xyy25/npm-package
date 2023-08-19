@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 import D3Menu from "./lib/d3-context-menu";
 import { DiagramNode, DirectedDiagram } from "./types";
 import { nodeMenu } from "./chartMenu";
-import { getPaths, includeChinese, limit } from "./utils";
+import { getPaths, getScc, includeChinese, limit } from "./utils";
 import { Node, Link } from './chartNode';
 
 const createMenu = D3Menu<any, any>(d3);
@@ -14,6 +14,7 @@ export type ChartOption = {
     highlightRequiring: boolean,
     highlightRequiredBy: boolean,
     highlightPath: boolean,
+    highlightComponent: boolean,
     fading: boolean,
     simulationStop: boolean
 }
@@ -57,6 +58,7 @@ export default class Chart {
             highlightRequiring: true, // 高亮出边(橙色)
             highlightRequiredBy: true, // 高亮入边(绿色)
             highlightPath: true, // 高亮根出发路径(青色)
+            highlightComponent: true, // 高亮所属强连通分量(红色)
             fading: true, // 淡化非聚焦顶点
             simulationStop: false, // 暂停力导模拟
             ...initOptions
@@ -105,6 +107,13 @@ export default class Chart {
 
         // 计算由根顶点到所有顶点的依赖路径
         this.requirePaths = getPaths(0, nodes, (i) => nodes[i].data.requiring);
+        // 计算强连通分量，并给每个顶点的mate属性赋值同一分量成员的顶点下标数组
+        const components = getScc(0, nodes, 
+            i => nodes[i].data.requiring, 
+            i => nodes[i].data.requiredBy);
+        components.filter(c => c.nodes.length > 1).forEach(c => 
+            c.nodes.forEach(n => nodes[n].mate = c.nodes)
+        );
         
         this.vsbNodes = []; // 实际显示的顶点
         this.vsbLinks = []; // 实际显示的边
@@ -355,7 +364,7 @@ export default class Chart {
     // 隐藏顶点本身
     hideNode(...indices: number[]) {
         const { nodes, marked } = this;
-        // 根顶点和其邻接顶点无法隐藏
+        // 标记中的顶点、根顶点和其邻接顶点无法隐藏
         indices = indices.filter(i => i > 0 && i < nodes.length 
             && !marked.includes(i) && !nodes[0].data.requiring.includes(i));
         if(!indices.length) return; 
@@ -371,10 +380,10 @@ export default class Chart {
         const operNodes = indices.map(i => nodes[i]);
         operNodes.forEach(n => n.showRequiring = false);
         
-        // 根顶点和其邻接顶点无法隐藏
+        // 标记中的顶点、根顶点和其邻接顶点无法隐藏
         const includes = (n: Node) => !indices.includes(n.dataIndex) && 
             !!n.dataIndex && !marked.includes(n.dataIndex) && 
-            !nodes[0].data.requiring.includes(n.dataIndex)
+            !nodes[0].data.requiring.includes(n.dataIndex);
         const toHide = operNodes.reduce<Node[]>(
             (o, n) => o.concat(n.data.requiring.map(i => nodes[i]))
         , []).filter(includes);
@@ -407,7 +416,7 @@ export default class Chart {
         const vsbPaths = this.getVsbPaths();
         const away = indices.filter(i => vsbPaths[i] === null && requirePaths[i] !== null);
         this.hideNode(...away);
-        if(away.length) this.update();
+        if(away.length) this.update(0);
     }
 
     // 获取当前所有显示顶点通向根顶点的路径，无路径者(游离)为null
@@ -439,7 +448,7 @@ export default class Chart {
     }
 
     // 根据顶点showNode和showRequiring属性的变化更新有向图
-    update() {
+    update(alpha?: number) {
         this.updateNodes();
         this.updateLinks();
 
@@ -512,9 +521,12 @@ export default class Chart {
             .attr("class", (d: Node) => ct.getNodeClass(d, 2))
         circleEnter 
             .attr("index", (d: any) => d.dataIndex)
-            // 根顶点半径为5px起步，否则3.5px
+            // 根顶点半径为5px起步，否则3.5px，并与包的依赖（出边）相关
             .each((d: any) => d.r = (d.dataIndex ? 3.5 : 5) * (1 + d.data.requiring.length * 0.05))
             .attr("r", (d: any) => d.r)
+            // 根顶点边粗为2px起步，否则1.5px，并与包的使用（入边）相关
+            .each((d: any) => d.s = (d.dataIndex ? 1.5 : 2) * (1 + Math.log10(1 + d.data.requiredBy.length * 0.35))) 
+            .attr("stroke-width", (d: any) => d.s)
             .call(drag(simulation))
             .on("click", function(this: any, e: Node) { ct.clickNode(this, e) })
             .on("mouseover", function(this: any, e: Node) { ct.mouseOverNode(this, e) })
@@ -556,7 +568,7 @@ export default class Chart {
             
         // 更新力导模拟
         const { log2, max } = Math;
-        const alpha = max(log2(1 + circleEnter.size()) * 0.1, 0.1);
+        alpha ??= max(log2(1 + circleEnter.size()) * 0.1, 0.1);
         console.log('alpha', alpha);
         this.options.simulationStop = false;
         simulation.nodes(vsbNodes);
@@ -585,7 +597,8 @@ export default class Chart {
                 showDesc,
                 highlightRequiring: hlrq, 
                 highlightRequiredBy: hlrb,
-                highlightPath: hlp, fading
+                highlightPath: hlp, fading,
+                highlightComponent: hlcp
             }
         } = this;
         console.log('悬停', node.dataIndex);
@@ -640,17 +653,30 @@ export default class Chart {
             (hlp && onPath(paths)(d))
         this.showLinkNote(allUpFtr);
 
+        // 将同一强连通分量的顶点与内部边显示为红色
+        let { mate } = node;
+        if(hlcp) {        
+            const compFtr = (d: Node) => mate.includes(d.dataIndex);
+            circle.filter(compFtr).classed('focus-component', true);
+            label.filter(compFtr).classed('focus-component', true);
+            link.filter(onPath(mate)).classed('focus-component', true);
+        } else { mate = [node.dataIndex]; }
+
         // 弱化所有上述之外顶点的存在感
         if(fading) {
-            const allUp = ([] as number[]).concat(hlrb ? ins : [], hlrq ? outs : [], paths ?? []);
+            const allUp = mate.concat(hlrb ? ins : [], hlrq ? outs : [], paths ?? []);
             const exptFtr = (d: any) => !allUp.includes(d.dataIndex);
             circle.filter(exptFtr).classed('except-node', true);
             label.filter(exptFtr).classed('except-node', true);
         }
 
         // 将该顶点显示为红色
-        d3.select(eThis).classed('focus-node', true);
-        label.filter(`[index="${node.dataIndex}"]`).classed('focus-node', true);
+        d3.select(eThis)
+            .classed('focus-node', true)
+            .classed('focus-component', true);
+        label.filter(`[index="${node.dataIndex}"]`)
+            .classed('focus-node', true)
+            .classed('focus-component', true);
     }
 }
 
@@ -695,8 +721,10 @@ const appendLine = (
 }
 
 // 获取限制的文本宽度
-const limitLen = (link: Link) => 
-    limit(link.length() * 0.4, 22, 33);
+const limitLen = (link: Link) => {
+    const maxlen = link.text?.length * (link.rotate ? 15 : 5)
+    return limit(link.length() * 0.4, 22, maxlen);
+}
 
 // 图标定义
 const defs = (container: d3.Selection<any, any, any, any>) => {
