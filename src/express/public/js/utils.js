@@ -28,7 +28,6 @@ export function getAngle([x1, y1], [x2, y2], deg = false, abs = false) {
 }
 
 // 求无权有向图某个起始顶点到所有其他顶点的最短路径，如果无法通达，则路径为null
-// @return (number[] | null)[]
 export function getPaths(
     startIndex,
     nodes,

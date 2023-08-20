@@ -89,7 +89,10 @@ export default class Chart {
 
     // 根据showNode和showRequiring更新边，边的列表采取懒加载模式
     updateLinks() {
-        const shown = l => l.source.showRequiring && l.target.showNode;
+        const isMate = (a, b) => 
+            a.showNode && b.showNode && a.mate.includes(b.dataIndex);
+        const shown = l => 
+            (l.source.showRequiring && l.target.showNode) || isMate(l.source, l.target);
         const { nodes } = this;
         this.vsbLinks = this.vsbNodes.reduce(
             (o, { data: d, dataIndex: i }) => o.concat(
@@ -268,8 +271,7 @@ export default class Chart {
             nodes[index].showNode = true;
             const path = requirePaths[index];
             if(path !== null) {
-                path.pop();
-                this.showOutBorders(...path);
+                this.showOutBorders(...path.slice(0, path.length - 1));
             }
         }
     }
@@ -277,7 +279,8 @@ export default class Chart {
     // 显示顶点的所有出边邻接顶点，即该包的依赖
     showOutBorders(...indices) {
         const { nodes } = this;
-        indices = indices.filter(i => i >= 0 && i < nodes.length && nodes[i].showNode);
+        indices = indices
+            .filter(i => i >= 0 && i < nodes.length && nodes[i].showNode);
         for(const index of indices) {
             const node = nodes[index];
             node.showRequiring = true;
@@ -288,7 +291,8 @@ export default class Chart {
     // 显示顶点的所有入边邻接顶点，即依赖该包的包
     showInBorders(...indices) {
         const { nodes } = this;
-        indices = indices.filter(i => i >= 0 && i < nodes.length && nodes[i].showNode);
+        indices = indices
+            .filter(i => i >= 0 && i < nodes.length && nodes[i].showNode);
         for(const index of indices) {
             const node = nodes[index];
             this.showNode(node.data.requiredBy);
@@ -322,11 +326,8 @@ export default class Chart {
         const operNodes = indices.map(i => nodes[i]);
         operNodes.forEach(n => n.showRequiring = false);
         
-        const mates = operNodes.map(n => n.mate).flat();
         const toHide = operNodes
             .reduce((o, n) => o.concat(n.data.requiring), [])
-            // 把同分量的顶点滤掉，使其不会被误隐藏，防止产生环的相关问题
-            .filter(i => !mates.includes(i)); 
         this.hideNode(...toHide);
     }
 

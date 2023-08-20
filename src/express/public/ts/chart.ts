@@ -147,7 +147,10 @@ export default class Chart {
 
     // 根据showNode和showRequiring更新边，边的列表采取懒加载模式
     updateLinks() {
-        const shown = (l: Link) => l.source.showRequiring && l.target.showNode;
+        const isMate = (a: Node, b: Node) => 
+            a.showNode && b.showNode && a.mate.includes(b.dataIndex);
+        const shown = (l: Link) => 
+            (l.source.showRequiring && l.target.showNode) || isMate(l.source, l.target);
         const { nodes } = this;
         this.vsbLinks = this.vsbNodes.reduce(
             (o: Link[], { data: d, dataIndex: i }) => o.concat(
@@ -331,10 +334,9 @@ export default class Chart {
         indices = indices.filter(i => i >= 0 && i < nodes.length);
         for(const index of indices) {
             nodes[index].showNode = true;
-            const path = requirePaths[index];
+            let path = requirePaths[index];
             if(path !== null) {
-                path.pop();
-                this.showOutBorders(...path);
+                this.showOutBorders(...path.slice(0, path.length - 1));
             }
         }
     }
@@ -342,7 +344,8 @@ export default class Chart {
     // 显示顶点的所有邻接顶点，即该包的依赖
     showOutBorders(...indices: number[]) {
         const { nodes } = this;
-        indices = indices.filter(i => i >= 0 && i < nodes.length && nodes[i].showNode);
+        indices = indices
+            .filter(i => i >= 0 && i < nodes.length && nodes[i].showNode);
         for(const index of indices) {
             const node = nodes[index];
             node.showRequiring = true;
@@ -353,7 +356,8 @@ export default class Chart {
     // 显示顶点的所有入边邻接顶点，即依赖该包的包
     showInBorders(...indices: number[]) {
         const { nodes } = this;
-        indices = indices.filter(i => i >= 0 && i < nodes.length && nodes[i].showNode);
+        indices = indices
+            .filter(i => i >= 0 && i < nodes.length && nodes[i].showNode);
         for(const index of indices) {
             const node = nodes[index];
             this.showNode(node.data.requiredBy);
