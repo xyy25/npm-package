@@ -40,10 +40,12 @@ declare class Chart {
     desc: d3.Selection<SVGTextElement, any, any, any>
     linkg: d3.Selection<SVGGElement, any, any, any>
     nodeg: d3.Selection<SVGGElement, any, any, any>
-    link: d3.Selection<SVGLineElement | d3.BaseType, Link, any, any>
+    cellg: d3.Selection<SVGGElement, any, any, any>
+    link: d3.Selection<SVGPathElement | d3.BaseType, Link, any, any>
     linkNote: d3.Selection<SVGTextElement | d3.BaseType, Link, any, any>
     circle: d3.Selection<SVGCircleElement | d3.BaseType, Node, any, any>
     label: d3.Selection<SVGTextElement | d3.BaseType, Node, any, any>
+    cell: d3.Selection<SVGPathElement | d3.BaseType, Node, any, any>
     simulation: d3.Simulation<Node, Link>
 
     nodeType: Chart.NodeClassifyArray

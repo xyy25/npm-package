@@ -37,6 +37,7 @@ export function getDiagramGroups(
 // 求强连通分量返回的数组元素结构
 export type SCComponent = { 
     nodes: number[], // 该分量所含的顶点在有向图顶点数组中的下标
+    depth: number, // 该分量的深度，等价于对DAG拓扑排序的序号
     inner: [number, number][], // 该分量的内部边，使用的是顶点在有向图顶点数组里的下标
     outer: { // 该分量的外部边，使用的是【每个分量在返回数组中的下标】
         ins?: number[], // 只有传参里传入了顶点入边的获取方法getRevAdjacent，才有此属性

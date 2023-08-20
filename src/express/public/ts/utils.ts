@@ -85,6 +85,7 @@ export function getDiagramGroups(
 // 求强连通分量返回的数组元素结构
 export type SCComponent = { 
     nodes: number[], // 该分量所含的顶点在有向图顶点数组中的下标
+    depth: number, // 该分量的深度，等价于对DAG拓扑排序的序号
     inner: [number, number][], // 该分量的内部边，使用的是顶点在有向图顶点数组里的下标
     outer: { // 该分量的外部边，使用的是【每个分量在返回数组中的下标】
         ins?: number[], // 只有传参里传入了顶点入边的获取方法getRevAdjacent，才有此属性
@@ -102,18 +103,19 @@ export function getScc(
     getRevAdjacent?: (i: number) => number[]
 ): SCComponent[] {
     const { min } = Math;
-    const components: number[][] = [], stack: number[] = [];
+    const components: { depth: number, nodes: number[] }[] = [];
+    const stack: number[] = [];
     const dfn = new Array(nodes.length).fill(Infinity); // 该顶点遍历到的次序
     const low = new Array(nodes.length).fill(Infinity); // 该顶点可通达顶点列表中的最小dfn
     let d = 0;
-    const dfs = (v: number) => {
+    const dfs = (v: number, d: number = 0) => {
         stack.push(v);
-        dfn[v] = ++d;
+        dfn[v] = d;
         low[v] = min(low[v], d);
         for(const w of getAdjacent(v)) {
             const wAt = stack.indexOf(w);
             if(dfn[w] === Infinity) {
-                dfs(w);
+                dfs(w, d + 1);
                 low[v] = min(low[v], low[w]);
             } else if(wAt >= 0) {
                 low[v] = min(low[v], dfn[w]);
@@ -122,14 +124,17 @@ export function getScc(
         if(dfn[v] === low[v]) { 
             // 将该顶点之上的栈元素全部出栈，记入一个分量中
             const vAt = stack.indexOf(v);
-            components.push(stack.splice(vAt));
+            components.push({ 
+                depth: dfn[v],
+                nodes: stack.splice(vAt)
+            });
         }
     }
     dfs(startIndex);
     // 结果返回结构处理
     const map = new Map();
-    components.forEach((c, i) => c.forEach(v => map.set(v, i)));
-    return components.map((c, i) => {
+    components.forEach((c, i) => c.nodes.forEach(v => map.set(v, i)));
+    return components.map(({ depth, nodes: c }, i) => {
         const reduceMap = (prop: (i: number) => number[]) => 
             (o: number[], v: number) => o.concat(prop(v).map(e => map.get(e)));
         const outs = c.reduce<number[]>(reduceMap(getAdjacent), []);
@@ -141,7 +146,7 @@ export function getScc(
             const ins = c.reduce(reduceMap(getRevAdjacent), []);
             outer.ins = [...new Set(ins)];
         }
-        return { nodes: c, inner, outer };
+        return { nodes: c, depth, inner, outer };
     });
 }
 

@@ -137,11 +137,15 @@ export default class Chart {
         this.linkg = g.append("g").attr("id", "linkg");
         // 顶点的组
         this.nodeg = g.append("g").attr("id", "nodeg");
-        const { linkg, nodeg } = this;
+
+        this.cellg = g.append("g").attr("id", "cellg");
+
+        const { linkg, nodeg, cellg } = this;
 
         this.link = linkg.selectAll("path");
         this.label = nodeg.selectAll("text");
         this.circle = nodeg.selectAll("circle");
+        this.cell = cellg.selectAll(".cell");
     }
 
     // 创建力导模拟仿真器
@@ -506,7 +510,13 @@ export default class Chart {
                 // 如果有同名包，则在标签上后缀版本
                 ct.nodes.filter(n => n.data.id === d.data.id).length >= 2 ?
                     ('@' + d.data.version) : '' 
-            )).call(drag(simulation))
+            )).call(drag(simulation));
+
+        ct.cell = this.cellg
+            .selectAll(".cell")
+            .data(vsbNodes, d => d.dataIndex)
+            .join("path")
+            .attr("class", "cell");
         
         // 更新力导模拟
         const { log2, max } = Math;
