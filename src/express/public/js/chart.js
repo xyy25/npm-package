@@ -299,32 +299,35 @@ export default class Chart {
     // 隐藏顶点本身
     hideNode(...indices) {
         const { nodes, marked } = this;
-        // 标记中的顶点、根顶点和其邻接顶点无法隐藏
-        indices = indices.filter(i => i > 0 && i < nodes.length 
-            && !marked.includes(i) && !nodes[0].data.requiring.includes(i));
+        // 下面几种顶点无法隐藏：
+        // 1. 根顶点和其邻接顶点
+        // 2. 标记中的顶点
+        // 3. 同一分量存在显示中的入边的顶点
+        const excludes = n => !n.dataIndex
+            || nodes[0].data.requiring.includes(n.dataIndex)
+            || marked.includes(n.dataIndex) 
+            || n.mate.some(i => nodes[i].data.requiredBy.some(b => nodes[b].showRequiring));
+        indices = indices.filter(i => 
+            i >= 0 && i < nodes.length && !excludes(nodes[i]));
         if(!indices.length) return; 
 
         indices.forEach(i => nodes[i].showNode = false);
-        this.hideOutBorders(...indices);
+        this.clearAway(excludes);
     }
 
-    // 隐藏顶点的所有边，不隐藏顶点本身，自动清除因依赖隐藏而产生的游离顶点
+    // 隐藏顶点的所有出边以及其到达的所有顶点，不隐藏顶点本身，自动清除因依赖隐藏而产生的游离顶点
     hideOutBorders(...indices) {
-        const { nodes, marked } = this;
+        const { nodes } = this;
         indices = indices.filter(i => i > 0 && i < nodes.length);
         const operNodes = indices.map(i => nodes[i]);
         operNodes.forEach(n => n.showRequiring = false);
         
-        // 标记中的顶点、根顶点和其邻接顶点无法隐藏
-        const includes = (n) => !indices.includes(n.dataIndex) && 
-            !!n.dataIndex && !marked.includes(n.dataIndex) && 
-            !nodes[0].data.requiring.includes(n.dataIndex);
-        const toHide = operNodes.reduce(
-            (o, n) => o.concat(n.data.requiring.map(i => nodes[i]))
-        , []).filter(includes);
-        toHide.forEach(n => [n.showNode, n.showRequiring] = [false, false]);
-
-        this.clearAway(includes);
+        const mates = operNodes.map(n => n.mate).flat();
+        const toHide = operNodes
+            .reduce((o, n) => o.concat(n.data.requiring), [])
+            // 把同分量的顶点滤掉，使其不会被误隐藏，防止产生环的相关问题
+            .filter(i => !mates.includes(i)); 
+        this.hideNode(...toHide);
     }
 
     // 标记顶点，标记中的顶点无法被隐藏，未显示的顶点无法标记
@@ -363,16 +366,21 @@ export default class Chart {
     }; 
 
     // 隐藏所有因当前依赖关系被隐藏而无法通向根顶点的顶点，防止额外游离顶点产生
-    clearAway(includes) {
-        const { requirePaths } = this;
-        let rest = this.vsbNodes.filter(includes), vsbPaths = this.getVsbPaths();
+    // excludes表示对includes的过滤方法，排除不应隐藏的顶点
+    clearAway(excludes = () => false) {
+        const { nodes, requirePaths } = this;
+        let rest = this.vsbNodes.filter(n => !excludes(n));
+        let vsbPaths = this.getVsbPaths();
         // 过滤，每次仅保留满足无法通向根顶点条件的顶点，并进行循环操作
         const filter = (n) => 
             (n.showNode || n.showRequiring) && 
             requirePaths[n.dataIndex] !== null && 
             vsbPaths[n.dataIndex] === null;
         while((rest = rest.filter(filter)).length) {
-            rest.forEach(n => [n.showNode, n.showRequiring] = [false, false]); 
+            rest.forEach(n => n.mate.map(i => nodes[i])
+                .filter(m => !excludes(m)).forEach(
+                    m => [m.showNode, m.showRequiring] = [false, false]
+            )); // 隐藏时把同一个分量中的顶点全部隐藏
             console.log(vsbPaths = this.getVsbPaths(rest));
         }
     }
@@ -587,7 +595,7 @@ export default class Chart {
 
         // 将同一强连通分量的顶点与内部边显示为红色
         let { mate } = node;
-        if(hlcp) {        
+        if(hlcp && mate.length > 1) {        
             const compFtr = d => mate.includes(d.dataIndex);
             circle.filter(compFtr).classed('focus-component', true);
             label.filter(compFtr).classed('focus-component', true);

@@ -73,7 +73,7 @@ declare class Chart {
     markNode(...indices: number[]): void;
     unmarkNode(...indices: number[]): void;
     getVsbPaths(nodeSet: Node[]): (number[] | null)[];
-    clearAway(includes: (n: Node) => boolean): void;
+    clearAway(excludes: (n: Node) => boolean = () => false): void;
     updateOptions(): void;
     update(alpha?: number): void;
     clickNode(eThis: any, node: Node): void;
