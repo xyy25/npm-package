@@ -7,7 +7,7 @@ export default class Topo {
         this.data = data;
         this.edges = data.reduce(
             (o, { requiring: e }, source) => o.concat(
-                e.map(target => { return { source, target }; })
+                e.map(target => ({ source, target }))
             ), []);
         this.svg = svg;
     }

@@ -396,11 +396,8 @@ export default class Chart {
         const operNodes = indices.map(i => nodes[i]);
         operNodes.forEach(n => n.showRequiring = false);
 
-        const mates = operNodes.map(n => n.mate).flat();
         const toHide = operNodes
-            .reduce<number[]>((o, n) => o.concat(n.data.requiring), [])
-            // 把同分量的顶点滤掉，使其不会被误隐藏，防止产生环的相关问题
-            .filter(i => !mates.includes(i));
+            .reduce<number[]>((o, n) => o.concat(n.data.requiring), []);
         this.hideNode(...toHide);
     }
 
