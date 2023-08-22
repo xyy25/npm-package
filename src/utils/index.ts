@@ -1,4 +1,4 @@
-import { DepResult, DepItem, DiagramNode, DirectedDiagram, PackageJson, PackageManager } from './types';
+import { DiagramNode, DirectedDiagram, PackageJson, PackageManager } from './types';
 import { join, sep } from 'path';
 import fs from 'fs';
 

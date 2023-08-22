@@ -1,27 +1,4 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -29,11 +6,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.evaluate = exports.createBar = exports.QueueItem = void 0;
 const chalk_1 = __importDefault(require("chalk"));
 const progress_1 = __importDefault(require("progress"));
-const analyze_1 = __importStar(require("./analyze"));
+const analyze_1 = require("./analyze");
 const zh_CN_json_1 = require("../lang/zh-CN.json");
-const path_1 = __importDefault(require("path"));
-const _1 = require(".");
-const { 'utils/recurUtils.ts': desc } = zh_CN_json_1.logs;
+const { 'utils/evaluate.ts': desc } = zh_CN_json_1.logs;
 const { green, cyan, yellow, yellowBright, bgMagenta, black } = chalk_1.default;
 class QueueItem {
     constructor(id, // 包名
@@ -62,14 +37,15 @@ const createBar = (total) => {
         total: total,
         head: chalk_1.default.red('▇'),
         complete: yellowBright('▇'),
-        incomplete: black(' ')
+        incomplete: black(' '),
+        clear: true
     });
 };
 exports.createBar = createBar;
 function evaluate(depEval, pkgList) {
-    const notRequired = [];
+    const notAnalyzed = [];
     const { pkgRoot, manager, depth, analyzed: hash, notFound, rangeInvalid, optionalNotMeet, scope: { norm, dev, peer } } = depEval;
-    console.log(cyan('\n' + zh_CN_json_1.logs['utils/analyze.ts'].analyzed.replace("%d", yellowBright(depEval.analyzed.size))));
+    console.log(cyan('\n' + desc.analyzed.replace("%d", yellowBright(depEval.analyzed.size))));
     // 检查哈希表集合hash中的记录与detect结果的相差
     if (pkgList) {
         const notInHash = pkgList.filter(e => !hash.has(e)).sort();
@@ -83,37 +59,26 @@ function evaluate(depEval, pkgList) {
                     .replace('%d', yellowBright(depth))
                     .replace('%cv', yellowBright(coverage + '%'))
                     .replace('%len', yellow(notInHash.length)));
-                notRequired.push(...notInHash);
             }
             else {
                 // 如果搜索深度为Infinity，有可能因为它们并不被任何包依赖
-                console.warn((0, analyze_1.orange)(desc.notInHash.replace("%len", yellow(notInHash.length))));
-                notInHash.forEach(e => console.log('-', green(e)));
-                console.warn((0, analyze_1.orange)(desc.notInHash2));
-                notRequired.push(...notInHash);
-                // 弹出询问是否需要检测这些包的依赖关系
-                {
-                    notRequired.splice(0);
-                    for (const itemStr of notInHash) {
-                        const { id, dir } = (0, _1.toDepItemWithId)(itemStr);
-                        const relDir = path_1.default.join(dir, id);
-                        // console.log(relDir);
-                        (0, analyze_1.default)(pkgRoot, manager, depth, true, false, false, pkgList.length, relDir, {
-                            result: depEval.result, analyzed: hash
-                        });
-                    }
-                    console.log(cyan('\n' + zh_CN_json_1.logs['utils/analyze.ts'].analyzed.replace("%d", yellowBright(depEval.analyzed.size))));
-                    const stillNotInhash = pkgList.filter(e => !hash.has(e)).sort();
-                    console.warn((0, analyze_1.orange)(desc.notInHash.replace("%len", yellow(stillNotInhash.length))));
-                    stillNotInhash.forEach(e => console.log('-', green(e)));
+                console.warn((0, analyze_1.orange)(desc.notInHash));
+                notInHash.slice(0, 8).forEach(e => console.log('-', green(e)));
+                if (notInHash.length >= 8) {
+                    console.warn("  ..." + desc.extra.replace("%len", yellow(notInHash.length)));
                 }
+                console.warn((0, analyze_1.orange)(desc.notInHash2));
             }
+            notAnalyzed.push(...notInHash);
         }
         if (notInList.length) {
             // 如果有元素存在于哈希集合却不存在于detect结果中
             // 说明这些元素可能是detect搜索方法的漏网之鱼，可能是detect的深度过低
             console.warn((0, analyze_1.orange)(desc.notInList.replace("%len", yellow(notInList.length))));
-            notInList.forEach(e => console.log('-', green(e)));
+            notInList.slice(0, 8).forEach(e => console.log('-', green(e)));
+            if (notInList.length >= 8) {
+                console.warn("  ..." + desc.extra.replace("%len", yellow(notInList.length)));
+            }
         }
     }
     const tStr = (type) => type !== "norm" ? type + " " : "";
@@ -135,6 +100,6 @@ function evaluate(depEval, pkgList) {
         notFound.forEach(e => console.warn('-', green(nStr(e))));
         console.warn((0, analyze_1.orange)(desc.pkgNotFound2));
     }
-    return notRequired;
+    return notAnalyzed;
 }
 exports.evaluate = evaluate;

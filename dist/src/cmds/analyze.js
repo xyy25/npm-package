@@ -46,7 +46,7 @@ const utils_1 = require("../utils");
 const diagram_1 = require("../utils/diagram");
 const detect_1 = __importDefault(require("../utils/detect"));
 const evaluate_1 = require("../utils/evaluate");
-const analyze_1 = __importDefault(require("../utils/analyze"));
+const analyze_1 = __importStar(require("../utils/analyze"));
 inquirer_1.default.registerPrompt('auto', inquirer_autocomplete_prompt_1.default);
 const questions = (lang, enable) => {
     return !enable ? [] : [{
@@ -127,6 +127,13 @@ const questions = (lang, enable) => {
             default: 5500
         }];
 };
+const extraQuestion = (lang) => ({
+    type: "confirm",
+    name: "extra",
+    suffix: " >",
+    message: (0, analyze_1.orange)(lang.line['input.extraAnalyze']),
+    default: true
+});
 function analyzeCommand(cmd, lang) {
     cmd.command('analyze').description(lang.commands.analyze.description)
         .argument('[package root]', lang.commands.analyze.argument[0].description)
@@ -138,6 +145,7 @@ function analyzeCommand(cmd, lang) {
         .addOption(cli_1.publicOptions.question)
         .addOption(cli_1.publicOptions.host)
         .addOption(cli_1.publicOptions.port)
+        .option('-e, --extra', lang.commands.analyze.options.extra.description, false)
         .option('-c, --console, --print', lang.commands.analyze.options.console.description)
         .option('-i, --noweb', lang.commands.analyze.options.noweb.description)
         .option('--proto', lang.commands.analyze.options.proto.description)
@@ -148,7 +156,7 @@ const action = (str, options, lang) => __awaiter(void 0, void 0, void 0, functio
     const cwd = process.cwd(); // 命令执行路径
     // 询问
     let ans = yield inquirer_1.default.prompt(questions(lang, !!options.question), { pkg: str });
-    ans = Object.assign(Object.assign({}, options), ans);
+    ans = Object.assign(Object.assign(Object.assign({}, options), ans), { extra: options.extra });
     ans.noweb = (_a = ans.noweb) !== null && _a !== void 0 ? _a : !!ans.json;
     ans.depth !== 0 && (ans.depth || (ans.depth = Infinity));
     (_b = ans.pkg) !== null && _b !== void 0 ? _b : (ans.pkg = '.');
@@ -173,23 +181,22 @@ const action = (str, options, lang) => __awaiter(void 0, void 0, void 0, functio
         const desc = lang.logs['cli.ts'];
         console.log((0, chalk_1.cyan)(desc.detected.replace("%s", (0, chalk_1.yellow)(pkgEx.length))));
         yield new Promise((res) => setTimeout(res, 1000));
-        // 评估分析结果并打印至控制台，该函数返回没有被依赖的包
         const depEval = (0, analyze_1.default)(pkgRoot, manager, depth, scope[0], scope[1], scope[2], pkgEx.length);
-        const notRequired = (0, evaluate_1.evaluate)(depEval, pkgEx);
-        let res = depEval.result;
-        if (!options.proto) {
-            res = (0, diagram_1.toDiagram)(res);
-            // 如果未设置最大深度，有向图结构会自动附加上存在于node_modules中但没有被依赖覆盖到的包
-            if (depth === Infinity) {
-                res.push(...notRequired.map(e => (0, utils_1.toDepItemWithId)(e)));
-            }
+        // 评估分析结果并打印至控制台，该函数返回因没有被依赖而没有被分析到的包
+        const notAnalyzed = (0, evaluate_1.evaluate)(depEval, pkgEx);
+        // 弹出询问是否需要以这些包为起点继续检测其依赖关系
+        const extra = options.question ? yield inquirer_1.default.prompt(extraQuestion(lang)) : options.extra;
+        if (notAnalyzed.length && extra) {
+            analyzeExtra(depEval, notAnalyzed, pkgEx.length);
         }
+        const res = depEval.result;
+        const sres = options.proto ? res : (0, diagram_1.toDiagram)(res);
         if (!Object.keys(res).length) {
             console.log(lang.logs['cli.ts'].noDependency);
             return;
         }
         if (options.console) {
-            console.log(res);
+            console.log(sres);
         }
         if (json) { // 输出JSON文件设置
             // 自动创建outputs文件夹
@@ -198,12 +205,16 @@ const action = (str, options, lang) => __awaiter(void 0, void 0, void 0, functio
             }
             // 如果json为布尔值true，则转换为目标文件路径字符串
             json = json === true ? (0, _1.outJsonRelUri)((0, path_1.join)('outputs', 'res-' + pkg)) : json;
-            fs_1.default.writeFileSync(json, Buffer.from(JSON.stringify(res, null, options.format ? "\t" : "")));
-            console.log((0, chalk_1.cyan)(desc.jsonSaved.replace('%s', (0, chalk_1.yellowBright)((0, path_1.relative)(cwd, json)))));
+            fs_1.default.writeFileSync(json, Buffer.from(JSON.stringify(sres, null, options.format ? "\t" : "")));
+            console.log('\n' + (0, chalk_1.cyan)(desc.jsonSaved
+                .replace('%len', (0, chalk_1.yellowBright)(Object.keys(sres).length))
+                .replace('%s', (0, chalk_1.yellowBright)((0, path_1.relative)(cwd, json)))));
         }
         if (!noweb) {
-            if (options.proto)
-                res = (0, diagram_1.toDiagram)(res);
+            const dres = options.proto ? (0, diagram_1.toDiagram)(res) : sres;
+            if (depth === Infinity && !extra) {
+                dres.push(...notAnalyzed.map(e => (0, utils_1.toDepItemWithId)(e)));
+            }
             const buffer = Buffer.from(JSON.stringify(res));
             fs_1.default.writeFileSync((0, path_1.join)(__dirname, '../express/public/res.json'), buffer);
             (yield Promise.resolve().then(() => __importStar(require('../express')))).default(port, host);
@@ -213,4 +224,15 @@ const action = (str, options, lang) => __awaiter(void 0, void 0, void 0, functio
         console.error((0, cli_1.error)(lang.commons.error + ':' + e));
     }
 });
+function analyzeExtra(depEval, notAnalyzed, pkgCount) {
+    const { pkgRoot, manager, depth, analyzed } = depEval;
+    for (const itemStr of notAnalyzed) {
+        const { id, dir } = (0, utils_1.toDepItemWithId)(itemStr);
+        const relDir = (0, path_1.join)(dir, id);
+        // console.log(relDir);
+        (0, analyze_1.default)(pkgRoot, manager, depth, true, false, false, pkgCount, relDir, {
+            result: depEval.result, analyzed
+        });
+    }
+}
 exports.default = analyzeCommand;

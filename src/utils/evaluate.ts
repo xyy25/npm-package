@@ -2,11 +2,12 @@ import chalk from "chalk";
 import ProgressBar from "progress";
 import { DependencyType, DepEval, DepResult, InvalidItem, NotFoundItem } from "./types";
 import analyze, { orange } from './analyze';
-import { logs } from '../lang/zh-CN.json'
+import { logs, line } from '../lang/zh-CN.json'
 import path from "path";
 import { toDepItemWithId } from ".";
+import inquirer from "inquirer";
 
-const { 'utils/recurUtils.ts': desc } = logs;
+const { 'utils/evaluate.ts': desc } = logs;
 const { green, cyan, yellow, yellowBright, bgMagenta, black } = chalk;
 
 export class QueueItem {
@@ -22,7 +23,7 @@ export class QueueItem {
     ) {}
 };
 
-export const createBar = (total: number): ProgressBar | null => {
+export const createBar = (total: number): ProgressBar => {
     const outLength = process.stdout.columns;
     return new ProgressBar(
             `:eff Q${green(':queue')} ${yellowBright(':current')}/${yellow(':total')}` +
@@ -30,7 +31,8 @@ export const createBar = (total: number): ProgressBar | null => {
                 total: total,
                 head: chalk.red('▇'),
                 complete: yellowBright('▇'),
-                incomplete: black(' ')
+                incomplete: black(' '),
+                clear: true
         }); 
 }
 
@@ -38,7 +40,7 @@ export function evaluate(
     depEval: DepEval,
     pkgList: string[]
 ): string[] {
-    const notRequired: string[] = [];
+    const notAnalyzed: string[] = [];
     const {
         pkgRoot, manager,
         depth, analyzed: hash, 
@@ -46,7 +48,7 @@ export function evaluate(
         optionalNotMeet, 
         scope: { norm, dev, peer }
     } = depEval;
-    console.log(cyan('\n' + logs['utils/analyze.ts'].analyzed.replace("%d", yellowBright(depEval.analyzed.size))));
+    console.log(cyan('\n' + desc.analyzed.replace("%d", yellowBright(depEval.analyzed.size))));
     // 检查哈希表集合hash中的记录与detect结果的相差
     if (pkgList) {
         const notInHash = pkgList.filter(e => !hash.has(e)).sort();
@@ -61,37 +63,25 @@ export function evaluate(
                     .replace('%cv', yellowBright(coverage + '%'))
                     .replace('%len', yellow(notInHash.length))
                 );
-                notRequired.push(...notInHash);
             } else {
                 // 如果搜索深度为Infinity，有可能因为它们并不被任何包依赖
-                console.warn(orange(desc.notInHash.replace("%len", yellow(notInHash.length))));
-                notInHash.forEach(e => console.log('-', green(e)));
-                console.warn(orange(desc.notInHash2));
-                notRequired.push(...notInHash);
-
-                // 弹出询问是否需要检测这些包的依赖关系
-                {
-                    notRequired.splice(0);
-                    for(const itemStr of notInHash) {
-                        const { id, dir } = toDepItemWithId(itemStr);
-                        const relDir = path.join(dir!, id);
-                        // console.log(relDir);
-                        analyze(pkgRoot, manager, depth, true, false, false, pkgList.length, relDir, {
-                            result: depEval.result, analyzed: hash
-                        });
-                    }
-                    console.log(cyan('\n' + logs['utils/analyze.ts'].analyzed.replace("%d", yellowBright(depEval.analyzed.size))));
-                    const stillNotInhash = pkgList.filter(e => !hash.has(e)).sort();
-                    console.warn(orange(desc.notInHash.replace("%len", yellow(stillNotInhash.length))));
-                    stillNotInhash.forEach(e => console.log('-', green(e)));
+                console.warn(orange(desc.notInHash));
+                notInHash.slice(0, 8).forEach(e => console.log('-', green(e)));
+                if(notInHash.length >= 8) {
+                    console.warn("  ..." + desc.extra.replace("%len", yellow(notInHash.length)));
                 }
+                console.warn(orange(desc.notInHash2));
             }
+            notAnalyzed.push(...notInHash);
         }
         if (notInList.length) {
             // 如果有元素存在于哈希集合却不存在于detect结果中
             // 说明这些元素可能是detect搜索方法的漏网之鱼，可能是detect的深度过低
             console.warn(orange(desc.notInList.replace("%len", yellow(notInList.length))));
-            notInList.forEach(e => console.log('-', green(e)));
+            notInList.slice(0, 8).forEach(e => console.log('-', green(e)));
+            if(notInList.length >= 8) {
+                console.warn("  ..." + desc.extra.replace("%len", yellow(notInList.length)));
+            }
         }
     }
     const tStr = (type: DependencyType) => type !== "norm" ? type + " " : "";
@@ -119,5 +109,5 @@ export function evaluate(
         console.warn(orange(desc.pkgNotFound2));
     }
 
-    return notRequired;
+    return notAnalyzed;
 }

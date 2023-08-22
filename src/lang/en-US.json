@@ -40,6 +40,9 @@
                 },
                 "manager": {
                     "description": "The package manager of the target project."
+                },
+                "extra": {
+                    "description": "Analyze extraneous packages if exist."
                 }
             }
         },
@@ -88,7 +91,8 @@
         "input.scope": "Choose the scope",
         "input.depth": "Recursion max depth",
         "input.port": "Opening on port",
-        "input.jsonFile": "Your JSON file"
+        "input.jsonFile": "Your JSON file",
+        "input.extraAnalyze": "Do you want to analyze these packages?"
     },
     "logs": {
         "cli.ts": {
@@ -98,7 +102,7 @@
             "pkgJsonNotExist": "The root package.json of %s does not exist.",
             "detected": "Detected %s packages in the target directory.",
             "noDependency": "The project does not install any package.",
-            "jsonSaved": "Analyze result has been saved to %s.",
+            "jsonSaved": "Analyze results of %len packages have been saved to %s.",
             "detectPkg": "CURRENT PACKAGES:",
             "portInvalid": "Port must be between 1 and 65535."
         },
@@ -106,12 +110,13 @@
             "start": "The generated view is now opened at %s"
         },
         "utils/analyze.ts": {
-            "nowComplete": "Now",
-            "analyzed": "Analyzed %d packages."
+            "nowComplete": "Now"
         },
-        "utils/recurUtils.ts": {
+        "utils/evaluate.ts": {
+            "analyzed": "Analyzed %d packages.",
             "coverage": "Depth level: %d, Coverage: %cv. %len package(s) are not analyzed.",
-            "notInHash": "The following %len package(s) detected in node_modules are existing but not analyzed.",
+            "extra": "%len items in total.",
+            "notInHash": "The following package(s) detected in node_modules are existing but not analyzed.",
             "notInHash2": "Maybe they are not required by anyone?",
             "notInList": "The following %len package(s) analyzed in node_modules are not detected.",
             "optNotMeet": "%d optional package(s) not meet.",

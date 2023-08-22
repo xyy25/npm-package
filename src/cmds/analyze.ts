@@ -11,8 +11,8 @@ import { readPackageJson, getManagerType, toDepItemWithId } from "../utils";
 import { toDiagram } from '../utils/diagram';
 import detect from "../utils/detect";
 import { evaluate } from "../utils/evaluate";
-import { PackageManager } from "../utils/types";
-import analyze from "../utils/analyze";
+import { DepEval, DepResult, DirectedDiagram, PackageManager } from "../utils/types";
+import analyze, { orange } from "../utils/analyze";
 
 inquirer.registerPrompt('auto', inquirerAuto);
 
@@ -95,6 +95,14 @@ const questions = (lang: any, enable: boolean): QuestionCollection => {
     }];
 }
 
+const extraQuestion = (lang: any) => ({
+    type: "confirm" as "confirm",
+    name: "extra",
+    suffix: " >",
+    message: orange(lang.line['input.extraAnalyze']),
+    default: true
+})
+
 function analyzeCommand(cmd: Command, lang: any) {
     cmd.command('analyze').description(lang.commands.analyze.description)
         .argument('[package root]', lang.commands.analyze.argument[0].description)
@@ -106,6 +114,7 @@ function analyzeCommand(cmd: Command, lang: any) {
         .addOption(opts.question)
         .addOption(opts.host)
         .addOption(opts.port)
+        .option('-e, --extra', lang.commands.analyze.options.extra.description, false)
         .option('-c, --console, --print', lang.commands.analyze.options.console.description)
         .option('-i, --noweb', lang.commands.analyze.options.noweb.description)
         .option('--proto', lang.commands.analyze.options.proto.description)
@@ -119,7 +128,7 @@ const action = async (str: string, options: any, lang: any) => {
     let ans = await inquirer.prompt(
         questions(lang, !!options.question), { pkg: str }
     );
-    ans = { ...options, ...ans };
+    ans = { ...options, ...ans, extra: options.extra };
     ans.noweb = ans.noweb ?? !!ans.json;
     ans.depth !== 0 && (ans.depth ||= Infinity);
     ans.pkg ??= '.';
@@ -153,40 +162,46 @@ const action = async (str: string, options: any, lang: any) => {
 
         await new Promise((res) => setTimeout(res, 1000));
 
-        // 评估分析结果并打印至控制台，该函数返回没有被依赖的包
-        const depEval = analyze(pkgRoot, manager, depth, scope[0], scope[1], scope[2], pkgEx.length);
-        const notRequired = evaluate(depEval, pkgEx as string[]); 
-        
-        let res: any = depEval.result;
-        if(!options.proto) {
-            res = toDiagram(res);
-            // 如果未设置最大深度，有向图结构会自动附加上存在于node_modules中但没有被依赖覆盖到的包
-            if(depth === Infinity) {
-                res.push(...notRequired.map(e => toDepItemWithId(e))); 
-            }
+        const depEval: DepEval = analyze(pkgRoot, manager, depth, scope[0], scope[1], scope[2], pkgEx.length);
+        // 评估分析结果并打印至控制台，该函数返回因没有被依赖而没有被分析到的包
+        const notAnalyzed: string[] = evaluate(depEval, pkgEx); 
+        // 弹出询问是否需要以这些包为起点继续检测其依赖关系
+        const extra: boolean = options.question ? await inquirer.prompt(extraQuestion(lang)) : options.extra;
+        if(notAnalyzed.length && extra) {
+            analyzeExtra(depEval, notAnalyzed, pkgEx.length);
         }
-
+        
+        const res: DepResult = depEval.result;
+        const sres = options.proto ? res : toDiagram(res);
         if(!Object.keys(res).length) {
             console.log(lang.logs['cli.ts'].noDependency);
             return;
         }
 
         if(options.console) {
-            console.log(res);
+            console.log(sres);
         }
 
         if(json) { // 输出JSON文件设置
+            
             // 自动创建outputs文件夹
             if(!fs.existsSync(resolve('outputs'))) {
                 fs.mkdirSync(resolve('outputs'));
             }
             // 如果json为布尔值true，则转换为目标文件路径字符串
             json = json === true ? outJsonRelUri(join('outputs', 'res-' + pkg)) : json;
-            fs.writeFileSync(json, Buffer.from(JSON.stringify(res, null, options.format ? "\t" : "")));
-            console.log(cyan(desc.jsonSaved.replace('%s', yellowBright(relative(cwd, json)))));
+            fs.writeFileSync(json, Buffer.from(JSON.stringify(sres, null, options.format ? "\t" : "")));
+            console.log('\n' + cyan(desc.jsonSaved
+                .replace('%len', yellowBright(Object.keys(sres).length))
+                .replace('%s', yellowBright(relative(cwd, json)))
+            ));
         }
         if(!noweb) {
-            if(options.proto) res = toDiagram(res);
+            const dres = options.proto ? toDiagram(res) : sres as DirectedDiagram;
+            if(depth === Infinity && !extra) {
+                dres.push(...notAnalyzed.map(e => toDepItemWithId(e))); 
+            }
+
             const buffer = Buffer.from(JSON.stringify(res));
             fs.writeFileSync(join(__dirname, '../express/public/res.json'), buffer);
             (await import('../express')).default(port, host);
@@ -195,5 +210,17 @@ const action = async (str: string, options: any, lang: any) => {
         console.error(error(lang.commons.error + ':' + e));
     }
 };
+
+function analyzeExtra(depEval: DepEval, notAnalyzed: string[], pkgCount: number) {
+    const { pkgRoot, manager, depth, analyzed } = depEval;
+    for(const itemStr of notAnalyzed) {
+        const { id, dir } = toDepItemWithId(itemStr);
+        const relDir = join(dir!, id);
+        // console.log(relDir);
+        analyze(pkgRoot, manager, depth, true, false, false, pkgCount, relDir, {
+            result: depEval.result, analyzed
+        });
+    }
+}
 
 export default analyzeCommand;
