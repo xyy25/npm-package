@@ -118,15 +118,13 @@
         },
         "utils/recurUtils.ts": {
             "coverage": "递归深度: %d, 覆盖率: %cv. 有 %len 个依赖包尚未分析到.",
-            "notInHash": "以下 %len 个依赖包在node_modules中存在且被扫描, 但没有被依赖分析覆盖到.",
+            "notInHash": "以下 %len 个依赖包在node_modules中存在, 但没有被依赖分析覆盖到.",
             "notInHash2": "这些包有可能未被使用?",
             "notInList": "以下 %len 个依赖包在node_modules中已被依赖分析, 但未被文件扫描到.",
             "optNotMeet": "发现 %d 个可选依赖包没有安装.",
-            "rangeInvalid": "发现 %d 个依赖包版本%rangeInvalid2.",
-            "rangeInvalid2": "不合要求",
-            "pkgNotFound": "发现 %d 个必需依赖包%pkgNotFound2:",
-            "pkgNotFound2": "未安装",
-            "pkgNotFound3": "请确认所有依赖包是否安装完整."
+            "rangeInvalid": "发现 %d 个依赖包版本%1不合要求%1.",
+            "pkgNotFound": "发现 %d 个必需依赖包%1未安装%1:",
+            "pkgNotFound2": "请确认所有依赖包是否安装完整."
         }
     }
 }

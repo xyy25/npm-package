@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const path_1 = require("path");
 const analyze_1 = require("./analyze");
-const recurUtils_1 = require("./recurUtils");
+const _1 = require(".");
 const fs_1 = __importDefault(require("fs"));
 // pnpm包管理器分析广度优先搜索实现
 function default_1(abs, depth, queue, depEval) {
@@ -39,7 +39,7 @@ function default_1(abs, depth, queue, depEval) {
         else { // windows下realink获取的符号链接地址是绝对位置
             pkgDir = (0, path_1.relative)(abs(), org);
         }
-        curDir = (0, recurUtils_1.getParentDir)(id, pkgDir);
+        curDir = (0, _1.getParentDir)(id, pkgDir);
     }
     (0, analyze_1.analyzePackage)(abs, depth, curDir, curDir, p, queue, depEval);
 }

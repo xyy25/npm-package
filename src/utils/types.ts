@@ -45,6 +45,8 @@ export type PackageJson = {
 export type DependencyType = 'norm' | 'dev' | 'peer' | 'optional';
 
 export type DepEval = {
+    pkgRoot: string,
+    manager: PackageManager,
     result: DepResult, // 分析结果
     scope: { // 分析范围是否包含主目录包所指定的：
         norm: boolean, // 普通依赖(dependencies、optionalDepdencies)
@@ -53,9 +55,9 @@ export type DepEval = {
     },
     depth: number, // 分析递归深度
     analyzed: Set<string>, // 已分析的包列表
-    notFound: string[], // 未找到且必需的依赖包列表
-    rangeInvalid: string[], // 版本不合要求的包列表
-    optionalNotMeet: string[] // 可选且未安装的包列表
+    notFound: NotFoundItem[], // 未找到且必需的依赖包列表
+    rangeInvalid: InvalidItem[], // 版本不合要求的包列表
+    optionalNotMeet: NotFoundItem[] // 可选且未安装的包列表
 }
 
 export type DepResult = {
@@ -66,15 +68,27 @@ export type DepItem = {
     version: string; // 【顶点属性】该依赖包实际使用的版本（即在node_modules里存在的版本）
     dir: string | null; // 【顶点属性】该依赖包安装的相对路径
     requires?: DepResult; // 【顶点属性】该依赖包的子依赖列表（若无依赖或已经计算过，则没有这条）
-    meta: LinkMeta;
+    meta: LinkMeta | null;
 };
+
+export type NotFoundItem = {
+    id: string;
+    range: string;
+    type: DependencyType;
+    by: string;
+}
+
+export type InvalidItem =  {
+    version: string;
+    dir: string;
+} & NotFoundItem
 
 // 顶点属性
 export type DiagramNode = {
     id: string;
     version: string;
     dir: string | null;
-    meta: LinkMeta[];
+    meta: (LinkMeta | null)[];
     requiring: number[];
     requiredBy: number[];
 };

@@ -9,8 +9,8 @@ const fs_1 = require("fs");
 const _2 = require(".");
 // 和analyze不同的地方在于：analyze是按照依赖的顺序分析，detect仅进行文件扫描
 function detect(pkgRoot, manager, depth = Infinity) {
-    const abs = (...path) => (0, path_1.join)(pkgRoot, ...path);
-    if (depth <= 0 ||
+    const abs = (...dir) => (0, path_1.join)(pkgRoot, ...dir);
+    if (depth < 0 ||
         !(0, fs_1.existsSync)(pkgRoot) ||
         !(0, fs_1.existsSync)(abs(analyze_1.NODE_MODULES))) {
         return [];
@@ -21,30 +21,30 @@ function detect(pkgRoot, manager, depth = Infinity) {
     }
     // 如果包管理器是npm或yarn的扁平结构
     const res = new Set();
-    const countPkg = (modPath, pkgId) => {
+    const countPkg = (modDir, pkgId) => {
         var _a, _b;
-        const ver = (_b = (_a = (0, _1.readPackageJson)(abs(modPath, pkgId, analyze_1.PACKAGE_JSON))) === null || _a === void 0 ? void 0 : _a.version) !== null && _b !== void 0 ? _b : '';
-        const pkgStr = (0, _2.toString)({ version: ver, path: modPath }, pkgId);
+        const ver = (_b = (_a = (0, _1.readPackageJson)(abs(modDir, pkgId, analyze_1.PACKAGE_JSON))) === null || _a === void 0 ? void 0 : _a.version) !== null && _b !== void 0 ? _b : '';
+        const pkgStr = (0, _2.toString)({ version: ver, dir: modDir }, pkgId);
         res.add(pkgStr);
-        detect(abs(modPath, pkgId), manager, depth - 1)
-            .forEach(e => res.add((0, path_1.join)(modPath, pkgId, e)));
+        detect(abs(modDir, pkgId), manager, depth - 1)
+            .forEach(e => res.add((0, path_1.join)(modDir, pkgId, e)));
     };
     for (const pkgId of (0, fs_1.readdirSync)(abs(analyze_1.NODE_MODULES))) {
-        const modPath = analyze_1.NODE_MODULES;
-        if (!(0, fs_1.lstatSync)(abs(modPath, pkgId)).isDirectory()
+        const modDir = analyze_1.NODE_MODULES;
+        if (!(0, fs_1.lstatSync)(abs(modDir, pkgId)).isDirectory()
             || pkgId.startsWith('.')) {
             continue;
         }
         else if (pkgId.startsWith('@')) {
-            const areaPath = (0, path_1.join)(modPath, pkgId);
-            const areaPkgs = (0, fs_1.readdirSync)(abs(areaPath));
+            const areaDir = (0, path_1.join)(modDir, pkgId);
+            const areaPkgs = (0, fs_1.readdirSync)(abs(areaDir));
             for (const areaPkgId of areaPkgs) {
-                if ((0, fs_1.lstatSync)(abs(areaPath, areaPkgId)).isDirectory())
-                    countPkg(areaPath, areaPkgId);
+                if ((0, fs_1.lstatSync)(abs(areaDir, areaPkgId)).isDirectory())
+                    countPkg(areaDir, areaPkgId);
             }
         }
         else {
-            countPkg(modPath, pkgId);
+            countPkg(modDir, pkgId);
         }
     }
     return [...res];
@@ -52,60 +52,60 @@ function detect(pkgRoot, manager, depth = Infinity) {
 exports.default = detect;
 const DOT_PNPM = '.pnpm';
 function detectPnpm(pkgRoot) {
-    const abs = (...path) => (0, path_1.join)(pkgRoot, ...path);
+    const abs = (...dir) => (0, path_1.join)(pkgRoot, ...dir);
     const res = new Map();
-    const countPkg = (modPath, pkgId) => {
+    const countPkg = (modDir, pkgId) => {
         var _a, _b, _c, _d, _e;
-        const pkgPath = (0, path_1.join)(modPath, pkgId);
-        const lstat = (0, fs_1.lstatSync)(abs(pkgPath));
+        const pkgDir = (0, path_1.join)(modDir, pkgId);
+        const lstat = (0, fs_1.lstatSync)(abs(pkgDir));
         // 如果目录是符号链接，则找它所指向的源目录，并放到一个组里
         if (lstat.isSymbolicLink()) {
-            const org = (0, fs_1.readlinkSync)(abs(pkgPath));
-            let orgPath;
+            const org = (0, fs_1.readlinkSync)(abs(pkgDir));
+            let orgDir;
             if (path_1.sep === '/') { // linux下，org是相对地址
-                orgPath = (0, path_1.join)(modPath, pkgId, "..", org);
+                orgDir = (0, path_1.join)(modDir, pkgId, "..", org);
             }
             else { // windows下，org是绝对地址
-                orgPath = (0, path_1.relative)(pkgRoot, org);
+                orgDir = (0, path_1.relative)(pkgRoot, org);
             }
-            const ver = (_b = (_a = (0, _1.readPackageJson)(abs(orgPath, analyze_1.PACKAGE_JSON))) === null || _a === void 0 ? void 0 : _a.version) !== null && _b !== void 0 ? _b : '';
-            const orgStr = orgPath + (ver ? '@' + ver : '');
+            const ver = (_b = (_a = (0, _1.readPackageJson)(abs(orgDir, analyze_1.PACKAGE_JSON))) === null || _a === void 0 ? void 0 : _a.version) !== null && _b !== void 0 ? _b : '';
+            const orgStr = orgDir + (ver ? '@' + ver : '');
             if (!res.has(orgStr)) {
-                res.set(orgStr, [pkgPath]);
+                res.set(orgStr, [pkgDir]);
             }
             else {
-                (_c = res.get(orgStr)) === null || _c === void 0 ? void 0 : _c.push(pkgPath);
+                (_c = res.get(orgStr)) === null || _c === void 0 ? void 0 : _c.push(pkgDir);
             }
         }
         else {
-            const ver = (_e = (_d = (0, _1.readPackageJson)(abs(pkgPath, analyze_1.PACKAGE_JSON))) === null || _d === void 0 ? void 0 : _d.version) !== null && _e !== void 0 ? _e : '';
-            const pkgStr = (0, _2.toString)({ version: ver, path: modPath }, pkgId);
-            res.set(pkgStr, [pkgPath]);
+            const ver = (_e = (_d = (0, _1.readPackageJson)(abs(pkgDir, analyze_1.PACKAGE_JSON))) === null || _d === void 0 ? void 0 : _d.version) !== null && _e !== void 0 ? _e : '';
+            const pkgStr = (0, _2.toString)({ version: ver, dir: modDir }, pkgId);
+            res.set(pkgStr, [pkgDir]);
         }
-        detectPkg((0, path_1.join)(modPath, pkgId));
+        detectPkg((0, path_1.join)(modDir, pkgId));
     };
-    const readPkgs = (relPath) => {
-        for (const name of (0, fs_1.readdirSync)(abs(relPath))) {
-            if (name.startsWith('.') || (0, fs_1.lstatSync)(abs(relPath, name)).isFile()) {
+    const readPkgs = (relDir) => {
+        for (const name of (0, fs_1.readdirSync)(abs(relDir))) {
+            if (name.startsWith('.') || (0, fs_1.lstatSync)(abs(relDir, name)).isFile()) {
                 continue;
             }
             else if (name.startsWith('@')) {
-                readPkgs((0, path_1.join)(relPath, name));
+                readPkgs((0, path_1.join)(relDir, name));
             }
             else {
-                countPkg(relPath, name);
+                countPkg(relDir, name);
             }
         }
     };
     const detectPkg = (relRoot) => {
-        const modPath = (0, path_1.join)(relRoot, analyze_1.NODE_MODULES);
-        if ((0, fs_1.existsSync)(abs(modPath))) {
-            readPkgs(modPath);
+        const modDir = (0, path_1.join)(relRoot, analyze_1.NODE_MODULES);
+        if ((0, fs_1.existsSync)(abs(modDir))) {
+            readPkgs(modDir);
         }
-        const pnpmPath = (0, path_1.join)(modPath, DOT_PNPM);
-        if ((0, fs_1.existsSync)(abs(pnpmPath))) {
-            for (const name of (0, fs_1.readdirSync)(abs(pnpmPath))) {
-                detectPkg((0, path_1.join)(pnpmPath, name));
+        const pnpmDir = (0, path_1.join)(modDir, DOT_PNPM);
+        if ((0, fs_1.existsSync)(abs(pnpmDir))) {
+            for (const name of (0, fs_1.readdirSync)(abs(pnpmDir))) {
+                detectPkg((0, path_1.join)(pnpmDir, name));
             }
         }
     };

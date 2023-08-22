@@ -1,9 +1,10 @@
 import chalk from "chalk";
 import ProgressBar from "progress";
-import { DependencyType, DepEval, DepResult } from "./types";
-import { orange } from './analyze';
+import { DependencyType, DepEval, DepResult, InvalidItem, NotFoundItem } from "./types";
+import analyze, { orange } from './analyze';
 import { logs } from '../lang/zh-CN.json'
 import path from "path";
+import { toDepItemWithId } from ".";
 
 const { 'utils/recurUtils.ts': desc } = logs;
 const { green, cyan, yellow, yellowBright, bgMagenta, black } = chalk;
@@ -20,9 +21,6 @@ export class QueueItem {
         public target: DepResult
     ) {}
 };
-
-export const getParentDir = (id: string, pkgDir: string): string =>
-    path.join(pkgDir, ...id.split("/").map(() => ".."));
 
 export const createBar = (total: number): ProgressBar | null => {
     const outLength = process.stdout.columns;
@@ -42,8 +40,13 @@ export function evaluate(
 ): string[] {
     const notRequired: string[] = [];
     const {
-        depth, analyzed: hash, notFound, rangeInvalid, optionalNotMeet, scope: { norm, dev, peer }
+        pkgRoot, manager,
+        depth, analyzed: hash, 
+        notFound, rangeInvalid, 
+        optionalNotMeet, 
+        scope: { norm, dev, peer }
     } = depEval;
+    console.log(cyan('\n' + logs['utils/analyze.ts'].analyzed.replace("%d", yellowBright(depEval.analyzed.size))));
     // 检查哈希表集合hash中的记录与detect结果的相差
     if (pkgList) {
         const notInHash = pkgList.filter(e => !hash.has(e)).sort();
@@ -58,13 +61,31 @@ export function evaluate(
                     .replace('%cv', yellowBright(coverage + '%'))
                     .replace('%len', yellow(notInHash.length))
                 );
+                notRequired.push(...notInHash);
             } else {
                 // 如果搜索深度为Infinity，有可能因为它们并不被任何包依赖
                 console.warn(orange(desc.notInHash.replace("%len", yellow(notInHash.length))));
                 notInHash.forEach(e => console.log('-', green(e)));
                 console.warn(orange(desc.notInHash2));
+                notRequired.push(...notInHash);
+
+                // 弹出询问是否需要检测这些包的依赖关系
+                {
+                    notRequired.splice(0);
+                    for(const itemStr of notInHash) {
+                        const { id, dir } = toDepItemWithId(itemStr);
+                        const relDir = path.join(dir!, id);
+                        // console.log(relDir);
+                        analyze(pkgRoot, manager, depth, true, false, false, pkgList.length, relDir, {
+                            result: depEval.result, analyzed: hash
+                        });
+                    }
+                    console.log(cyan('\n' + logs['utils/analyze.ts'].analyzed.replace("%d", yellowBright(depEval.analyzed.size))));
+                    const stillNotInhash = pkgList.filter(e => !hash.has(e)).sort();
+                    console.warn(orange(desc.notInHash.replace("%len", yellow(stillNotInhash.length))));
+                    stillNotInhash.forEach(e => console.log('-', green(e)));
+                }
             }
-            notRequired.push(...notInHash);
         }
         if (notInList.length) {
             // 如果有元素存在于哈希集合却不存在于detect结果中
@@ -73,23 +94,29 @@ export function evaluate(
             notInList.forEach(e => console.log('-', green(e)));
         }
     }
+    const tStr = (type: DependencyType) => type !== "norm" ? type + " " : "";
+    const nStr = (e: NotFoundItem) => 
+        `${e.id} ${e.range} ${tStr(e.type)}REQUIRED BY ${e.by}`;
+    const iStr = (e: InvalidItem) => 
+        `${e.id} ${tStr(e.type)}REQUIRE ${e.range} BUT ${e.version} BY ${e.by}`;
+
     if (optionalNotMeet.length) {
         console.log(desc.optNotMeet.replace("%d", yellow(optionalNotMeet.length)));
     }
     if (rangeInvalid.length) {
         console.warn(orange(desc.rangeInvalid
             .replace("%d", yellowBright(rangeInvalid.length))
-            .replace("%rangeInvalid2", bgMagenta(desc.rangeInvalid2))
+            .replace(/%1(.*)%1/, bgMagenta("$1"))
         ));
-        rangeInvalid.forEach(e => console.warn('-', green(e)));
+        rangeInvalid.forEach(e => console.warn('-', green(iStr(e))));
     }
     if (notFound.length) {
         console.warn(orange(desc.pkgNotFound
             .replace("%d", yellowBright(notFound.length))
-            .replace("%pkgNotFound2", bgMagenta(desc.pkgNotFound2))
+            .replace(/%1(.*)%1/, bgMagenta("$1"))
         ));
-        notFound.forEach(e => console.warn('-', green(e)));
-        console.warn(orange(desc.pkgNotFound3));
+        notFound.forEach(e => console.warn('-', green(nStr(e))));
+        console.warn(orange(desc.pkgNotFound2));
     }
 
     return notRequired;

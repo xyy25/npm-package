@@ -115,11 +115,9 @@
             "notInHash2": "Maybe they are not required by anyone?",
             "notInList": "The following %len package(s) analyzed in node_modules are not detected.",
             "optNotMeet": "%d optional package(s) not meet.",
-            "rangeInvalid": "The following %len package(s) are found their versions are %rangeInvalid2 to the required range.",
-            "rangeInvalid2": "INVALID",
-            "pkgNotFound": "%d package(s) required but %pkgNotFound2:",
-            "pkgNotFound2": "NOT FOUND",
-            "pkgNotFound3": "Have you installed them?"
+            "rangeInvalid": "The following %len package(s) are found their versions are %1INVALID%1 to the required range.",
+            "pkgNotFound": "%d package(s) required but %1NOT FOUND%1:",
+            "pkgNotFound2": "Have you installed them?"
         }
     }
 }

@@ -7,9 +7,10 @@ import inquirerAuto from "inquirer-autocomplete-prompt";
 
 import { getDirs, outJsonRelUri, resbase } from '.';
 import { error, publicOptions as opts } from "../cli";
-import { readPackageJson, getManagerType, toDiagram, toDepItemWithId } from "../utils";
+import { readPackageJson, getManagerType, toDepItemWithId } from "../utils";
+import { toDiagram } from '../utils/diagram';
 import detect from "../utils/detect";
-import { evaluate } from "../utils/recurUtils";
+import { evaluate } from "../utils/evaluate";
 import { PackageManager } from "../utils/types";
 import analyze from "../utils/analyze";
 
@@ -158,7 +159,7 @@ const action = async (str: string, options: any, lang: any) => {
         
         let res: any = depEval.result;
         if(!options.proto) {
-            res = toDiagram(res, pkgRoot, pkgJson);
+            res = toDiagram(res);
             // 如果未设置最大深度，有向图结构会自动附加上存在于node_modules中但没有被依赖覆盖到的包
             if(depth === Infinity) {
                 res.push(...notRequired.map(e => toDepItemWithId(e))); 
@@ -185,7 +186,7 @@ const action = async (str: string, options: any, lang: any) => {
             console.log(cyan(desc.jsonSaved.replace('%s', yellowBright(relative(cwd, json)))));
         }
         if(!noweb) {
-            if(options.proto) res = toDiagram(res, pkgRoot, pkgJson);
+            if(options.proto) res = toDiagram(res);
             const buffer = Buffer.from(JSON.stringify(res));
             fs.writeFileSync(join(__dirname, '../express/public/res.json'), buffer);
             (await import('../express')).default(port, host);

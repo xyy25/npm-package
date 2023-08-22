@@ -5,11 +5,20 @@ export class Link {
     rotate: boolean = false
     text: string = ""
     curve: number = 0
+    meta: LinkMeta
     constructor(
         public source: Node, 
         public target: Node, 
-        public meta: LinkMeta
-    ) {}
+        meta: LinkMeta | null
+    ) {
+        this.meta = meta ?? {
+            range: 'root',
+            type: 'norm',
+            optional: false,
+            invalid: false,
+            depthEnd: false
+        }
+    }
 
     center(): PosTuple {
         const { source: s, target: t } = this;

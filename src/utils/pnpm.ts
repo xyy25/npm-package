@@ -1,7 +1,9 @@
 import { join, relative, sep } from "path";
 import { analyzePackage } from "./analyze";
 import { DepEval } from "./types";
-import { QueueItem, getParentDir } from "./recurUtils";
+import { QueueItem } from "./evaluate";
+import { getParentDir } from ".";
+
 import fs from "fs";
 
 // pnpm包管理器分析广度优先搜索实现
@@ -22,9 +24,8 @@ export default function (
     
     if(!fs.existsSync(abs(pkgDir))) {
         // 链接无效，则包未找到
-        const type = p.type === 'norm' ? '' : p.type;
         (p.optional ? optionalNotMeet : notFound)
-            .push(`${id} ${range} ${type} REQUIRED BY ${by}`);
+            .push({ id, type: p.type, range, by });
         p.target[id] = {
             version: "NOT_FOUND", dir: null, 
             meta: { 

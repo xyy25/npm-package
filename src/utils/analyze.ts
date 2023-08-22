@@ -5,10 +5,10 @@ import chalk from 'chalk';
 import ProgressBar from 'progress';
 
 import { logs } from "../lang/zh-CN.json";
-import { QueueItem, createBar } from './recurUtils';
-import { DepResult, DepItem, DepEval, DependencyType, PackageManager } from './types';
-import { limit, readPackageJson, toString } from '.';
-import doPnpmBfs from './pnpmAnalyze'
+import { QueueItem, createBar } from './evaluate';
+import { DepItem, DepEval, DependencyType, PackageManager } from './types';
+import { getParentDir, limit, readPackageJson, toString } from '.';
+import doPnpmBfs from './pnpm'
 
 export const NODE_MODULES = 'node_modules';
 export const PACKAGE_JSON = 'package.json';
@@ -31,9 +31,11 @@ export default function analyze(
     peer: boolean = true, // 包含peerDependencies
     pkgCount?: number,
     relDir: string = '.', // 该包如果不是根目录的主项目（默认是），则从该相对目录下的package.json开始扫描
+    init: Partial<DepEval> = {}
 ): DepEval {
     const abs = (...dir: string[]): string => join(pkgRoot, ...dir);
-    const depEval: DepEval = { 
+    const depEval: DepEval = {
+        pkgRoot, manager,
         // 分析结果
         result: {},
         depth, 
@@ -43,32 +45,41 @@ export default function analyze(
         // 统计未找到的包、版本不符合要求的包、可选且未安装的包
         notFound: [], 
         rangeInvalid: [],
-        optionalNotMeet: []
+        optionalNotMeet: [],
+        ...init
     };
 
     if (
         depth < 0 || 
-        !fs.existsSync(pkgRoot) || 
-        !fs.existsSync(abs(PACKAGE_JSON))
+        !fs.existsSync(abs(relDir)) || 
+        !fs.existsSync(abs(relDir, PACKAGE_JSON))
     ) { return depEval; }
 
-    const rootPkgJson = readPackageJson(abs(relDir, PACKAGE_JSON));
-    if(!rootPkgJson) {
+    const stPkgJson = readPackageJson(abs(relDir, PACKAGE_JSON));
+    if(!stPkgJson) {
         return depEval;
     }
+    
+    const { name: stId, version: stVersion } = stPkgJson;
+    const stItemStr = relDir + '@' + stVersion;
+    if(depEval.analyzed.has(stItemStr)) {
+        return depEval;
+    } else if(relDir !== '.') {
+        depEval.analyzed.add(stItemStr);
+    };
 
     const { 
-        dependencies: rootDeps, // 普通依赖
-        devDependencies: rootDevDeps, // 开发依赖
-        peerDependencies: rootPeerDeps, // 同级依赖
-        optionalDependencies: rootOptDeps, // 可选依赖
-        peerDependenciesMeta: rootPeerMeta // 同级依赖属性
-    } = rootPkgJson;
+        dependencies: stDeps, // 普通依赖
+        devDependencies: stDevDeps, // 开发依赖
+        peerDependencies: stPeerDeps, // 同级依赖
+        optionalDependencies: stOptDeps, // 可选依赖
+        peerDependenciesMeta: stPeerMeta // 同级依赖属性
+    } = stPkgJson;
     const allDeps = {
-        norm: norm && rootDeps ? rootDeps : {},
-        optional: norm && rootOptDeps ? rootOptDeps : {},
-        dev: dev && rootDevDeps ? rootDevDeps : {},
-        peer: peer && rootPeerDeps ? rootPeerDeps : {},
+        norm: norm && stDeps ? stDeps : {},
+        optional: norm && stOptDeps ? stOptDeps : {},
+        dev: dev && stDevDeps ? stDevDeps : {},
+        peer: peer && stPeerDeps ? stPeerDeps : {},
     }
 
     if(!Object.keys(allDeps).length) {
@@ -76,7 +87,26 @@ export default function analyze(
     }  
 
     // 初始化控制台进度条
-    bar = pkgCount !== undefined ? createBar(pkgCount) : null;
+    bar ??= pkgCount !== undefined ? createBar(pkgCount) : null;
+
+    depEval.result[stId] = {
+        version: stPkgJson.version,
+        dir: getParentDir(stId, relDir),
+        meta: null,
+        requires: {}
+    };
+
+    // 根据包管理器类型选择不同的广搜方法
+    let analyzer, stDir: string;
+    switch(manager) {
+        case 'pnpm': 
+            analyzer = doPnpmBfs;
+            stDir = relDir === '.' ? NODE_MODULES : getParentDir(stId, relDir);
+            break;
+        default:
+            analyzer = doBfs;
+            stDir = join(relDir, NODE_MODULES);
+    }
 
     // 广度优先搜索队列初始化
     const queue: QueueItem[] = [];
@@ -84,28 +114,27 @@ export default function analyze(
         ...Object.entries(deps).map(([id, range]) =>
             new QueueItem(
                 id, range, 
-                relDir === '.' ? 'ROOT' : relDir + '@' + rootPkgJson.version, 
+                relDir === '.' ? 'ROOT' : relDir + '@' + stPkgJson.version, 
                 type as DependencyType, { 
                     norm: false, optional: true, dev: false,
-                    peer: rootPeerMeta?.[id]?.optional ?? false
-                }[type], 1, NODE_MODULES, depEval.result
+                    peer: stPeerMeta?.[id]?.optional ?? false
+                }[type], 
+                1, stDir, 
+                depEval.result[stId].requires!
     ))));
 
-    // 根据包管理器类型选择不同的广搜方法
-    let analyzer;
-    switch(manager) {
-        case 'pnpm': 
-            analyzer = doPnpmBfs; 
-            break;
-        default:
-            analyzer = doBfs;
-    }
+    const stSize = depEval.analyzed.size;
 
     while (queue.length) {
         analyzer(abs, depth, queue, depEval);
     }
-    
-    console.log(cyan('\n' + desc.analyzed.replace("%d", yellowBright(depEval.analyzed.size))));
+
+    const edSize = depEval.analyzed.size;
+
+    if(relDir !== '.') {
+        // console.log('+', green(stItemStr), '+' + yellowBright(edSize - stSize));
+    }
+
     return depEval;
 }
 
@@ -132,10 +161,9 @@ function doBfs(
         }
 
         if(!curDir || curDir === sep || curDir === NODE_MODULES) {
-            const type = p.type === 'norm' ? '' : p.type;
             // 如果已到达根目录还是没找到，说明该依赖未安装
             (p.optional ? optionalNotMeet : notFound)
-                .push(`${id} ${range} ${type} REQUIRED BY ${by}`);
+                .push({ id, type: p.type, range, by });
             p.target[id] = {
                 version: "NOT_FOUND", dir: null, 
                 meta: { 
@@ -190,7 +218,12 @@ export function analyzePackage(
     // 如果该包版本不符合range要求
     if (range !== 'latest' && !satisfies(pkg.version, range)) {
         invalid = true;
-        rangeInvalid.push(`${id} REQUIRE ${range} BUT ${pkg.version} BY ${by}`);
+        rangeInvalid.push({ 
+            id, range, by,
+            dir: curDir, 
+            version: pkg.version, 
+            type: curItem.type
+        });
     }
     
     const item: DepItem = {
@@ -218,7 +251,7 @@ export function analyzePackage(
         );
 
         if(curItem.depth > depth) {
-            item.meta.depthEnd = true;
+            item.meta && (item.meta.depthEnd = true);
         } // 如果当前搜索深度未超标，则计算它的子依赖
         else if(hasDeps) {
             curItem.target[id].requires = {};
@@ -229,7 +262,7 @@ export function analyzePackage(
                 new QueueItem(
                     e[0], e[1], itemStr, type, optional, 
                     curItem.depth + 1, childDir, 
-                    curItem.target[id].requires as DepResult
+                    curItem.target[id].requires!
                 );
 
             pkgDeps && newTasks.push(

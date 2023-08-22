@@ -1,5 +1,5 @@
 import { Command, Option } from 'commander';
-import { getPackage } from './utils/npmUtils';
+import { getPackage } from './utils/demo';
 
 import chalk from 'chalk';
 import lang from './lang/zh-CN.json';

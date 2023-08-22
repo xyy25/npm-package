@@ -5,7 +5,7 @@ export declare class Link {
     constructor(
         source: Node,
         target: Node,
-        meta: LinkMeta
+        meta: LinkMeta | null
     )
     source: Node
     target: Node
