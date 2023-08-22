@@ -107,11 +107,13 @@
             "fileNotExist": "文件不存在!",
             "notJsonFile": "目标不是JSON文件!",
             "pkgJsonNotExist": "%s根目录下的package.json文件不存在!",
-            "detected": "检测到 %s 个依赖包.",
+            "detected": "检测到%s个依赖包.",
             "noDependency": "该项目未安装任何依赖.",
-            "jsonSaved": "%len 个依赖包的分析结果已保存至%s.",
+            "jsonSaved": "%len条分析结果已保存至%s.",
             "detectPkg": "扫描到的依赖包文件数:",
-            "portInvalid": "端口号必须在1到65535之间!"
+            "portInvalid": "端口号必须在1到65535之间!",
+            "analyzed": "已分析%len个依赖包.",
+            "extraAnalyzeStart": "正在对%len个未使用包启动依赖分析.."
         },
         "express.ts": {
             "start": "网页视图已在 %s 打开."
@@ -120,7 +122,6 @@
             "nowComplete": "当前"
         },
         "utils/evaluate.ts": {
-            "analyzed": "已分析 %d 个依赖包.",
             "coverage": "递归深度: %d, 覆盖率: %cv. 有 %len 个依赖包尚未分析到.",
             "extra": "共 %len 条记录",
             "notInHash": "以下依赖包在node_modules中存在, 但没有被依赖分析覆盖到.",

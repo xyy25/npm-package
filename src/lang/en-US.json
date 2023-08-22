@@ -102,9 +102,11 @@
             "pkgJsonNotExist": "The root package.json of %s does not exist.",
             "detected": "Detected %s packages in the target directory.",
             "noDependency": "The project does not install any package.",
-            "jsonSaved": "Analyze results of %len packages have been saved to %s.",
+            "jsonSaved": "Analyze result with %len items has been saved to %s.",
             "detectPkg": "CURRENT PACKAGES:",
-            "portInvalid": "Port must be between 1 and 65535."
+            "portInvalid": "Port must be between 1 and 65535.",
+            "analyzed": "Analyzed %len packages.",
+            "extraAnalyzeStart": "Start analyzing for %len extraneous package(s).."
         },
         "express.ts": {
             "start": "The generated view is now opened at %s"
@@ -113,12 +115,11 @@
             "nowComplete": "Now"
         },
         "utils/evaluate.ts": {
-            "analyzed": "Analyzed %d packages.",
             "coverage": "Depth level: %d, Coverage: %cv. %len package(s) are not analyzed.",
             "extra": "%len items in total.",
             "notInHash": "The following package(s) detected in node_modules are existing but not analyzed.",
             "notInHash2": "Maybe they are not required by anyone?",
-            "notInList": "The following %len package(s) analyzed in node_modules are not detected.",
+            "notInList": "The following package(s) analyzed in node_modules are not detected.",
             "optNotMeet": "%d optional package(s) not meet.",
             "rangeInvalid": "The following %len package(s) are found their versions are %1INVALID%1 to the required range.",
             "pkgNotFound": "%d package(s) required but %1NOT FOUND%1:",

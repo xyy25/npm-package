@@ -2,10 +2,8 @@ import chalk from "chalk";
 import ProgressBar from "progress";
 import { DependencyType, DepEval, DepResult, InvalidItem, NotFoundItem } from "./types";
 import analyze, { orange } from './analyze';
-import { logs, line } from '../lang/zh-CN.json'
-import path from "path";
-import { toDepItemWithId } from ".";
-import inquirer from "inquirer";
+import { logs } from '../lang/zh-CN.json';
+import { sep } from "path";
 
 const { 'utils/evaluate.ts': desc } = logs;
 const { green, cyan, yellow, yellowBright, bgMagenta, black } = chalk;
@@ -36,19 +34,70 @@ export const createBar = (total: number): ProgressBar => {
         }); 
 }
 
+export type DirObj = { 
+    [dirName: string]: DirObj | string
+}
+
+export const dirsToObj = (
+    dirStrs: string[], 
+    suffices: string[] = new Array(dirStrs.length).fill('')
+): DirObj => {
+    const splited = dirStrs.map(e => e.split(sep));
+    const root: DirObj = {};
+    for(const [i, spDir] of splited.entries()) {
+        let cur: DirObj = root;
+        const t = spDir.length - 1;
+        for(let j = 0; j < t; j++) {
+            let child = cur[spDir[j]];
+            if(child === undefined || typeof child === 'string') {
+                child = cur[spDir[j]] = {};
+            }
+            cur = child;
+        }
+        cur[spDir[t]] = spDir[t] + '@' + suffices[i];
+    }
+    return root;
+}
+
+export const printItemStrs = (itemStrs: string[] | [string, string[]][], depth: number = Infinity) => {
+    const dfs = (cur: DirObj, d: number = 0, prefix = '') => {
+        const keys = Object.keys(cur);
+        const keylen = keys.length;
+        for(const [i, key] of keys.entries()) {
+            const child = cur[key];
+            const pre = prefix + (i === keylen - 1 ? '└─' : '├─');
+            if(typeof child === 'string') {
+                const [id, version, link] = child.split('@', 3);
+                console.log(pre + '─ ' + green(id) + ' ' + yellow(version) + ' ' + (link ?? ''));
+                continue;
+            }
+            console.log(pre + (d < depth ? '┬ ': '─ ') + cyan(key));
+            if(d < depth) {
+                dfs(child, d + 1, prefix + (i === keylen - 1 ? '  ' : '│ '));
+            }
+        }
+    }
+    if(typeof itemStrs[0] === 'string') {
+        dfs(dirsToObj(itemStrs as string[]));
+    } else {
+        itemStrs = itemStrs as [string, string[]][];
+        const linkMap: [string, boolean][] = 
+            itemStrs.map((e, i) => e[1].map<[string, boolean]>(d => [d, e[0].startsWith(d)])).flat();
+        dfs(dirsToObj(linkMap.map(e => e[0]), linkMap.map(e => e[1] ? '' : '↗')));
+    }
+}
+
 export function evaluate(
     depEval: DepEval,
     pkgList: string[]
 ): string[] {
     const notAnalyzed: string[] = [];
     const {
-        pkgRoot, manager,
         depth, analyzed: hash, 
         notFound, rangeInvalid, 
         optionalNotMeet, 
         scope: { norm, dev, peer }
     } = depEval;
-    console.log(cyan('\n' + desc.analyzed.replace("%d", yellowBright(depEval.analyzed.size))));
     // 检查哈希表集合hash中的记录与detect结果的相差
     if (pkgList) {
         const notInHash = pkgList.filter(e => !hash.has(e)).sort();
@@ -111,3 +160,4 @@ export function evaluate(
 
     return notAnalyzed;
 }
+

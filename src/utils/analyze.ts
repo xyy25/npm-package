@@ -31,7 +31,7 @@ export default function analyze(
     peer: boolean = true, // 包含peerDependencies
     pkgCount?: number,
     relDir: string = '.', // 该包如果不是根目录的主项目（默认是），则从该相对目录下的package.json开始扫描
-    init: Partial<DepEval> = {}
+    init: Partial<DepEval> = {} // 可供初始化补充的返回值初值，用于继续对游离包进行依赖分析的情况，减少重复分析量
 ): DepEval {
     const abs = (...dir: string[]): string => join(pkgRoot, ...dir);
     const depEval: DepEval = {

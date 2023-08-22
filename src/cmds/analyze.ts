@@ -163,12 +163,13 @@ const action = async (str: string, options: any, lang: any) => {
         await new Promise((res) => setTimeout(res, 1000));
 
         const depEval: DepEval = analyze(pkgRoot, manager, depth, scope[0], scope[1], scope[2], pkgEx.length);
+        console.log('\n' + cyan(desc.analyzed.replace("%len", yellowBright(depEval.analyzed.size))));
         // 评估分析结果并打印至控制台，该函数返回因没有被依赖而没有被分析到的包
         const notAnalyzed: string[] = evaluate(depEval, pkgEx); 
         // 弹出询问是否需要以这些包为起点继续检测其依赖关系
         const extra: boolean = options.question ? await inquirer.prompt(extraQuestion(lang)) : options.extra;
         if(notAnalyzed.length && extra) {
-            analyzeExtra(depEval, notAnalyzed, pkgEx.length);
+            analyzeExtra(depEval, notAnalyzed, pkgEx.length, desc);
         }
         
         const res: DepResult = depEval.result;
@@ -191,7 +192,7 @@ const action = async (str: string, options: any, lang: any) => {
             // 如果json为布尔值true，则转换为目标文件路径字符串
             json = json === true ? outJsonRelUri(join('outputs', 'res-' + pkg)) : json;
             fs.writeFileSync(json, Buffer.from(JSON.stringify(sres, null, options.format ? "\t" : "")));
-            console.log('\n' + cyan(desc.jsonSaved
+            console.log(cyan(desc.jsonSaved
                 .replace('%len', yellowBright(Object.keys(sres).length))
                 .replace('%s', yellowBright(relative(cwd, json)))
             ));
@@ -211,8 +212,9 @@ const action = async (str: string, options: any, lang: any) => {
     }
 };
 
-function analyzeExtra(depEval: DepEval, notAnalyzed: string[], pkgCount: number) {
+function analyzeExtra(depEval: DepEval, notAnalyzed: string[], pkgCount: number, desc: any) {
     const { pkgRoot, manager, depth, analyzed } = depEval;
+    console.log(cyan(desc.extraAnalyzeStart).replace("%len", yellow(notAnalyzed.length)));
     for(const itemStr of notAnalyzed) {
         const { id, dir } = toDepItemWithId(itemStr);
         const relDir = join(dir!, id);
@@ -221,6 +223,7 @@ function analyzeExtra(depEval: DepEval, notAnalyzed: string[], pkgCount: number)
             result: depEval.result, analyzed
         });
     }
+    console.log('\n' + desc.analyzed.replace("%len", yellowBright(depEval.analyzed.size)));
 }
 
 export default analyzeCommand;
