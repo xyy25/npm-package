@@ -1,4 +1,4 @@
-import chalk from "chalk";
+import chalk, { Chalk } from "chalk";
 import ProgressBar from "progress";
 import { basename, join, resolve, sep } from "path";
 import fs from "fs";
@@ -53,13 +53,34 @@ export const dirsToObj = (
         const t = spDir.length - 1;
         for(let j = 0; j < t; j++) {
             let child = cur[spDir[j]];
-            if(child === undefined || typeof child === 'string') {
-                child = cur[spDir[j]] = {};
+            if(child === undefined) {
+                let flag = false;
+                for(const key in cur) {
+                    if(key.startsWith(spDir[j])) {
+                        child = cur[key] = {};
+                        flag = true;
+                        break;
+                    }
+                }
+                if(!flag) {
+                    child = cur[spDir[j]] = {};
+                }
+            }
+            if(typeof child === 'string') {
+                child = cur[child] = {};
+                delete cur[spDir[j]];
             }
             cur = child;
         }
-        cur[spDir[t]] = spDir[t];
-        if(suffices[i]) cur[spDir[t]] += '@' + suffices[i];
+        // spDir[t]的结构是'id@version'
+        const [id, version] = spDir[t].split('@');
+        if(id in cur) {
+            cur[spDir[t]] = cur[id];
+            delete cur[id];
+        } else {
+            const key = [id, version, suffices[i] || ''].join('$');
+            cur[key] = key;
+        }
     }
     return root;
 }
@@ -71,12 +92,13 @@ export const printItemStrs = (itemStrs: string[] | [string, string[]][], depth: 
         for(const [i, key] of keys.entries()) {
             const child = cur[key];
             const pre = prefix + (i === keylen - 1 ? '└─' : '├─');
+            const [id, version, link] = key.split('$', 3);
+            const dir = (color: Chalk) => color(id) + ' ' + yellow(version ?? '') + ' ' + (link ?? '');
             if(typeof child === 'string') {
-                const [id, version, link] = child.split('@', 3);
-                console.log(pre + '─ ' + green(id) + ' ' + yellow(version) + ' ' + (link ?? ''));
+                console.log(pre + '─ ' + dir(green));
                 continue;
             }
-            console.log(pre + (d < depth ? '┬ ': '─ ') + cyan(key));
+            console.log(pre + (d < depth ? '┬ ': '─ ') + dir(cyan));
             if(d < depth) {
                 dfs(child, d + 1, prefix + (i === keylen - 1 ? '  ' : '│ '));
             }
