@@ -42,9 +42,9 @@ const inquirer_1 = __importDefault(require("inquirer"));
 const inquirer_autocomplete_prompt_1 = __importDefault(require("inquirer-autocomplete-prompt"));
 const cli_1 = require("../cli");
 const _1 = require(".");
-const utils_1 = require("../utils");
 const detect_1 = __importStar(require("../utils/detect"));
-const { cyanBright, green, cyan } = chalk_1.default;
+const evaluate_1 = require("../utils/evaluate");
+const { cyanBright, green, cyan, gray } = chalk_1.default;
 inquirer_1.default.registerPrompt('auto', inquirer_autocomplete_prompt_1.default);
 const questions = (lang, enable) => {
     return !enable ? [] : [{
@@ -86,7 +86,8 @@ function detectCommand(cmd, lang) {
         .addOption(cli_1.publicOptions.manager)
         .addOption(cli_1.publicOptions.depth)
         .addOption(cli_1.publicOptions.question)
-        .option('--show', lang.commands.detect.options.show.description, false)
+        .option('-r, --raw', lang.commands.detect.options.raw.description, false)
+        .option('-c, --count', lang.commands.detect.options.count.description, false)
         .action((str, options) => __awaiter(this, void 0, void 0, function* () {
         var _a;
         // 询问
@@ -104,21 +105,29 @@ function detectCommand(cmd, lang) {
             if (!dirEx) {
                 throw lang.logs['cli.ts'].dirNotExist;
             }
-            if (manager === 'auto') {
-                manager = (0, utils_1.getManagerType)(pkgRoot);
-            }
             let res = [];
-            if (manager === 'pnpm') {
+            if (manager == 'auto' || manager === 'pnpm') {
                 res = (0, detect_1.detectPnpm)(pkgRoot);
-                options.show && res.forEach(([o, l]) => {
-                    console.log('*', cyanBright(o));
-                    l.forEach(e => console.log(' ->', green(e)));
-                });
+                if (!options.count && options.raw) {
+                    res.forEach((e) => {
+                        if (typeof e === 'string') {
+                            console.log('*', green(e));
+                        }
+                        else {
+                            const [o, l] = e;
+                            console.log('*', cyanBright(o));
+                            l.forEach(d => console.log(' <-', gray(d)));
+                        }
+                    });
+                }
             }
             else {
                 res = (0, detect_1.default)(pkgRoot, manager, depth);
-                options.show && res.forEach(e => console.log('-', green(e)));
+                if (!options.count && options.raw)
+                    res.forEach(e => console.log('-', green(e)));
             }
+            if (!options.count && !options.raw)
+                (0, evaluate_1.printItemStrs)(res);
             console.log(cyan(lang.logs["cli.ts"].detectPkg), res.length);
         }
         catch (e) {

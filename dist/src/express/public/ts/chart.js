@@ -301,18 +301,33 @@ class Chart {
     // 隐藏顶点本身
     hideNode(...indices) {
         const { nodes, marked } = this;
-        // 下面几种顶点无法隐藏：
+        // 下面两种顶点无法隐藏，应排除在外：
         // 1. 根顶点和其邻接顶点
         // 2. 标记中的顶点
-        // 3. 同一分量存在显示中的入边的顶点
         const excludes = (n) => !n.dataIndex
             || nodes[0].data.requiring.includes(n.dataIndex)
-            || marked.includes(n.dataIndex)
-            || n.mate.some(i => nodes[i].data.requiredBy.some(b => nodes[b].showRequiring));
-        indices = indices.filter(i => i >= 0 && i < nodes.length && !excludes(nodes[i]));
+            || marked.includes(n.dataIndex);
+        indices = indices.filter(i => i < nodes.length && !excludes(nodes[i]));
         if (!indices.length)
             return;
-        indices.forEach(i => nodes[i].showNode = false);
+        // 成功隐藏一个顶点时，自动隐藏满足以下条件的邻接顶点：
+        // 所处强连通分量，因此次隐藏而导致外部入边全部被隐藏的所有成员顶点
+        // 如果该邻接顶点被隐藏，那么属于同一分量的成员也应一同隐藏，防止出现环的问题
+        const includes = (n) => n.mate
+            .flatMap(i => nodes[i].data.requiredBy)
+            .filter(i => !n.mate.includes(i))
+            .every(i => !nodes[i].showRequiring);
+        const hide = (n) => [n.showNode, n.showRequiring] = [false, false];
+        for (const i of indices) {
+            const node = nodes[i];
+            if (node.mate.length > 1) {
+                if (includes(node)) {
+                    node.mate.forEach(m => hide(nodes[m]));
+                }
+                continue;
+            }
+            hide(node);
+        }
         this.clearAway(excludes);
     }
     // 隐藏顶点的所有边，不隐藏顶点本身，自动清除因依赖隐藏而产生的游离顶点
@@ -359,7 +374,7 @@ class Chart {
     // 隐藏所有因当前依赖关系被隐藏而无法通向根顶点的顶点，防止额外游离顶点产生
     // excludes表示对includes的过滤方法，排除不应隐藏的顶点
     clearAway(excludes = () => false) {
-        const { nodes, requirePaths } = this;
+        const { requirePaths } = this;
         let rest = this.vsbNodes.filter(n => !excludes(n));
         let vsbPaths = this.getVsbPaths();
         // 过滤，每次仅保留满足无法通向根顶点条件的顶点，并进行循环操作
@@ -367,9 +382,8 @@ class Chart {
             requirePaths[n.dataIndex] !== null &&
             vsbPaths[n.dataIndex] === null;
         while ((rest = rest.filter(filter)).length) {
-            rest.forEach(n => n.mate.map(i => nodes[i])
-                .filter(m => !excludes(m)).forEach(m => [m.showNode, m.showRequiring] = [false, false])); // 隐藏时把同一个分量中的顶点全部隐藏
-            console.log(vsbPaths = this.getVsbPaths(rest));
+            rest.forEach(n => [n.showNode, n.showRequiring] = [false, false]);
+            console.log(vsbPaths = this.getVsbPaths());
         }
     }
     // 右键菜单事件

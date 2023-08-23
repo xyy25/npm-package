@@ -35,7 +35,7 @@ exports.publicOptions = {
         .default('auto'),
     scope: new commander_1.Option('-s, --scope <scope>', zh_CN_json_1.default.commands.analyze.options.scope.description)
         .choices(['all', 'norm', 'peer', 'dev'])
-        .default([true, true, true])
+        .default([true, true, true], '"all"')
         .argParser((v) => ({
         all: [true, true, true], norm: [true, false, false],
         peer: [false, false, true], dev: [false, true, false]

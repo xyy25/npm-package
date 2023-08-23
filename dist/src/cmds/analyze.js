@@ -31,6 +31,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -183,14 +194,16 @@ const action = (str, options, lang) => __awaiter(void 0, void 0, void 0, functio
         yield new Promise((res) => setTimeout(res, 1000));
         const depEval = (0, analyze_1.default)(pkgRoot, manager, depth, scope[0], scope[1], scope[2], pkgEx.length);
         console.log('\n' + (0, chalk_1.cyan)(desc.analyzed.replace("%len", (0, chalk_1.yellowBright)(depEval.analyzed.size))));
+        let outEvalRes = {};
         // 评估分析结果并打印至控制台，该函数返回因没有被依赖而没有被分析到的包
-        const notAnalyzed = (0, evaluate_1.evaluate)(depEval, pkgEx);
+        const unused = (0, evaluate_1.evaluate)(depEval, pkgEx, outEvalRes);
+        let notAnalyzed = unused;
         // 弹出询问是否需要以这些包为起点继续检测其依赖关系
         const extra = options.question ? yield inquirer_1.default.prompt(extraQuestion(lang)) : options.extra;
-        if (notAnalyzed.length && extra) {
-            analyzeExtra(depEval, notAnalyzed, pkgEx.length, desc);
+        if (unused.length && extra) {
+            notAnalyzed = analyzeExtra(depEval, unused, pkgEx, desc);
         }
-        const res = depEval.result;
+        const { result: res } = depEval, evalRes = __rest(depEval, ["result"]);
         const sres = options.proto ? res : (0, diagram_1.toDiagram)(res);
         if (!Object.keys(res).length) {
             console.log(lang.logs['cli.ts'].noDependency);
@@ -199,25 +212,33 @@ const action = (str, options, lang) => __awaiter(void 0, void 0, void 0, functio
         if (options.console) {
             console.log(sres);
         }
+        outEvalRes = Object.assign(Object.assign(Object.assign(Object.assign({ name: pkg }, evalRes), { detected: pkgEx.length, analyzed: evalRes.analyzed.size, coverage: evalRes.analyzed.size / pkgEx.length }), outEvalRes), { notAnalyzed });
         if (json) { // 输出JSON文件设置
             // 自动创建outputs文件夹
             if (!fs_1.default.existsSync((0, path_1.resolve)('outputs'))) {
                 fs_1.default.mkdirSync((0, path_1.resolve)('outputs'));
             }
             // 如果json为布尔值true，则转换为目标文件路径字符串
+            const evalJson = (0, _1.outJsonRelUri)((0, path_1.join)('outputs', 'eval-' + (json === true ? pkg : (0, path_1.basename)(json))));
             json = json === true ? (0, _1.outJsonRelUri)((0, path_1.join)('outputs', 'res-' + pkg)) : json;
-            fs_1.default.writeFileSync(json, Buffer.from(JSON.stringify(sres, null, options.format ? "\t" : "")));
+            const buffer = Buffer.from(JSON.stringify(sres, null, options.format ? "\t" : ""));
+            const bufferEval = Buffer.from(JSON.stringify(outEvalRes, null, options.format ? "\t" : ""));
+            fs_1.default.writeFileSync(json, buffer);
+            fs_1.default.writeFileSync(evalJson, bufferEval);
             console.log((0, chalk_1.cyan)(desc.jsonSaved
                 .replace('%len', (0, chalk_1.yellowBright)(Object.keys(sres).length))
-                .replace('%s', (0, chalk_1.yellowBright)((0, path_1.relative)(cwd, json)))));
+                .replace('%s', (0, chalk_1.yellowBright)((0, path_1.relative)(cwd, json)))
+                .replace('%e', (0, chalk_1.yellowBright)((0, path_1.relative)(cwd, evalJson)))));
         }
         if (!noweb) {
             const dres = options.proto ? (0, diagram_1.toDiagram)(res) : sres;
             if (depth === Infinity && !extra) {
-                dres.push(...notAnalyzed.map(e => (0, utils_1.toDepItemWithId)(e)));
+                dres.push(...unused.map(e => (0, utils_1.toDepItemWithId)(e)));
             }
-            const buffer = Buffer.from(JSON.stringify(res));
+            const buffer = Buffer.from(JSON.stringify(dres));
+            const bufferEval = Buffer.from(JSON.stringify(outEvalRes));
             fs_1.default.writeFileSync((0, path_1.join)(__dirname, '../express/public/res.json'), buffer);
+            fs_1.default.writeFileSync((0, path_1.join)(__dirname, '../express/public/eval.json'), bufferEval);
             (yield Promise.resolve().then(() => __importStar(require('../express')))).default(port, host);
         }
     }
@@ -225,17 +246,18 @@ const action = (str, options, lang) => __awaiter(void 0, void 0, void 0, functio
         console.error((0, cli_1.error)(lang.commons.error + ':' + e));
     }
 });
-function analyzeExtra(depEval, notAnalyzed, pkgCount, desc) {
+function analyzeExtra(depEval, notAnalyzed, pkgList, desc) {
     const { pkgRoot, manager, depth, analyzed } = depEval;
-    console.log((0, chalk_1.cyan)(desc.extraAnalyzeStart).replace("%len", (0, chalk_1.yellow)(notAnalyzed.length)));
+    console.log((0, chalk_1.cyan)(desc.extraAnalyzeStart.replace("%len", (0, chalk_1.yellow)(notAnalyzed.length))));
     for (const itemStr of notAnalyzed) {
         const { id, dir } = (0, utils_1.toDepItemWithId)(itemStr);
         const relDir = (0, path_1.join)(dir, id);
         // console.log(relDir);
-        (0, analyze_1.default)(pkgRoot, manager, depth, true, false, false, pkgCount, relDir, {
+        (0, analyze_1.default)(pkgRoot, manager, depth, true, false, false, pkgList.length, relDir, {
             result: depEval.result, analyzed
         });
     }
-    console.log('\n' + desc.analyzed.replace("%len", (0, chalk_1.yellowBright)(depEval.analyzed.size)));
+    console.log('\n' + (0, chalk_1.cyan)(desc.analyzed.replace("%len", (0, chalk_1.yellowBright)(depEval.analyzed.size))));
+    return pkgList.filter(e => !analyzed.has(e)).sort();
 }
 exports.default = analyzeCommand;

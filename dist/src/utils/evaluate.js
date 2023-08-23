@@ -6,12 +6,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.evaluate = exports.printItemStrs = exports.dirsToObj = exports.createBar = exports.QueueItem = void 0;
 const chalk_1 = __importDefault(require("chalk"));
 const progress_1 = __importDefault(require("progress"));
+const path_1 = require("path");
 const analyze_1 = require("./analyze");
 const zh_CN_json_1 = require("../lang/zh-CN.json");
-const path_1 = require("path");
 const _1 = require(".");
 const { 'utils/evaluate.ts': desc } = zh_CN_json_1.logs;
-const { green, cyan, yellow, yellowBright, bgMagenta, black } = chalk_1.default;
+const { gray, green, cyan, yellow, yellowBright, bgMagenta, black } = chalk_1.default;
 class QueueItem {
     constructor(id, // 包名
     range, // 需要的版本范围
@@ -52,16 +52,40 @@ const dirsToObj = (dirStrs, suffices = new Array(dirStrs.length).fill('')) => {
         const t = spDir.length - 1;
         for (let j = 0; j < t; j++) {
             let child = cur[spDir[j]];
-            if (child === undefined || typeof child === 'string') {
-                child = cur[spDir[j]] = {};
+            if (child === undefined) {
+                let flag = false;
+                for (const key in cur) {
+                    if (key.startsWith(spDir[j])) {
+                        child = cur[key] = {};
+                        flag = true;
+                        break;
+                    }
+                }
+                if (!flag) {
+                    child = cur[spDir[j]] = {};
+                }
+            }
+            if (typeof child === 'string') {
+                child = cur[child] = {};
+                delete cur[spDir[j]];
             }
             cur = child;
         }
-        cur[spDir[t]] = spDir[t] + '@' + suffices[i];
+        // spDir[t]的结构是'id@version'
+        const [id, version] = spDir[t].split('@');
+        if (id in cur) {
+            cur[spDir[t]] = cur[id];
+            delete cur[id];
+        }
+        else {
+            const key = [id, version, suffices[i] || ''].join('$');
+            cur[key] = key;
+        }
     }
     return root;
 };
 exports.dirsToObj = dirsToObj;
+// 在控制台打印一组包目录，一般输入的是detect的结果数组
 const printItemStrs = (itemStrs, depth = Infinity) => {
     const dfs = (cur, d = 0, prefix = '') => {
         const keys = Object.keys(cur);
@@ -69,30 +93,31 @@ const printItemStrs = (itemStrs, depth = Infinity) => {
         for (const [i, key] of keys.entries()) {
             const child = cur[key];
             const pre = prefix + (i === keylen - 1 ? '└─' : '├─');
+            const [id, version, link] = key.split('$', 3);
+            const dir = (color) => color(id) + ' ' + yellow(version !== null && version !== void 0 ? version : '') + ' ' + (link !== null && link !== void 0 ? link : '');
             if (typeof child === 'string') {
-                const [id, version, link] = child.split('@', 3);
-                console.log(pre + '─ ' + green(id) + ' ' + yellow(version) + ' ' + (link !== null && link !== void 0 ? link : ''));
+                console.log(pre + '─ ' + dir(green));
                 continue;
             }
-            console.log(pre + (d < depth ? '┬ ' : '─ ') + cyan(key));
+            console.log(pre + (d < depth ? '┬ ' : '─ ') + dir(cyan));
             if (d < depth) {
                 dfs(child, d + 1, prefix + (i === keylen - 1 ? '  ' : '│ '));
             }
         }
     };
-    if (typeof itemStrs[0] === 'string') {
-        dfs((0, exports.dirsToObj)(itemStrs));
-    }
-    else {
-        itemStrs = itemStrs;
-        const ver = (d) => (0, _1.toDepItemWithId)(d).version;
-        const linkMap = itemStrs.map((e, i) => e[1].map(d => [d + '@' + ver(e[0]), e[0].startsWith(d)])).flat();
-        dfs((0, exports.dirsToObj)(linkMap.map(e => e[0]), linkMap.map(e => e[1] ? '' : '↗')));
-    }
+    const ver = (e) => (0, _1.toDepItemWithId)(e).version;
+    // 将(string | [string, string[]])[]映射为[string, string][]格式
+    // 第一个string为目录，第二个string为链接指向的原目录，如果不是链接则为空串
+    const linkMap = itemStrs.map((e, i) => typeof e === 'string' ?
+        [[e, '']] :
+        e[1].map(d => [d + '@' + ver(e[0]), e[0].startsWith(d) ? '' : e[0]])).flat();
+    dfs((0, exports.dirsToObj)(linkMap.map(e => e[0]), linkMap.map(e => e[1] ? '-> ' + gray(e[1]) : '')));
 };
 exports.printItemStrs = printItemStrs;
-function evaluate(depEval, pkgList) {
+function evaluate(depEval, pkgList, outputs) {
     const notAnalyzed = [];
+    if (!outputs)
+        outputs = {};
     const { depth, analyzed: hash, notFound, rangeInvalid, optionalNotMeet, scope: { norm, dev, peer } } = depEval;
     // 检查哈希表集合hash中的记录与detect结果的相差
     if (pkgList) {
@@ -128,6 +153,8 @@ function evaluate(depEval, pkgList) {
                 console.warn("  ..." + desc.extra.replace("%len", yellow(notInList.length)));
             }
         }
+        outputs['unused'] = notInHash;
+        outputs['notDetected'] = notInList;
     }
     const tStr = (type) => type !== "norm" ? type + " " : "";
     const nStr = (e) => `${e.id} ${e.range} ${tStr(e.type)}REQUIRED BY ${e.by}`;
