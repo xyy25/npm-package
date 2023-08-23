@@ -393,7 +393,9 @@ export default class Chart {
         for(const i of indices) {
             const node = nodes[i];
             if(includes(node)) {
-                node.mate.forEach(m => hide(nodes[m]));
+                node.mate.map(i => nodes[i])
+                    .filter(m => !excludes(m))
+                    .forEach(m => hide(m));
             }
         }
         this.clearAway(excludes);
