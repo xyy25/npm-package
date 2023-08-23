@@ -98,7 +98,7 @@
         "input.depth": "Recursion max depth",
         "input.port": "Opening on port",
         "input.jsonFile": "Your JSON file",
-        "input.extraAnalyze": "Do you want to analyze these packages?"
+        "input.extraAnalyze": "Do you want to analyze extraneous packages?"
     },
     "logs": {
         "cli.ts": {

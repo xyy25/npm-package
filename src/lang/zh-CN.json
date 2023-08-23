@@ -100,7 +100,7 @@
         "input.depth": "递归深度",
         "input.port": "端口号",
         "input.jsonFile": "输入JSON文件名",
-        "input.extraAnalyze": "是否需要分析这些包的依赖关系?",
+        "input.extraAnalyze": "是否需要分析未使用包的依赖关系?",
         "status.noResult": "无结果...",
         "status.searching": "搜索中..."
     },

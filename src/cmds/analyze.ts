@@ -235,7 +235,7 @@ const action = async (str: string, options: any, lang: any) => {
 
 function analyzeExtra(depEval: DepEval, notAnalyzed: string[], pkgList: string[], desc: any): string[] {
     const { pkgRoot, manager, depth, analyzed } = depEval;
-    console.log(cyan(desc.extraAnalyzeStart).replace("%len", yellow(notAnalyzed.length)));
+    console.log(cyan(desc.extraAnalyzeStart.replace("%len", yellow(notAnalyzed.length))));
     for(const itemStr of notAnalyzed) {
         const { id, dir } = toDepItemWithId(itemStr);
         const relDir = join(dir!, id);
@@ -245,7 +245,7 @@ function analyzeExtra(depEval: DepEval, notAnalyzed: string[], pkgList: string[]
         });
     }
     
-    console.log('\n' + desc.analyzed.replace("%len", yellowBright(depEval.analyzed.size)));
+    console.log('\n' + cyan(desc.analyzed.replace("%len", yellowBright(depEval.analyzed.size))));
     return pkgList.filter(e => !analyzed.has(e)).sort();
 }
 

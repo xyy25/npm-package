@@ -8,6 +8,7 @@ import { existsSync, readdirSync, lstatSync, readlinkSync } from "fs";
 import { toString } from ".";
 
 // 和analyze不同的地方在于：analyze是按照依赖的顺序分析，detect仅进行文件扫描
+// detect不能区分符号链接和普通目录，如果原目录和符号链接同时存在会算成多个
 export default function detect(
     pkgRoot: string,
     manager: PackageManager,
@@ -23,7 +24,9 @@ export default function detect(
     
     // 如果包管理器是pnpm的符号链接结构
     if(manager === 'pnpm') {
-        return detectPnpm(pkgRoot).map(e => e[0]);
+        return detectPnpm(pkgRoot).map<string>(
+            e => typeof e === 'string' ? e : e[0]
+        );
     }
 
     // 如果包管理器是npm或yarn的扁平结构
@@ -37,19 +40,21 @@ export default function detect(
             .forEach(e => res.add(join(modDir, pkgId, e)));
     }
 
+    const isDirOrLink = (absDir: string, stat = lstatSync(absDir)) => 
+        stat.isDirectory() || stat.isSymbolicLink();
     for(const pkgId of readdirSync(abs(NODE_MODULES))) {
         const modDir = NODE_MODULES;
         if(
-            !lstatSync(abs(modDir, pkgId)).isDirectory()
-            || pkgId.startsWith('.')
-        ) {
+            pkgId.startsWith('.') || 
+            !isDirOrLink(abs(modDir, pkgId)
+        )) {
             continue;
         } else if(pkgId.startsWith('@')) {
             const areaDir = join(modDir, pkgId);
             const areaPkgs = readdirSync(abs(areaDir));
             for(const areaPkgId of areaPkgs) {
-                if(lstatSync(abs(areaDir, areaPkgId)).isDirectory())
-                countPkg(areaDir, areaPkgId);
+                if(isDirOrLink(abs(areaDir, areaPkgId)))
+                    countPkg(areaDir, areaPkgId);
             }
         } else {
             countPkg(modDir, pkgId);
@@ -60,9 +65,13 @@ export default function detect(
 
 const DOT_PNPM = '.pnpm';
 
-export function detectPnpm(pkgRoot: string): [string, string[]][] {
+// detectPnpm可以区分符号链接和目录，并将指向同一个目录的多个链接合并到一个key中
+// detectPnpm不只适用于pnpm管理的项目，还适用于其它存在符号链接的复杂情况，所以它的返回值结构会更复杂
+// 如果元素不为符号链接，则为string格式
+// 如果元素为链接，则为[string, string[]]格式，第一个值是指向的原目录，第二个值是所有指向这个目录的链接所在的目录
+export function detectPnpm(pkgRoot: string): ([string, string[]] | string)[] {
     const abs = (...dir: string[]): string => join(pkgRoot, ...dir);
-    const res = new Map<string, string[]>();
+    const linkMap = new Map<string, string[]>();
 
     const countPkg = (modDir: string, pkgId: string) => { // 登记一个依赖包
         const pkgDir = join(modDir, pkgId);
@@ -78,15 +87,15 @@ export function detectPnpm(pkgRoot: string): [string, string[]][] {
             }
             const ver = readPackageJson(abs(orgDir, PACKAGE_JSON))?.version ?? '';
             const orgStr = orgDir + (ver ? '@' + ver : '');
-            if(!res.has(orgStr)) {
-                res.set(orgStr, [pkgDir]);
+            if(!linkMap.has(orgStr)) {
+                linkMap.set(orgStr, [pkgDir]);
             } else {
-                res.get(orgStr)?.push(pkgDir);
+                linkMap.get(orgStr)?.push(pkgDir);
             }
         } else {
             const ver = readPackageJson(abs(pkgDir, PACKAGE_JSON))?.version ?? '';
             const pkgStr = toString({ version: ver, dir: modDir }, pkgId);
-            res.set(pkgStr, [pkgDir]);
+            linkMap.set(pkgStr, [pkgDir]);
         }
         detectPkg(join(modDir, pkgId));
     }
@@ -120,5 +129,13 @@ export function detectPnpm(pkgRoot: string): [string, string[]][] {
     detectPkg('.');
     //console.log(res);
 
-    return [...res];
+    const res: ReturnType<typeof detectPnpm> = [];
+    for(const [key, val] of linkMap) {
+        if(val.length === 1 && key.startsWith(val[0])) { 
+            res.push(key);
+        } else {
+            res.push([key, val]);
+        }
+    }
+    return res;
 }

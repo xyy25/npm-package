@@ -7,12 +7,11 @@ import inquirerAuto from "inquirer-autocomplete-prompt";
 
 import { error, publicOptions as opts } from "../cli";
 import { getDirs, resbase } from '.';
-import { getManagerType } from "../utils";
 import detect, { detectPnpm } from "../utils/detect";
 import { PackageManager } from "../utils/types";
 import { printItemStrs } from "../utils/evaluate";
 
-const { cyanBright, green, cyan } = chalk;
+const { cyanBright, green, cyan, gray } = chalk;
 
 inquirer.registerPrompt('auto', inquirerAuto);
 
@@ -82,18 +81,19 @@ function detectCommand(cmd: Command, lang: any) {
                     throw lang.logs['cli.ts'].dirNotExist;
                 }
 
-                if(manager === 'auto') {
-                    manager = getManagerType(pkgRoot);
-                }
-
-                let res: string[] | [string, string[]][] = [];
+                let res: (string | [string, string[]])[] = [];
                 
-                if(manager === 'pnpm') {
+                if(manager == 'auto' || manager === 'pnpm') {
                     res = detectPnpm(pkgRoot);
                     if(!options.count && options.raw) {
-                        res.forEach(([o, l]) => {
-                            console.log('*', cyanBright(o));
-                            l.forEach(e => console.log(' ->', green(e)));
+                        res.forEach((e) => {
+                            if(typeof e === 'string') {
+                                console.log('*', green(e));
+                            } else {
+                                const [o, l] = e;
+                                console.log('*', cyanBright(o));
+                                l.forEach(d => console.log(' <-', gray(d)));
+                            }
                         });
                     }
                 } else {

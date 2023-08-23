@@ -1,16 +1,14 @@
 import chalk, { Chalk } from "chalk";
 import ProgressBar from "progress";
-import { basename, join, resolve, sep } from "path";
-import fs from "fs";
+import { sep } from "path";
 
 import { DependencyType, DepEval, DepResult, InvalidItem, NotFoundItem } from "./types";
-import analyze, { orange } from './analyze';
+import { orange } from './analyze';
 import { logs } from '../lang/zh-CN.json';
 import { toDepItemWithId } from ".";
-import { outJsonRelUri } from "../cmds";
 
 const { 'utils/evaluate.ts': desc } = logs;
-const { green, cyan, yellow, yellowBright, bgMagenta, black } = chalk;
+const { gray, green, cyan, yellow, yellowBright, bgMagenta, black } = chalk;
 
 export class QueueItem {
     constructor(
@@ -85,7 +83,8 @@ export const dirsToObj = (
     return root;
 }
 
-export const printItemStrs = (itemStrs: string[] | [string, string[]][], depth: number = Infinity) => {
+// 在控制台打印一组包目录，一般输入的是detect的结果数组
+export const printItemStrs = (itemStrs: (string | [string, string[]])[], depth: number = Infinity) => {
     const dfs = (cur: DirObj, d: number = 0, prefix = '') => {
         const keys = Object.keys(cur);
         const keylen = keys.length;
@@ -104,17 +103,17 @@ export const printItemStrs = (itemStrs: string[] | [string, string[]][], depth: 
             }
         }
     }
-    if(typeof itemStrs[0] === 'string') {
-        dfs(dirsToObj(itemStrs as string[]));
-    } else {
-        itemStrs = itemStrs as [string, string[]][];
-        const ver = (d: string) => toDepItemWithId(d).version;
-        const linkMap: [string, boolean][] = 
-            itemStrs.map((e, i) => 
-                e[1].map<[string, boolean]>(d => [d + '@' + ver(e[0]), e[0].startsWith(d)])
-            ).flat();
-        dfs(dirsToObj(linkMap.map(e => e[0]), linkMap.map(e => e[1] ? '' : '↗')));
-    }
+    
+    const ver = (e: string) => toDepItemWithId(e).version;
+    // 将(string | [string, string[]])[]映射为[string, string][]格式
+    // 第一个string为目录，第二个string为链接指向的原目录，如果不是链接则为空串
+    const linkMap: [string, string][] = 
+        itemStrs.map((e, i) => 
+            typeof e === 'string' ? 
+                [[e, ''] as [string, string]] :
+                e[1].map<[string, string]>(d => [d + '@' + ver(e[0]), e[0].startsWith(d) ? '' : e[0]])
+        ).flat();
+    dfs(dirsToObj(linkMap.map(e => e[0]), linkMap.map(e => e[1] ? '-> ' + gray(e[1]) : '')));
 }
 
 export function evaluate(
