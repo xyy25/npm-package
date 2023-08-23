@@ -1,6 +1,6 @@
 import { Command } from "commander"
 import { cyan, yellow, yellowBright } from "chalk";
-import { join, relative, resolve } from "path";
+import { basename, join, relative, resolve } from "path";
 import fs from 'fs';
 import inquirer, { QuestionCollection } from 'inquirer';
 import inquirerAuto from "inquirer-autocomplete-prompt";
@@ -164,15 +164,18 @@ const action = async (str: string, options: any, lang: any) => {
 
         const depEval: DepEval = analyze(pkgRoot, manager, depth, scope[0], scope[1], scope[2], pkgEx.length);
         console.log('\n' + cyan(desc.analyzed.replace("%len", yellowBright(depEval.analyzed.size))));
+
+        let outEvalRes: any = {};
         // 评估分析结果并打印至控制台，该函数返回因没有被依赖而没有被分析到的包
-        const notAnalyzed: string[] = evaluate(depEval, pkgEx); 
+        const unused: string[] = evaluate(depEval, pkgEx, outEvalRes); 
+        let notAnalyzed = unused;
         // 弹出询问是否需要以这些包为起点继续检测其依赖关系
         const extra: boolean = options.question ? await inquirer.prompt(extraQuestion(lang)) : options.extra;
-        if(notAnalyzed.length && extra) {
-            analyzeExtra(depEval, notAnalyzed, pkgEx.length, desc);
+        if(unused.length && extra) {
+            notAnalyzed = analyzeExtra(depEval, unused, pkgEx, desc);
         }
         
-        const res: DepResult = depEval.result;
+        const { result: res, ...evalRes } = depEval;
         const sres = options.proto ? res : toDiagram(res);
         if(!Object.keys(res).length) {
             console.log(lang.logs['cli.ts'].noDependency);
@@ -183,28 +186,46 @@ const action = async (str: string, options: any, lang: any) => {
             console.log(sres);
         }
 
+        outEvalRes = {
+            name: pkg,
+            ...evalRes,
+            detected: pkgEx.length,
+            analyzed: evalRes.analyzed.size,
+            coverage: evalRes.analyzed.size / pkgEx.length,
+            ...outEvalRes,
+            notAnalyzed
+        };
+        
         if(json) { // 输出JSON文件设置
-            
             // 自动创建outputs文件夹
             if(!fs.existsSync(resolve('outputs'))) {
                 fs.mkdirSync(resolve('outputs'));
             }
+
             // 如果json为布尔值true，则转换为目标文件路径字符串
+            const evalJson = outJsonRelUri(join('outputs', 'eval-' + (json === true ? pkg : basename(json))));
             json = json === true ? outJsonRelUri(join('outputs', 'res-' + pkg)) : json;
-            fs.writeFileSync(json, Buffer.from(JSON.stringify(sres, null, options.format ? "\t" : "")));
+
+            const buffer = Buffer.from(JSON.stringify(sres, null, options.format ? "\t" : ""));
+            const bufferEval = Buffer.from(JSON.stringify(outEvalRes, null, options.format ? "\t" : ""));
+            fs.writeFileSync(json, buffer);
+            fs.writeFileSync(evalJson, bufferEval);
             console.log(cyan(desc.jsonSaved
                 .replace('%len', yellowBright(Object.keys(sres).length))
                 .replace('%s', yellowBright(relative(cwd, json)))
+                .replace('%e', yellowBright(relative(cwd, evalJson)))
             ));
         }
         if(!noweb) {
             const dres = options.proto ? toDiagram(res) : sres as DirectedDiagram;
             if(depth === Infinity && !extra) {
-                dres.push(...notAnalyzed.map(e => toDepItemWithId(e))); 
+                dres.push(...unused.map(e => toDepItemWithId(e))); 
             }
 
             const buffer = Buffer.from(JSON.stringify(res));
+            const bufferEval = Buffer.from(JSON.stringify(outEvalRes));
             fs.writeFileSync(join(__dirname, '../express/public/res.json'), buffer);
+            fs.writeFileSync(join(__dirname, '../express/public/eval.json'), bufferEval);
             (await import('../express')).default(port, host);
         }
     } catch(e: any) {
@@ -212,18 +233,20 @@ const action = async (str: string, options: any, lang: any) => {
     }
 };
 
-function analyzeExtra(depEval: DepEval, notAnalyzed: string[], pkgCount: number, desc: any) {
+function analyzeExtra(depEval: DepEval, notAnalyzed: string[], pkgList: string[], desc: any): string[] {
     const { pkgRoot, manager, depth, analyzed } = depEval;
     console.log(cyan(desc.extraAnalyzeStart).replace("%len", yellow(notAnalyzed.length)));
     for(const itemStr of notAnalyzed) {
         const { id, dir } = toDepItemWithId(itemStr);
         const relDir = join(dir!, id);
         // console.log(relDir);
-        analyze(pkgRoot, manager, depth, true, false, false, pkgCount, relDir, {
+        analyze(pkgRoot, manager, depth, true, false, false, pkgList.length, relDir, {
             result: depEval.result, analyzed
         });
     }
+    
     console.log('\n' + desc.analyzed.replace("%len", yellowBright(depEval.analyzed.size)));
+    return pkgList.filter(e => !analyzed.has(e)).sort();
 }
 
 export default analyzeCommand;

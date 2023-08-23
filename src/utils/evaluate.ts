@@ -1,9 +1,13 @@
 import chalk from "chalk";
 import ProgressBar from "progress";
+import { basename, join, resolve, sep } from "path";
+import fs from "fs";
+
 import { DependencyType, DepEval, DepResult, InvalidItem, NotFoundItem } from "./types";
 import analyze, { orange } from './analyze';
 import { logs } from '../lang/zh-CN.json';
-import { sep } from "path";
+import { toDepItemWithId } from ".";
+import { outJsonRelUri } from "../cmds";
 
 const { 'utils/evaluate.ts': desc } = logs;
 const { green, cyan, yellow, yellowBright, bgMagenta, black } = chalk;
@@ -54,7 +58,8 @@ export const dirsToObj = (
             }
             cur = child;
         }
-        cur[spDir[t]] = spDir[t] + '@' + suffices[i];
+        cur[spDir[t]] = spDir[t];
+        if(suffices[i]) cur[spDir[t]] += '@' + suffices[i];
     }
     return root;
 }
@@ -81,23 +86,29 @@ export const printItemStrs = (itemStrs: string[] | [string, string[]][], depth: 
         dfs(dirsToObj(itemStrs as string[]));
     } else {
         itemStrs = itemStrs as [string, string[]][];
+        const ver = (d: string) => toDepItemWithId(d).version;
         const linkMap: [string, boolean][] = 
-            itemStrs.map((e, i) => e[1].map<[string, boolean]>(d => [d, e[0].startsWith(d)])).flat();
+            itemStrs.map((e, i) => 
+                e[1].map<[string, boolean]>(d => [d + '@' + ver(e[0]), e[0].startsWith(d)])
+            ).flat();
         dfs(dirsToObj(linkMap.map(e => e[0]), linkMap.map(e => e[1] ? '' : '↗')));
     }
 }
 
 export function evaluate(
     depEval: DepEval,
-    pkgList: string[]
+    pkgList: string[],
+    outputs?: any
 ): string[] {
     const notAnalyzed: string[] = [];
+    if(!outputs) outputs = {};
     const {
         depth, analyzed: hash, 
         notFound, rangeInvalid, 
         optionalNotMeet, 
         scope: { norm, dev, peer }
     } = depEval;
+
     // 检查哈希表集合hash中的记录与detect结果的相差
     if (pkgList) {
         const notInHash = pkgList.filter(e => !hash.has(e)).sort();
@@ -132,6 +143,8 @@ export function evaluate(
                 console.warn("  ..." + desc.extra.replace("%len", yellow(notInList.length)));
             }
         }
+        outputs['unused'] = notInHash;
+        outputs['notDetected'] = notInList;
     }
     const tStr = (type: DependencyType) => type !== "norm" ? type + " " : "";
     const nStr = (e: NotFoundItem) => 

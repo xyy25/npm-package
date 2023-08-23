@@ -1,6 +1,7 @@
 import { green, yellow, cyan } from 'chalk';
 import { join, sep } from 'path';
 import { detectPnpm } from './src/utils/detect';
+import { toDepItemWithId } from './src/utils';
 
 export type DirObj = { 
     [dirName: string]: DirObj | string
@@ -22,7 +23,8 @@ export const dirsToObj = (
             }
             cur = child;
         }
-        cur[spDir[t]] = spDir[t] + '@' + suffices[i];
+        cur[spDir[t]] = spDir[t];
+        if(suffices[i]) cur[spDir[t]] += '@' + suffices[i];
     }
     return root;
 }
@@ -49,8 +51,11 @@ export const printItemStrs = (itemStrs: string[] | [string, string[]][], depth: 
         dfs(dirsToObj(itemStrs as string[]));
     } else {
         itemStrs = itemStrs as [string, string[]][];
+        const ver = (d: string) => toDepItemWithId(d).version;
         const linkMap: [string, boolean][] = 
-            itemStrs.map((e, i) => e[1].map<[string, boolean]>(d => [d, e[0].startsWith(d)])).flat();
+            itemStrs.map((e, i) => 
+                e[1].map<[string, boolean]>(d => [d + '@' + ver(e[0]), e[0].startsWith(d)])
+            ).flat();
         dfs(dirsToObj(linkMap.map(e => e[0]), linkMap.map(e => e[1] ? '' : '↗')));
     }
 }
@@ -59,5 +64,5 @@ const w = [['node_modules', '@aashutoshrathi', 'word-wrap@1.2.6'], ['node_module
 const s = detectPnpm(join(__dirname, './test-pkgs/pnpm-test'));
 
 (() => {
-    printItemStrs(w);
+    printItemStrs(s);
 })()

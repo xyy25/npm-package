@@ -25,7 +25,8 @@ function analyze(pkgRoot, manager, depth = Infinity, norm = true, // 包含depen
 dev = true, // 包含devDependencies
 peer = true, // 包含peerDependencies
 pkgCount, relDir = '.', // 该包如果不是根目录的主项目（默认是），则从该相对目录下的package.json开始扫描
-init = {}) {
+init = {} // 可供初始化补充的返回值初值，用于继续对游离包进行依赖分析的情况，减少重复分析量
+) {
     const abs = (...dir) => (0, path_1.join)(pkgRoot, ...dir);
     const depEval = Object.assign({ pkgRoot, manager, 
         // 分析结果

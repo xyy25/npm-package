@@ -54,6 +54,12 @@
             "options" : {
                 "show": {
                     "description": "Show all detected packages on the console."
+                },
+                "count": {
+                    "description": "Only show amount of detected packages."
+                },
+                "raw": {
+                    "description": "Show without converting into tree diagram."
                 }
             }
         },
@@ -102,7 +108,7 @@
             "pkgJsonNotExist": "The root package.json of %s does not exist.",
             "detected": "Detected %s packages in the target directory.",
             "noDependency": "The project does not install any package.",
-            "jsonSaved": "Analyze result with %len items has been saved to %s.",
+            "jsonSaved": "Analysis result with %len items has been saved to %s, evaluation result has been saved to %e.",
             "detectPkg": "CURRENT PACKAGES:",
             "portInvalid": "Port must be between 1 and 65535.",
             "analyzed": "Analyzed %len packages.",

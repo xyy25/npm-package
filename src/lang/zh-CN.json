@@ -57,8 +57,11 @@
                 { "description": "所需扫描的根目录." }
             ],
             "options" : {
-                "show": {
-                    "description": "扫描完后将所有探测到的包打印到命令行."
+                "count": {
+                    "description": "扫描完后仅显示检测到的包文件数量."
+                },
+                "raw": {
+                    "description": "按行打印检测结果, 不转化成树图."
                 }
             }
         },
@@ -109,7 +112,7 @@
             "pkgJsonNotExist": "%s根目录下的package.json文件不存在!",
             "detected": "检测到%s个依赖包.",
             "noDependency": "该项目未安装任何依赖.",
-            "jsonSaved": "%len条分析结果已保存至%s.",
+            "jsonSaved": "%len条分析结果已保存至%s, 评估结果已保存至%e.",
             "detectPkg": "扫描到的依赖包文件数:",
             "portInvalid": "端口号必须在1到65535之间!",
             "analyzed": "已分析%len个依赖包.",

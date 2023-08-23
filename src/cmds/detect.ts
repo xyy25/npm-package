@@ -10,6 +10,7 @@ import { getDirs, resbase } from '.';
 import { getManagerType } from "../utils";
 import detect, { detectPnpm } from "../utils/detect";
 import { PackageManager } from "../utils/types";
+import { printItemStrs } from "../utils/evaluate";
 
 const { cyanBright, green, cyan } = chalk;
 
@@ -46,7 +47,7 @@ const questions = (lang: any, enable: boolean): QuestionCollection => {
         prefix: String.fromCodePoint(0x1F50D), // 🔍
         when: (ans) => ans['manager'] !== 'pnpm',
         default: Infinity
-    }]
+    }];
 }
 
 function detectCommand(cmd: Command, lang: any) {
@@ -56,7 +57,8 @@ function detectCommand(cmd: Command, lang: any) {
         .addOption(opts.manager)
         .addOption(opts.depth)
         .addOption(opts.question)
-        .option('--show', lang.commands.detect.options.show.description, false)
+        .option('-r, --raw', lang.commands.detect.options.raw.description, false)
+        .option('-c, --count', lang.commands.detect.options.count.description, false)
         .action(async (str, options) => {    
             // 询问
             let ans = await inquirer.prompt(
@@ -88,19 +90,23 @@ function detectCommand(cmd: Command, lang: any) {
                 
                 if(manager === 'pnpm') {
                     res = detectPnpm(pkgRoot);
-                    options.show && res.forEach(([o, l]) => {
-                        console.log('*', cyanBright(o));
-                        l.forEach(e => console.log(' ->', green(e)));
-                    });
+                    if(!options.count && options.raw) {
+                        res.forEach(([o, l]) => {
+                            console.log('*', cyanBright(o));
+                            l.forEach(e => console.log(' ->', green(e)));
+                        });
+                    }
                 } else {
                     res = detect(pkgRoot, manager, depth);
-                    options.show && res.forEach(e => console.log('-', green(e)));
+                    if(!options.count && options.raw) 
+                        res.forEach(e => console.log('-', green(e)));
                 }
+                if(!options.count && !options.raw) printItemStrs(res);
                 console.log(cyan(lang.logs["cli.ts"].detectPkg), res.length);
             } catch (e) {
                 console.error(error(lang.commons.error + ':', e));
             }
-        })
+        });
 }
 
 export default detectCommand;
