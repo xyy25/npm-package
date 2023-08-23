@@ -47,7 +47,7 @@
                     "description": "指定该项目的包管理器."
                 },
                 "extra": {
-                    "description": "如果存在游离包，以其为起点继续分析依赖关系."
+                    "description": "分析未使用包的依赖关系."
                 }
             }
         },

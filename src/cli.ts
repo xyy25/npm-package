@@ -25,7 +25,7 @@ export const publicOptions = {
                 .default('auto'),
     scope: new Option('-s, --scope <scope>', lang.commands.analyze.options.scope.description)
                 .choices(['all', 'norm', 'peer', 'dev'])
-                .default([true, true, true])
+                .default([true, true, true], '"all"')
                 .argParser((v) => ({
                     all: [true, true, true], norm: [true, false, false],
                     peer: [false, false, true], dev: [false, true, false]
