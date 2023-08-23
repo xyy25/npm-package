@@ -392,10 +392,6 @@ export default class Chart {
         const hide = (n: Node) => [n.showNode, n.showRequiring] = [false, false];
         for(const i of indices) {
             const node = nodes[i];
-            if(node.mate.length <= 1) {
-                hide(node);
-                continue;
-            }
             if(includes(node)) {
                 node.mate.forEach(m => hide(nodes[m]));
             }
