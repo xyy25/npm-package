@@ -118,6 +118,24 @@ export const compareVersion = (versionA: string, versionB: string): -1 | 0 | 1 =
     return 0
 }
 
+export const timeString = (miliseconds: number): string => {
+    let str: string, t = miliseconds;
+    str = (t % 1e3) + 'ms';
+    t = Math.floor(t / 1e3);
+    if(!t) return str;
+    str = `${t % 60}.${miliseconds % 1000}s`;
+    t = Math.floor(t / 60);
+    if(!t) return str;
+    str = `${t % 60}m${str}`;
+    t = Math.floor(t / 60);
+    if(!t) return str;
+    str = `${t % 24}h${str}`;
+    t = Math.floor(t / 24);
+    if(!t) return str;
+    str = `${t}d${str}`;
+    return str;
+}
+
 type CompareSymbol = "<" | ">" | "==" | "!=" | "<=" | ">=";
 export const compareVersionExpr = (input: string, expr: CompareSymbol, target: string): boolean => {
     const res = compareVersion(input, target);

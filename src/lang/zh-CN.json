@@ -115,7 +115,7 @@
             "jsonSaved": "%len条分析结果已保存至%s, 评估结果已保存至%e.",
             "detectPkg": "扫描到的依赖包文件数:",
             "portInvalid": "端口号必须在1到65535之间!",
-            "analyzed": "已分析%len个依赖包.",
+            "analyzed": "已分析%len个依赖包, 用时%t.",
             "extraAnalyzeStart": "正在对%len个未使用包启动依赖分析.."
         },
         "express.ts": {
@@ -128,8 +128,8 @@
             "coverage": "递归深度: %d, 覆盖率: %cv. 有 %len 个依赖包尚未分析到.",
             "extra": "共 %len 条记录",
             "notInHash": "以下依赖包在node_modules中存在, 但没有被依赖分析覆盖到.",
-            "notInHash2": "这些包有可能未被使用?",
-            "notInList": "以下依赖包在node_modules中已被依赖分析, 但未被文件扫描到.",
+            "notInHash2": "已划归为未使用包.",
+            "notInList": "以下依赖包已被依赖分析, 但未被文件扫描, 疑似属于外部符号链接.",
             "optNotMeet": "发现 %d 个可选依赖包没有安装.",
             "rangeInvalid": "发现 %d 个依赖包版本%1不合要求%1.",
             "pkgNotFound": "发现 %d 个必需依赖包%1未安装%1:",

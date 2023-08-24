@@ -8,7 +8,6 @@ import { logs } from "../lang/zh-CN.json";
 import { QueueItem, createBar } from './evaluate';
 import { DepItem, DepEval, DependencyType, PackageManager } from './types';
 import { getParentDir, getSpaceName, limit, readPackageJson, toString } from '.';
-import doPnpmBfs from './pnpm'
 
 export const NODE_MODULES = 'node_modules';
 export const PACKAGE_JSON = 'package.json';
@@ -105,12 +104,8 @@ export default function analyze(
     // 根据包管理器类型选择不同的广搜方法
     let analyzer, stDir: string;
     switch(manager) {
-        case 'pnpm': 
-            analyzer = doPnpmBfs;
-            stDir = relDir === '.' ? NODE_MODULES : getParentDir(stId, relDir);
-            break;
         default:
-            analyzer = doBfs;
+            analyzer = bfsAnalyzer;
             stDir = join(relDir, NODE_MODULES);
     }
 
@@ -133,11 +128,7 @@ export default function analyze(
         }
     }
 
-    const stSize = depEval.analyzed.size;
-
     analyzer(abs, depth, queue, depEval);
-
-    const edSize = depEval.analyzed.size;
 
     if(relDir !== '.') {
         // console.log('+', green(stItemStr), '+' + yellowBright(edSize - stSize));
@@ -148,7 +139,7 @@ export default function analyze(
 
 // npm 和 yarn 的搜索方法：从内到外
 // pnpm也可以用这个方法，但比较慢，如果目录中存在部分符号链接建议用这个方法
-function doBfs(
+function bfsAnalyzer(
     abs: (...dir: string[]) => string,
     depth: number,
     queue: QueueItem[],
