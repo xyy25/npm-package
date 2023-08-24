@@ -4,12 +4,11 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "start": "ts-node index.ts analyze",
-    "test": "ts-node index.ts analyze test-pkg -y",
+    "start": "ts-node index.ts analyze -q",
+    "test": "ts-node index.ts analyze test-pkg",
     "detect": "ts-node index.ts detect",
     "detect-test": "ts-node index.ts detect test-pkg",
-    "get": "ts-node index.ts get",
-    "cli": "ts-node index.ts"
+    "get": "ts-node index.ts get"
   },
   "bin": {
     "pkg-cli": "index.ts"

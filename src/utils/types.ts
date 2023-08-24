@@ -1,4 +1,4 @@
-export type PackageManager = 'npm' | 'yarn' | 'pnpm';
+export type PackageManager = 'auto' | 'npm' | 'yarn' | 'pnpm';
 export type Dependencies = {
     [id: string]: string;
 };
@@ -65,6 +65,8 @@ export type DepResult = {
 };
 
 export type DepItem = {
+    space: string;
+    name: string;
     version: string; // 【顶点属性】该依赖包实际使用的版本（即在node_modules里存在的版本）
     dir: string | null; // 【顶点属性】该依赖包安装的相对路径
     requires?: DepResult; // 【顶点属性】该依赖包的子依赖列表（若无依赖或已经计算过，则没有这条）
@@ -85,6 +87,8 @@ export type InvalidItem =  {
 
 // 顶点属性
 export type DiagramNode = {
+    space: string;
+    name: string;
     id: string;
     version: string;
     dir: string | null;
@@ -100,6 +104,7 @@ export type LinkMeta = {
     optional: boolean; // 【边属性】该依赖是否必须
     invalid: boolean; // 【边属性】该依赖关系是否版本非法
     depthEnd: boolean; // 【边属性】该依赖关系是否到达了递归的终点（当递归深度有限时）
+    symlink: false | string; // 【边属性】该包的依赖是否使用了符号链接，如果是则标记的是创建符号链接的地址
 }
 
 export type DirectedDiagram = 

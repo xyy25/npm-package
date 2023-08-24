@@ -53,11 +53,15 @@ export const splitAt = (str: string, pos: number): [string, string] =>
 export const find = <T extends Item>(items: DirectedDiagram, item: T): number =>
     items.findIndex(e => toString(e) === toString(item));
 
+export const getSpaceName = (id: string): [string, string] => 
+    id.includes('/') ? id.split('/', 2) as [string, string] : ['', id];
+
 export const toDepItemWithId = (itemStr: string): DiagramNode => {
     const splitDirId = (itemUri: string, version: string, pos: number): DiagramNode => {
         const [dir, id] = splitAt(itemUri, pos);
+        const [space, name] = getSpaceName(id.slice(1));
         return { 
-            id: id.slice(1), version, dir, 
+            id: id.slice(1), space, name, version, dir, 
             meta: [], requiring: [], requiredBy: [] 
         }
     }

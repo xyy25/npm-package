@@ -12,7 +12,9 @@ const { gray, green, cyan, yellow, yellowBright, bgMagenta, black } = chalk;
 
 export class QueueItem {
     constructor(
-        public id: string, // 包名
+        public id: string, // 包id 
+        public space: string, // 包的命名空间，如"@types/node"的命名空间为"@types"
+        public name: string, // 包的名称，如"@types/node"的名称为"node"，如果无命名空间则会与id一致
         public range: string, // 需要的版本范围
         public by: string, // 包的需求所属
         public type: DependencyType, // 包的依赖类型
@@ -32,7 +34,7 @@ export const createBar = (total: number): ProgressBar => {
                 head: chalk.red('▇'),
                 complete: yellowBright('▇'),
                 incomplete: black(' '),
-                clear: true
+                // clear: true
         }); 
 }
 
@@ -84,7 +86,10 @@ export const dirsToObj = (
 }
 
 // 在控制台打印一组包目录，一般输入的是detect的结果数组
-export const printItemStrs = (itemStrs: (string | [string, string[]])[], depth: number = Infinity) => {
+export const printItemStrs = (
+    itemStrs: (string | [string, string[]])[],
+    depth: number = Infinity
+) => {
     const dfs = (cur: DirObj, d: number = 0, prefix = '') => {
         const keys = Object.keys(cur);
         const keylen = keys.length;
@@ -114,6 +119,21 @@ export const printItemStrs = (itemStrs: (string | [string, string[]])[], depth: 
                 e[1].map<[string, string]>(d => [d + '@' + ver(e[0]), e[0].startsWith(d) ? '' : e[0]])
         ).flat();
     dfs(dirsToObj(linkMap.map(e => e[0]), linkMap.map(e => e[1] ? '-> ' + gray(e[1]) : '')));
+}
+
+export const printList = <T>(
+    list: T[],
+    itemColor: Chalk,
+    formatter: (e: T) => any = (e: T) => e,
+    limit: number = list.length,
+    log = console.log
+) => {
+    list.slice(0, limit).forEach(
+        e => log('-', itemColor(formatter(e)))
+    );
+    if(list.length > limit) {
+        log("  ..." + desc.extra.replace("%len", yellow(list.length)));
+    }
 }
 
 export function evaluate(
@@ -147,10 +167,7 @@ export function evaluate(
             } else {
                 // 如果搜索深度为Infinity，有可能因为它们并不被任何包依赖
                 console.warn(orange(desc.notInHash));
-                notInHash.slice(0, 8).forEach(e => console.log('-', green(e)));
-                if(notInHash.length >= 8) {
-                    console.warn("  ..." + desc.extra.replace("%len", yellow(notInHash.length)));
-                }
+                printList(notInHash, green, e => e, 8, console.warn);
                 console.warn(orange(desc.notInHash2));
             }
             notAnalyzed.push(...notInHash);
@@ -159,10 +176,7 @@ export function evaluate(
             // 如果有元素存在于哈希集合却不存在于detect结果中
             // 说明这些元素可能是detect搜索方法的漏网之鱼，可能是detect的深度过低
             console.warn(orange(desc.notInList.replace("%len", yellow(notInList.length))));
-            notInList.slice(0, 8).forEach(e => console.log('-', green(e)));
-            if(notInList.length >= 8) {
-                console.warn("  ..." + desc.extra.replace("%len", yellow(notInList.length)));
-            }
+            printList(notInList, green, e => e, 8, console.warn);
         }
         outputs['unused'] = notInHash;
         outputs['notDetected'] = notInList;
@@ -181,15 +195,15 @@ export function evaluate(
             .replace("%d", yellowBright(rangeInvalid.length))
             .replace(/%1(.*)%1/, bgMagenta("$1"))
         ));
-        rangeInvalid.forEach(e => console.warn('-', green(iStr(e))));
+        printList(rangeInvalid, green, iStr, 8, console.warn);
     }
     if (notFound.length) {
         console.warn(orange(desc.pkgNotFound
             .replace("%d", yellowBright(notFound.length))
             .replace(/%1(.*)%1/, bgMagenta("$1"))
         ));
-        notFound.forEach(e => console.warn('-', green(nStr(e))));
-        console.warn(orange(desc.pkgNotFound2));
+        printList(notFound, green, nStr, 8, console.warn);
+        console.warn(orange(desc.pkgNotFound2));        
     }
 
     return notAnalyzed;

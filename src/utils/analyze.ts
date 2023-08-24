@@ -1,4 +1,4 @@
-import { join, sep } from 'path';
+import { join, relative, sep } from 'path';
 import { satisfies } from 'semver';
 import fs from 'fs';
 import chalk from 'chalk';
@@ -7,7 +7,7 @@ import ProgressBar from 'progress';
 import { logs } from "../lang/zh-CN.json";
 import { QueueItem, createBar } from './evaluate';
 import { DepItem, DepEval, DependencyType, PackageManager } from './types';
-import { getParentDir, limit, readPackageJson, toString } from '.';
+import { getParentDir, getSpaceName, limit, readPackageJson, toString } from '.';
 import doPnpmBfs from './pnpm'
 
 export const NODE_MODULES = 'node_modules';
@@ -25,11 +25,13 @@ const eff: string[] = "⠁⠂⠄⡀⢀⠠⠐⠈".split('');
 export default function analyze(
     pkgRoot: string,
     manager: PackageManager,
-    depth: number = Infinity,
-    norm: boolean = true, // 包含dependencies
-    dev: boolean = true, // 包含devDependencies
-    peer: boolean = true, // 包含peerDependencies
-    pkgCount?: number,
+    depth: number = Infinity, [
+        norm, // 包含dependencies
+        dev, // 包含devDependencies
+        peer // 包含peerDependencies
+    ]: [boolean, boolean, boolean]
+    = [true, true, true],
+    pkgCount?: number, // 事先扫描文件检测到的已安装包的数量，用于生成进度条
     relDir: string = '.', // 该包如果不是根目录的主项目（默认是），则从该相对目录下的package.json开始扫描
     init: Partial<DepEval> = {} // 可供初始化补充的返回值初值，用于继续对游离包进行依赖分析的情况，减少重复分析量
 ): DepEval {
@@ -66,6 +68,7 @@ export default function analyze(
         return depEval;
     } else if(relDir !== '.') {
         depEval.analyzed.add(stItemStr);
+        tick(0, `NOT ANALYZED ${stVersion} ${stId}`);
     };
 
     const { 
@@ -89,7 +92,10 @@ export default function analyze(
     // 初始化控制台进度条
     bar ??= pkgCount !== undefined ? createBar(pkgCount) : null;
 
+    const [stSpace, stName] = getSpaceName(stId);
     depEval.result[stId] = {
+        space: stSpace, 
+        name: stName,
         version: stPkgJson.version,
         dir: getParentDir(stId, relDir),
         meta: null,
@@ -110,10 +116,11 @@ export default function analyze(
 
     // 广度优先搜索队列初始化
     const queue: QueueItem[] = [];
-    Object.entries(allDeps).forEach(([type, deps]) => queue.push(
-        ...Object.entries(deps).map(([id, range]) =>
-            new QueueItem(
-                id, range, 
+    for(const [type, deps] of Object.entries(allDeps)) {
+        for(const [id, range] of Object.entries(deps)) {
+            const [space, name] = getSpaceName(id);
+            const qItem = new QueueItem(
+                id, space, name, range, // 包id，命名空间，名字，范围
                 relDir === '.' ? 'ROOT' : relDir + '@' + stPkgJson.version, 
                 type as DependencyType, { 
                     norm: false, optional: true, dev: false,
@@ -121,13 +128,14 @@ export default function analyze(
                 }[type], 
                 1, stDir, 
                 depEval.result[stId].requires!
-    ))));
+            );
+            queue.push(qItem);
+        }
+    }
 
     const stSize = depEval.analyzed.size;
 
-    while (queue.length) {
-        analyzer(abs, depth, queue, depEval);
-    }
+    analyzer(abs, depth, queue, depEval);
 
     const edSize = depEval.analyzed.size;
 
@@ -139,6 +147,7 @@ export default function analyze(
 }
 
 // npm 和 yarn 的搜索方法：从内到外
+// pnpm也可以用这个方法，但比较慢，如果目录中存在部分符号链接建议用这个方法
 function doBfs(
     abs: (...dir: string[]) => string,
     depth: number,
@@ -147,50 +156,57 @@ function doBfs(
 ) {
     const { notFound, optionalNotMeet } = depEval;
 
-    const p = queue.shift();
-    if (!p) return;
-    const { id, range, by } = p;
-    let curDir = p.dir;
+    let p: QueueItem | undefined;
+    while((p = queue.shift()) !== undefined) {
+        const { id, range, by } = p;
+        const [space, name] = getSpaceName(id);
 
-    // 寻找依赖包的安装位置
-    while (true) {
-        // console.log('current', id, range, pth);
-        // 对每一个包进行依赖分析
-        if(analyzePackage(abs, depth, curDir, join(curDir, id, NODE_MODULES), p, queue, depEval)) {
-            break;
+        // 在dirList中枚举该包的所有可能安装位置（与pkgRoot的相对目录），默认为从内到外翻node_modules
+        const dirList = [];
+        let cur = p.dir;
+        while(abs(cur).startsWith(abs())) {
+            dirList.push(cur);
+            
+            const pi = cur.lastIndexOf(NODE_MODULES + sep);
+            if(pi === -1) break;
+            cur = cur.slice(0, pi + NODE_MODULES.length);
+        }
+        dirList.push('..');
+
+        let found = false;
+        // 寻找依赖包的安装位置
+        for(const curDir of dirList) {
+            // 对每一个包进行依赖分析，将从该包中发现的依赖加入queue
+            found = analyzePackage(abs, depth, curDir, p, queue, depEval);
+            if(found) {
+                break;
+            }
         }
 
-        if(!curDir || curDir === sep || curDir === NODE_MODULES) {
-            // 如果已到达根目录还是没找到，说明该依赖未安装
+        // 如果已遍历完dirList还是没找到，说明该依赖未安装
+        if(!found) {
             (p.optional ? optionalNotMeet : notFound)
                 .push({ id, type: p.type, range, by });
             p.target[id] = {
-                version: "NOT_FOUND", dir: null, 
+                space, name, version: "NOT_FOUND", dir: null, 
                 meta: { 
                     range, type: p.type,  depthEnd: p.depth > depth,
-                    optional: p.optional, invalid: false
+                    optional: p.optional, invalid: false, symlink: false
                 }
-            };
-            break;
-        } else {
-            // 在本目录的node_modules未找到包，则转到上级目录继续
-            curDir = curDir.slice(
-                0,
-                curDir.lastIndexOf(NODE_MODULES + sep) + NODE_MODULES.length
-            );
+            }
         }
     }
 }
 
-// 对每一个包进行依赖分析
+// 对每一个包进行依赖分析，将从该包中发现的依赖加入queue
 export function analyzePackage(
     abs: (...dir: string[]) => string,
     depth: number,
     curDir: string,
-    childDir: string,
     curItem: QueueItem,
     queue: QueueItem[],
     depEval: DepEval,
+    childDir?: string
 ): boolean {
     const { id, by, range } = curItem;
     const { rangeInvalid, analyzed: hash } = depEval;
@@ -202,6 +218,27 @@ export function analyzePackage(
         !fs.existsSync(abs(pkgDir)) ||
         !fs.existsSync(abs(pkgJsonDir))
     ) { return false; }
+
+    const stat = fs.lstatSync(abs(pkgDir));
+    if(stat.isFile()) {
+        return false;
+    } 
+    let orgPkgDir = pkgDir, orgDir = curDir;
+
+    // 如果目录是软链接，则对其进行特殊标记
+    if(stat.isSymbolicLink()) { 
+        const org = fs.readlinkSync(abs(pkgDir));
+        // readlink在windows和linux里表现不一样，所以这里要做区分
+        if(sep === '/') { // linux下realink获取的符号链接地址是文件的相对位置
+            orgPkgDir = join(curDir, id, "..", org);
+        } else { // windows下realink获取的符号链接地址是绝对位置
+            orgPkgDir = relative(abs(), org);
+        }
+        if(!fs.existsSync(abs(orgPkgDir))) {
+            return false;
+        }
+        orgDir = getParentDir(id, orgPkgDir);
+    }
 
     const pkg = readPackageJson(abs(pkgJsonDir));
     if (!pkg) {
@@ -227,71 +264,88 @@ export function analyzePackage(
     }
     
     const item: DepItem = {
+        space: curItem.space,
+        name: curItem.name,
         version: pkg.version,
-        dir: curDir,
+        dir: orgDir,
         meta: {
             range,
             type: curItem.type,
             depthEnd: false,
             optional: curItem.optional,
-            invalid
+            invalid,
+            symlink: orgDir !== curDir ? curDir : false
         }
     };
     curItem.target[id] = item;
 
     const itemStr = toString(item, id);
-    // console.log('FOUND', itemStr);
 
-    // 如果该包的依赖未登记入哈希集合
-    if(!hash.has(itemStr)) {
-        const hasDeps = !!(
-            pkgDeps && Object.keys(pkgDeps).length ||
-            pkgOptDeps && Object.keys(pkgOptDeps).length ||
-            pkgPeerDeps && Object.keys(pkgPeerDeps).length
-        );
-
-        if(curItem.depth > depth) {
-            item.meta && (item.meta.depthEnd = true);
-        } // 如果当前搜索深度未超标，则计算它的子依赖
-        else if(hasDeps) {
-            curItem.target[id].requires = {};
-
-            let newTasks: QueueItem[] = [];
-
-            const q = (e: [string, string], type: DependencyType, optional: boolean) =>
-                new QueueItem(
-                    e[0], e[1], itemStr, type, optional, 
-                    curItem.depth + 1, childDir, 
-                    curItem.target[id].requires!
-                );
-
-            pkgDeps && newTasks.push(
-                ...Object.entries(pkgDeps).map((e: any) => q(e, 'norm', false))
-            );
-            pkgOptDeps && newTasks.push(
-                ...Object.entries(pkgOptDeps).map((e: any) => q(e, 'optional', true))
-            );
-            pkgPeerDeps && newTasks.push(
-                ...Object.entries(pkgPeerDeps).map(
-                    (e: any) => q(e, 'peer', pkgPeerMeta?.[e[0]]?.optional ?? false)
-            ));
-
-            queue.push(...newTasks);
-            //console.log(newTasks);
-            //console.log('ADDED', itemStr);
-        }
-        const outLength = process.stdout.columns;
-        bar?.tick({
-            'eff': eff[bar?.curr % eff.length],
-            'queue': queue.length,
-            'nowComplete': outLength <= 100 ? '' : 
-                (desc.nowComplete + ': ' + cyan(limit(`${range} ${id}`, outLength * 0.2)))
-        })
-        hash.add(itemStr);
+    // 如果该包的依赖已登记入哈希集合，则不用再搜寻
+    if(hash.has(itemStr)) {
+        return true;
     }
+    
+    const hasDeps = !!(
+        pkgDeps && Object.keys(pkgDeps).length ||
+        pkgOptDeps && Object.keys(pkgOptDeps).length ||
+        pkgPeerDeps && Object.keys(pkgPeerDeps).length
+    );
+
+    // 如果当前搜索深度未超标，则计算它的子依赖
+    if(curItem.depth > depth) {
+        item.meta && (item.meta.depthEnd = true);
+    } else if(hasDeps) {
+        curItem.target[id].requires = {};
+
+        const newTasks: QueueItem[] = [];
+
+        childDir ??= join(orgPkgDir, NODE_MODULES);
+        const q = (
+            e: [string, string], 
+            type: DependencyType, 
+            optional: boolean, 
+            [space, name]: [string, string] = getSpaceName(e[0])
+        ) => new QueueItem(
+                e[0], space, name, e[1], 
+                itemStr, type, optional, 
+                curItem.depth + 1, childDir!, 
+                curItem.target[id].requires!
+            );
+
+        pkgDeps && newTasks.push(
+            ...Object.entries(pkgDeps).map((e: any) => q(e, 'norm', false))
+        );
+        pkgOptDeps && newTasks.push(
+            ...Object.entries(pkgOptDeps).map((e: any) => q(e, 'optional', true))
+        );
+        pkgPeerDeps && newTasks.push(
+            ...Object.entries(pkgPeerDeps).map(
+                (e: any) => q(e, 'peer', pkgPeerMeta?.[e[0]]?.optional ?? false)
+        ));
+
+        queue.push(...newTasks);
+        //console.log(newTasks);
+        //console.log('ADDED', itemStr);
+    }
+
+    hash.add(itemStr);
+    tick(queue.length, `${range} ${id}`);
+    
     return true;
 }
 
+const tick = (qlen: number, curPackage: string) => {
+    if(!bar) return;
+    const outLength = process.stdout.columns;
+    const token = {
+        'eff': eff[bar.curr % eff.length],
+        'queue': qlen,
+        'nowComplete': outLength <= 100 ? '' : 
+            (desc.nowComplete + ': ' + cyan(limit(curPackage, outLength * 0.2)))
+    };
+    bar[bar.complete ? 'render' : 'tick'](token);
+}
 
 /*
 返回结构大概如下：

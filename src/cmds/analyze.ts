@@ -152,9 +152,6 @@ const action = async (str: string, options: any, lang: any) => {
         if(!pkgJson) { // package.json不存在
             throw lang.logs['cli.ts'].pkgJsonNotExist.replace('%s', pkgRoot);
         }
-        if(manager === 'auto') {
-            manager = getManagerType(pkgRoot);
-        }
 
         const pkgEx = detect(pkgRoot, manager, depth);
         const desc = lang.logs['cli.ts'];
@@ -162,7 +159,7 @@ const action = async (str: string, options: any, lang: any) => {
 
         await new Promise((res) => setTimeout(res, 1000));
 
-        const depEval: DepEval = analyze(pkgRoot, manager, depth, scope[0], scope[1], scope[2], pkgEx.length);
+        const depEval: DepEval = analyze(pkgRoot, manager, depth, scope, pkgEx.length);
         console.log('\n' + cyan(desc.analyzed.replace("%len", yellowBright(depEval.analyzed.size))));
 
         let outEvalRes: any = {};
@@ -240,7 +237,7 @@ function analyzeExtra(depEval: DepEval, notAnalyzed: string[], pkgList: string[]
         const { id, dir } = toDepItemWithId(itemStr);
         const relDir = join(dir!, id);
         // console.log(relDir);
-        analyze(pkgRoot, manager, depth, true, false, false, pkgList.length, relDir, {
+        analyze(pkgRoot, manager, depth, [true, false, false], pkgList.length, relDir, {
             result: depEval.result, analyzed
         });
     }

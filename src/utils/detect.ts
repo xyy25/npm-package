@@ -23,7 +23,7 @@ export default function detect(
     ) { return []; }
     
     // 如果包管理器是pnpm的符号链接结构
-    if(manager === 'pnpm') {
+    if(manager === 'auto' || manager === 'pnpm') {
         return detectPnpm(pkgRoot).map<string>(
             e => typeof e === 'string' ? e : e[0]
         );
