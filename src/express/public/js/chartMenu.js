@@ -3,7 +3,7 @@ const genTitle = (desc, judge = () => true, trueExpr = '开启', falseExpr = '�
 
 const MenuData = (ct) => {
     const { options: opt } = ct;
-    return [ 
+    const data = [ 
         { 
             title: (e) => (e.showRequiring ? '收起' : '展开') + '依赖', 
             action: (e) => ((
@@ -68,6 +68,27 @@ const MenuData = (ct) => {
             }
         ] }
     ];
+
+    data.push({
+        title: '样式..',
+        children: createStyleOptions(ct, [
+            { title: '默认', href: './css/chart.css' },
+            { title: 'soft', href: './css/styles/soft/chart.css' }
+        ])
+    });
+
+    return data;
 }
+
+const createStyleOptions = (ct, styles) => {
+    const styleLink = d3.select('#chart-style');
+    const current = styleLink.attr('href');
+
+    return styles.map(({title, href}) => ({
+        title: () => title + (current === href ? '(当前)' : ''), 
+        action: () => (styleLink.attr('href', href), ct.updateOptions()),
+        disabled: href === current
+    }))
+};
 
 export default MenuData;

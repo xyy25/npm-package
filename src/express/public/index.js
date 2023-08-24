@@ -11,6 +11,9 @@ d3.json('./res.json')
         //const [width, height] = ['width', 'height'].map(e => parseInt(ct.style(e)))
         //const [width, height] = [1628, 900];
         let { innerWidth: width, innerHeight: height } = window;
+
+        d3.select("#chart-style")
+            .attr("href", "./css/styles/soft/chart.css");
         
         // 这里我们将svg元素，和子group元素拆分
         const svg = ct

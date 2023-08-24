@@ -8,8 +8,9 @@ path.link {
 }
 
 text.node {
-  font-family: Hack, JetBrains Mono, Consolas, "方正准圆简体", "青鸟华光准圆", "有爱圆体 CN", "幼圆", sans-serif;
+  font-family: Ubuntu, Hack, JetBrains Mono, Cascadia Code, "方正准圆简体", "青鸟华光准圆", "有爱圆体 CN", "幼圆", sans-serif;
   font-size: 11px;
+  fill: rgb(62, 62, 62);
 }
 
 path.link {
@@ -25,12 +26,12 @@ text.link {
 }
 
 circle.hidden-node {
-  fill: rgb(231, 213, 127);
-  stroke: rgb(230, 244, 40);
+  fill: #FFFB8F;
+  stroke: #DEDA66;
 }
 
 circle.terminal-node {
-  fill: black;
+  fill: rgb(88, 88, 88);
   stroke: none;
 }
 
@@ -45,7 +46,7 @@ text.free-node {
 
 circle.transit-node {
   fill: white;
-  stroke: black;
+  stroke: rgb(88, 88, 88);
 }
 
 circle.depth-end-node {
@@ -71,16 +72,19 @@ text.mark-node {
 }
 
 circle.direct-node {
-  stroke: #c84;
+  stroke: rgb(237, 168, 149);
 }
 
 circle.root-node {
   stroke: rgb(174, 32, 77);
+  fill: rgb(248, 152, 182) ；;
 }
 
 text.root-node {
+  font-family: Segoe UI, Franklin Gothic, Rockwell Extra, "方正准圆简体", "青鸟华光准圆", "有爱圆体 CN", "幼圆", fantasy;
   font-weight: 800;
   font-size: 14px;
+  fill: black;
 }
 
 circle.except-node {
@@ -104,31 +108,33 @@ path.invalid-link {
 }
 
 path.in-link {
-  stroke: green;
+  stroke: #7FD37F;
 }
 
 text.in-link {
-  fill: green;
+  fill: #7FD37F;
 }
 
 circle.in-node {
-  fill: green;
+  fill: #83E983;
+  stroke: #50b650;
 }
 
 text.in-node {
-  fill: green;
+  fill: #5DCB5D;
 }
 
 path.out-link {
-  stroke: orange;
+  stroke: #FF8F8F;
 }
 
 text.out-link {
-  fill: orange;
+  fill: #DE6666;
 }
 
 circle.out-node {
-  fill: orange;
+  fill: #FFA5A5;
+  stroke: #d17979;
 }
 
 text.out-node {
@@ -136,7 +142,7 @@ text.out-node {
 }
 
 path.path-link {
-  stroke: cyan;
+  stroke: rgb(98, 209, 196);
 }
 
 text.path-link {
@@ -144,11 +150,12 @@ text.path-link {
 }
 
 circle.path-node {
-  fill: cyan;
+  fill: rgb(136, 231, 231);
+  stroke: rgb(38, 207, 207);
 }
 
 text.path-node {
-  fill: blue;
+  fill: rgb(59, 59, 184);
 }
 
 text.invalid-link {
@@ -157,15 +164,15 @@ text.invalid-link {
 }
 
 circle.focus-component {
-  stroke: red;
+  stroke: #B481DB;
 }
 
 path.focus-component {
-  stroke: rgb(235, 33, 33);
+  stroke: #A77DC7;
 }
 
 text.focus-component {
-  fill: red;
+  fill: #9357BE;
 }
 
 text.focus-node {
