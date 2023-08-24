@@ -171,19 +171,21 @@ const action = async (str: string, options: any, lang: any) => {
         let outEvalRes: any = {};
         // 评估分析结果并打印至控制台，该函数返回因没有被依赖而没有被分析到的包
         const unused: string[] = evaluate(depEval, pkgEx, outEvalRes); 
-        let notAnalyzed = unused;
-        // 弹出询问是否需要以这些包为起点继续检测其依赖关系
-        const extra: boolean = options.question ? await inquirer.prompt(extraQuestion(lang)) : options.extra;
-        if(unused.length && extra) {
-            console.log(cyan(desc.extraAnalyzeStart.replace("%len", yellow(notAnalyzed.length))));
-            st = new Date().getTime();
-            notAnalyzed = analyzeExtra(depEval, unused, pkgEx);
-            ed = new Date().getTime();
-            timeCost += ed - st;
-            console.log('\n' + cyan(desc.analyzed
-                .replace("%len", yellowBright(depEval.analyzed.size)))
-                .replace("%t", yellowBright(timeString(timeCost)))
-            );
+        let notAnalyzed = unused, { extra } = options;
+        if(unused.length) {
+            // 弹出询问是否需要以这些包为起点继续检测其依赖关系
+            options.question && (extra = (await inquirer.prompt(extraQuestion(lang))).extra);
+            if(extra) {
+                console.log(cyan(desc.extraAnalyzeStart.replace("%len", yellow(notAnalyzed.length))));
+                st = new Date().getTime();
+                notAnalyzed = analyzeExtra(depEval, unused, pkgEx);
+                ed = new Date().getTime();
+                timeCost += ed - st;
+                console.log('\n' + cyan(desc.analyzed
+                    .replace("%len", yellowBright(depEval.analyzed.size)))
+                    .replace("%t", yellowBright(timeString(timeCost)))
+                );
+            }
         }
         
         const { result: res, ...evalRes } = depEval;
