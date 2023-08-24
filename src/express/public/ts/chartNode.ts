@@ -6,6 +6,7 @@ export class Link {
     text: string = ""
     curve: number = 0
     meta: LinkMeta
+    
     constructor(
         public source: Node, 
         public target: Node, 
@@ -16,7 +17,8 @@ export class Link {
             type: 'norm',
             optional: false,
             invalid: false,
-            depthEnd: false
+            depthEnd: false,
+            symlink: false
         }
     }
 
@@ -89,6 +91,7 @@ export class Node {
     showRequiring: boolean = false
     r: number = 3.5
     s: number = 1.5
+    depth: number = NaN
     constructor(
         public dataIndex: number, 
         public data: DiagramNode,

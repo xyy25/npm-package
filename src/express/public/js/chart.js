@@ -49,12 +49,13 @@ export default class Chart {
 
         // 计算由根顶点到所有顶点的依赖路径
         this.requirePaths = getPaths(0, nodes, i => nodes[i].data.requiring);
+        this.requirePaths.forEach((e, i) => nodes[i].depth = e ? e.length - 1 : NaN);
         // 计算强连通分量，并给每个顶点的mate属性赋值同一分量成员的顶点下标数组
         const components = getScc(0, nodes, 
             i => nodes[i].data.requiring, 
             i => nodes[i].data.requiredBy);
         components.filter(c => c.nodes.length > 1).forEach(c => 
-            c.nodes.forEach(n => nodes[n].mate = c.nodes)
+            c.nodes.map(i => nodes[i]).forEach(n => n.mate = c.nodes)
         );
         
         this.vsbNodes = []; // 实际显示的顶点3
@@ -570,6 +571,7 @@ export default class Chart {
                 .call(appendLine, `目录: ${node.data.dir}\n`)
                 .call(appendLine, `依赖: ${node.data.requiring.length}个包`)
                 .call(appendLine, `应用: ${node.data.requiredBy.length}个包`)
+                .call(appendLine, `拓扑深度: ${node.depth}`)
                 .call(appendLine, this.getNodeClass(node, 1));
         }
 

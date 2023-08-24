@@ -12,6 +12,11 @@ $cn-fonts: '方正准圆简体', '青鸟华光准圆', '有爱圆体 CN', '幼�
             drop-shadow(0 0 $bold $clr);
 }
 
+#desc {
+    font-family: $en-fonts, $cn-fonts, sans-serif;
+    @include backshade(white, 0.3px);
+}
+
 path.link {
     fill: none;
 }

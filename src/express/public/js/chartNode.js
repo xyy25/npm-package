@@ -80,6 +80,7 @@ export class Node {
         this.data = data;
         this.temp = temp;
         this.mate = [dataIndex];
+        this.depth = NaN;
         [this.vx, this.vy] = [0, 0];
         [this.x, this.y] = [0, 0];
     }

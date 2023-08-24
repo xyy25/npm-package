@@ -36,6 +36,7 @@ export declare class Node {
     mate: number[]
     r: number
     s: number
+    depth: number
     constructor(
         dataIndex: number, 
         data: DiagramNode,

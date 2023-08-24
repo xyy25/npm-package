@@ -1,4 +1,9 @@
 @charset "UTF-8";
+#desc {
+  font-family: Ubuntu, Hack, JetBrains Mono, Cascadia Code, "方正准圆简体", "青鸟华光准圆", "有爱圆体 CN", "幼圆", sans-serif;
+  filter: drop-shadow(0 0 0.3px white) drop-shadow(0 0 0.3px white) drop-shadow(0 0 0.3px white) drop-shadow(0 0 0.3px white) drop-shadow(0 0 0.3px white) drop-shadow(0 0 0.3px white) drop-shadow(0 0 0.3px white) drop-shadow(0 0 0.3px white) drop-shadow(0 0 0.3px white);
+}
+
 path.link {
   fill: none;
 }
