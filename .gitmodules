@@ -1,0 +1,4 @@
+[submodule "src/view"]
+	path = src/view
+	url = https://github.com/Su-u-un/npm-package_view
+	branch = xyy25
