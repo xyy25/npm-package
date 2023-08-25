@@ -117,6 +117,7 @@ function analyzeCommand(cmd: Command, lang: any) {
         .option('-e, --extra', lang.commands.analyze.options.extra.description, false)
         .option('-c, --console, --print', lang.commands.analyze.options.console.description)
         .option('-i, --noweb', lang.commands.analyze.options.noweb.description)
+        .option('--noresource', lang.commands.analyze.options.noresource.description, false)
         .option('--proto', lang.commands.analyze.options.proto.description)
         .action((str, options) => action(str, options, lang));
 }
@@ -239,7 +240,7 @@ const action = async (str: string, options: any, lang: any) => {
             const bufferEval = Buffer.from(JSON.stringify(outEvalRes));
             fs.writeFileSync(join(__dirname, '../express/public/res.json'), buffer);
             fs.writeFileSync(join(__dirname, '../express/public/eval.json'), bufferEval);
-            (await import('../express')).default(port, host);
+            (await import('../express')).default(port, host, options.noresource ? undefined : pkgRoot);
         }
     } catch(e: any) {
         console.error(error(lang.commons.error + ':' + e));

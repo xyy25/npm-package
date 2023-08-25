@@ -43,6 +43,9 @@
                 },
                 "extra": {
                     "description": "Analyze extraneous packages if exist."
+                },
+                "noresource": {
+                    "description": "Do not start static resource server of package directory."
                 }
             }
         },
@@ -115,7 +118,8 @@
             "extraAnalyzeStart": "Start analyzing for %len extraneous package(s).."
         },
         "express.ts": {
-            "start": "The generated view is now opened at %s"
+            "start": "The generated view is now opened at %s",
+            "staticStart": "The static resources server of the package is now opened at %s"
         },
         "utils/analyze.ts": {
             "nowComplete": "Now"

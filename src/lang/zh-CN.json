@@ -48,6 +48,9 @@
                 },
                 "extra": {
                     "description": "分析未使用包的依赖关系."
+                },
+                "noresource": {
+                    "description": "不启动包目录静态资源服务器."
                 }
             }
         },
@@ -119,7 +122,8 @@
             "extraAnalyzeStart": "正在对%len个未使用包启动依赖分析.."
         },
         "express.ts": {
-            "start": "网页视图已在 %s 打开."
+            "start": "网页视图已在 %s 打开.",
+            "staticStart": "包目录静态资源已在 %s 打开."
         },
         "utils/analyze.ts": {
             "nowComplete": "当前"
