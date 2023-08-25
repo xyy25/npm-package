@@ -69,12 +69,12 @@ const MenuData = (ct) => {
         ] }
     ];
 
-    data.push({
-        title: '样式..',
-        children: createStyleOptions(ct, [
-            { title: '默认', href: './css/chart.css' },
-            { title: 'soft', href: './css/styles/soft/chart.css' }
-        ])
+    const styleOpts = createStyleOptions(ct, [
+        { title: '默认', href: '../css/chart.css' },
+        { title: 'soft', href: '../css/styles/soft/chart.css' }
+    ])
+    styleOpts.length && data.push({
+        title: '样式..', children: styleOpts
     });
 
     return data;
@@ -82,6 +82,7 @@ const MenuData = (ct) => {
 
 const createStyleOptions = (ct, styles) => {
     const styleLink = d3.select('#chart-style');
+    if(!styleLink.size()) { return []; }
     const current = styleLink.attr('href');
 
     return styles.map(({title, href}) => ({

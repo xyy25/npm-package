@@ -1,6 +1,7 @@
 import { ContextMenu } from "./lib/d3-context-menu";
 import Chart from "./chart";
 import { Node } from "./chartNode";
+import { select } from "d3";
 
 const genTitle = (desc: string, judge = () => true, trueExpr = '开启', falseExpr = '关闭') => 
         `${desc}: ` + (judge() ? trueExpr : falseExpr);
@@ -8,7 +9,7 @@ const genTitle = (desc: string, judge = () => true, trueExpr = '开启', falseEx
 export const nodeMenu = (ct: Chart): ContextMenu.MenuItems<any, Node> => {
     const { options: opt } = ct;
     
-    return [ 
+    const data: ReturnType<typeof nodeMenu> = [ 
         { 
             title: (e: Node) => (e.showRequiring ? '收起' : '展开') + '依赖', 
             action: (e: Node) => ((
@@ -73,4 +74,31 @@ export const nodeMenu = (ct: Chart): ContextMenu.MenuItems<any, Node> => {
             }
         ] }
     ];
+
+    const styleOpts = createStyleOptions(ct, [
+        { title: '默认', href: '../css/chart.css' },
+        { title: 'soft', href: '../css/styles/soft/chart.css' }
+    ])
+    styleOpts.length && data.push({
+        title: '样式..', children: styleOpts
+    });
+
+    return data;
 }
+
+type StyleOption = { 
+    title: string, 
+    href: string
+}
+
+const createStyleOptions = (ct: Chart, styles: StyleOption[]): ReturnType<typeof nodeMenu> => {
+    const styleLink = select('#chart-style');
+    if(!styleLink.size()) { return []; }
+    const current = styleLink.attr('href');
+
+    return styles.map(({title, href}) => ({
+        title: () => title + (current === href ? '(当前)' : ''), 
+        action: () => (styleLink.attr('href', href), ct.updateOptions()),
+        disabled: href === current
+    }))
+};
