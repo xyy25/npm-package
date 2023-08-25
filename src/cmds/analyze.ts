@@ -13,6 +13,7 @@ import detect from "../utils/detect";
 import { evaluate } from "../utils/evaluate";
 import { DepEval, DepResult, DirectedDiagram, PackageManager } from "../utils/types";
 import analyze, { orange } from "../utils/analyze";
+import { createResourceServer } from "../express";
 
 inquirer.registerPrompt('auto', inquirerAuto);
 
@@ -240,7 +241,15 @@ const action = async (str: string, options: any, lang: any) => {
             const bufferEval = Buffer.from(JSON.stringify(outEvalRes));
             fs.writeFileSync(join(__dirname, '../express/public/res.json'), buffer);
             fs.writeFileSync(join(__dirname, '../express/public/eval.json'), bufferEval);
-            (await import('../express')).default(port, host, options.noresource ? undefined : pkgRoot);
+            fs.writeFileSync(join(__dirname, '../view/json/res.json'), buffer);
+            fs.writeFileSync(join(__dirname, '../view/json/eval.json'), bufferEval);
+            (await import('../express')).default(port, host, () => {
+                if(!options.noresource) {
+                    createResourceServer(pkgRoot);
+                }
+            });
+        } else if(!options.noresource) {
+            createResourceServer(pkgRoot);
         }
     } catch(e: any) {
         console.error(error(lang.commons.error + ':' + e));
