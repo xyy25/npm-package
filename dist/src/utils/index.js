@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.stringPlus = exports.compareVersionExpr = exports.timeString = exports.compareVersion = exports.toDepItemWithId = exports.getSpaceName = exports.find = exports.splitAt = exports.limit = exports.toString = exports.countMatches = exports.getParentDir = exports.getREADME = exports.getManagerType = exports.readPackageJson = void 0;
+exports.stringPlus = exports.compareVersionExpr = exports.compareVersion = exports.timeString = exports.toDepItemWithId = exports.getSpaceName = exports.find = exports.splitAt = exports.limit = exports.toString = exports.countMatches = exports.getParentDir = exports.getREADME = exports.getManagerType = exports.readPackageJson = void 0;
 const path_1 = require("path");
 const fs_1 = __importDefault(require("fs"));
 // 获取包根目录下的package.json对象
@@ -93,6 +93,28 @@ const toDepItemWithId = (itemStr) => {
     return splitDirId(pre, post.slice(1), areaAtPos - 1);
 };
 exports.toDepItemWithId = toDepItemWithId;
+const timeString = (miliseconds) => {
+    let str, t = miliseconds;
+    str = (t % 1e3) + 'ms';
+    t = Math.floor(t / 1e3);
+    if (!t)
+        return str;
+    str = `${t % 60}.${miliseconds % 1000}s`;
+    t = Math.floor(t / 60);
+    if (!t)
+        return str;
+    str = `${t % 60}m${str}`;
+    t = Math.floor(t / 60);
+    if (!t)
+        return str;
+    str = `${t % 24}h${str}`;
+    t = Math.floor(t / 24);
+    if (!t)
+        return str;
+    str = `${t}d${str}`;
+    return str;
+};
+exports.timeString = timeString;
 const compareVersion = (versionA, versionB) => {
     const [arr1, arr2] = [versionA, versionB].map(v => v.split('.'));
     const [len1, len2] = [arr1.length, arr2.length];
@@ -126,28 +148,6 @@ const compareVersion = (versionA, versionB) => {
     return 0;
 };
 exports.compareVersion = compareVersion;
-const timeString = (miliseconds) => {
-    let str, t = miliseconds;
-    str = (t % 1e3) + 'ms';
-    t = Math.floor(t / 1e3);
-    if (!t)
-        return str;
-    str = `${t % 60}.${miliseconds % 1000}s`;
-    t = Math.floor(t / 60);
-    if (!t)
-        return str;
-    str = `${t % 60}m${str}`;
-    t = Math.floor(t / 60);
-    if (!t)
-        return str;
-    str = `${t % 24}h${str}`;
-    t = Math.floor(t / 24);
-    if (!t)
-        return str;
-    str = `${t}d${str}`;
-    return str;
-};
-exports.timeString = timeString;
 const compareVersionExpr = (input, expr, target) => {
     const res = (0, exports.compareVersion)(input, target);
     switch (expr) {

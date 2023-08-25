@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.analyzePackage = exports.orange = exports.PACKAGE_JSON = exports.NODE_MODULES = void 0;
+exports.orange = exports.PACKAGE_JSON = exports.NODE_MODULES = void 0;
 const path_1 = require("path");
 const semver_1 = require("semver");
 const fs_1 = __importDefault(require("fs"));
@@ -108,8 +108,7 @@ init = {} // 可供初始化补充的返回值初值，用于继续对游离包�
     return depEval;
 }
 exports.default = analyze;
-// npm 和 yarn 的搜索方法：从内到外
-// pnpm也可以用这个方法，但比较慢，如果目录中存在部分符号链接建议用这个方法
+// 广度优先搜索主函数
 function bfsAnalyzer(abs, depth, queue, depEval) {
     const { notFound, optionalNotMeet } = depEval;
     let p;
@@ -239,7 +238,6 @@ function analyzePackage(abs, depth, curDir, curItem, queue, depEval, childDir) {
     tick(queue.length, `${range} ${id}`);
     return true;
 }
-exports.analyzePackage = analyzePackage;
 const tick = (qlen, curPackage) => {
     if (!bar)
         return;

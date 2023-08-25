@@ -137,8 +137,7 @@ export default function analyze(
     return depEval;
 }
 
-// npm 和 yarn 的搜索方法：从内到外
-// pnpm也可以用这个方法，但比较慢，如果目录中存在部分符号链接建议用这个方法
+// 广度优先搜索主函数
 function bfsAnalyzer(
     abs: (...dir: string[]) => string,
     depth: number,
@@ -190,7 +189,7 @@ function bfsAnalyzer(
 }
 
 // 对每一个包进行依赖分析，将从该包中发现的依赖加入queue
-export function analyzePackage(
+function analyzePackage(
     abs: (...dir: string[]) => string,
     depth: number,
     curDir: string,
