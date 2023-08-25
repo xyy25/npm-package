@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.evaluate = exports.printItemStrs = exports.dirsToObj = exports.createBar = exports.QueueItem = void 0;
+exports.evaluate = exports.printList = exports.printItemStrs = exports.dirsToObj = exports.createBar = exports.QueueItem = void 0;
 const chalk_1 = __importDefault(require("chalk"));
 const progress_1 = __importDefault(require("progress"));
 const path_1 = require("path");
@@ -13,7 +13,9 @@ const _1 = require(".");
 const { 'utils/evaluate.ts': desc } = zh_CN_json_1.logs;
 const { gray, green, cyan, yellow, yellowBright, bgMagenta, black } = chalk_1.default;
 class QueueItem {
-    constructor(id, // 包名
+    constructor(id, // 包id 
+    space, // 包的命名空间，如"@types/node"的命名空间为"@types"
+    name, // 包的名称，如"@types/node"的名称为"node"，如果无命名空间则会与id一致
     range, // 需要的版本范围
     by, // 包的需求所属
     type, // 包的依赖类型
@@ -21,6 +23,8 @@ class QueueItem {
     depth, // 当前深度
     dir, target) {
         this.id = id;
+        this.space = space;
+        this.name = name;
         this.range = range;
         this.by = by;
         this.type = type;
@@ -40,7 +44,7 @@ const createBar = (total) => {
         head: chalk_1.default.red('▇'),
         complete: yellowBright('▇'),
         incomplete: black(' '),
-        clear: true
+        // clear: true
     });
 };
 exports.createBar = createBar;
@@ -114,6 +118,13 @@ const printItemStrs = (itemStrs, depth = Infinity) => {
     dfs((0, exports.dirsToObj)(linkMap.map(e => e[0]), linkMap.map(e => e[1] ? '-> ' + gray(e[1]) : '')));
 };
 exports.printItemStrs = printItemStrs;
+const printList = (list, itemColor, formatter = (e) => e, limit = list.length, log = console.log) => {
+    list.slice(0, limit).forEach(e => log('-', itemColor(formatter(e))));
+    if (list.length > limit) {
+        log("  ..." + desc.extra.replace("%len", yellow(list.length)));
+    }
+};
+exports.printList = printList;
 function evaluate(depEval, pkgList, outputs) {
     const notAnalyzed = [];
     if (!outputs)
@@ -136,10 +147,7 @@ function evaluate(depEval, pkgList, outputs) {
             else {
                 // 如果搜索深度为Infinity，有可能因为它们并不被任何包依赖
                 console.warn((0, analyze_1.orange)(desc.notInHash));
-                notInHash.slice(0, 8).forEach(e => console.log('-', green(e)));
-                if (notInHash.length >= 8) {
-                    console.warn("  ..." + desc.extra.replace("%len", yellow(notInHash.length)));
-                }
+                (0, exports.printList)(notInHash, green, e => e, 8, console.warn);
                 console.warn((0, analyze_1.orange)(desc.notInHash2));
             }
             notAnalyzed.push(...notInHash);
@@ -148,10 +156,7 @@ function evaluate(depEval, pkgList, outputs) {
             // 如果有元素存在于哈希集合却不存在于detect结果中
             // 说明这些元素可能是detect搜索方法的漏网之鱼，可能是detect的深度过低
             console.warn((0, analyze_1.orange)(desc.notInList.replace("%len", yellow(notInList.length))));
-            notInList.slice(0, 8).forEach(e => console.log('-', green(e)));
-            if (notInList.length >= 8) {
-                console.warn("  ..." + desc.extra.replace("%len", yellow(notInList.length)));
-            }
+            (0, exports.printList)(notInList, green, e => e, 8, console.warn);
         }
         outputs['unused'] = notInHash;
         outputs['notDetected'] = notInList;
@@ -166,13 +171,13 @@ function evaluate(depEval, pkgList, outputs) {
         console.warn((0, analyze_1.orange)(desc.rangeInvalid
             .replace("%d", yellowBright(rangeInvalid.length))
             .replace(/%1(.*)%1/, bgMagenta("$1"))));
-        rangeInvalid.forEach(e => console.warn('-', green(iStr(e))));
+        (0, exports.printList)(rangeInvalid, green, iStr, 8, console.warn);
     }
     if (notFound.length) {
         console.warn((0, analyze_1.orange)(desc.pkgNotFound
             .replace("%d", yellowBright(notFound.length))
             .replace(/%1(.*)%1/, bgMagenta("$1"))));
-        notFound.forEach(e => console.warn('-', green(nStr(e))));
+        (0, exports.printList)(notFound, green, nStr, 8, console.warn);
         console.warn((0, analyze_1.orange)(desc.pkgNotFound2));
     }
     return notAnalyzed;

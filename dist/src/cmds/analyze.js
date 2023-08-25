@@ -185,23 +185,34 @@ const action = (str, options, lang) => __awaiter(void 0, void 0, void 0, functio
         if (!pkgJson) { // package.json不存在
             throw lang.logs['cli.ts'].pkgJsonNotExist.replace('%s', pkgRoot);
         }
-        if (manager === 'auto') {
-            manager = (0, utils_1.getManagerType)(pkgRoot);
-        }
         const pkgEx = (0, detect_1.default)(pkgRoot, manager, depth);
         const desc = lang.logs['cli.ts'];
         console.log((0, chalk_1.cyan)(desc.detected.replace("%s", (0, chalk_1.yellow)(pkgEx.length))));
         yield new Promise((res) => setTimeout(res, 1000));
-        const depEval = (0, analyze_1.default)(pkgRoot, manager, depth, scope[0], scope[1], scope[2], pkgEx.length);
-        console.log('\n' + (0, chalk_1.cyan)(desc.analyzed.replace("%len", (0, chalk_1.yellowBright)(depEval.analyzed.size))));
+        let st = new Date().getTime();
+        const depEval = (0, analyze_1.default)(pkgRoot, manager, depth, scope, pkgEx.length);
+        let ed = new Date().getTime();
+        let timeCost = ed - st;
+        console.log('\n' + (0, chalk_1.cyan)(desc.analyzed
+            .replace("%len", (0, chalk_1.yellowBright)(depEval.analyzed.size))
+            .replace("%t", (0, chalk_1.yellowBright)((0, utils_1.timeString)(timeCost)))));
         let outEvalRes = {};
         // 评估分析结果并打印至控制台，该函数返回因没有被依赖而没有被分析到的包
         const unused = (0, evaluate_1.evaluate)(depEval, pkgEx, outEvalRes);
-        let notAnalyzed = unused;
-        // 弹出询问是否需要以这些包为起点继续检测其依赖关系
-        const extra = options.question ? yield inquirer_1.default.prompt(extraQuestion(lang)) : options.extra;
-        if (unused.length && extra) {
-            notAnalyzed = analyzeExtra(depEval, unused, pkgEx, desc);
+        let notAnalyzed = unused, { extra } = options;
+        if (unused.length) {
+            // 弹出询问是否需要以这些包为起点继续检测其依赖关系
+            options.question && (extra = (yield inquirer_1.default.prompt(extraQuestion(lang))).extra);
+            if (extra) {
+                console.log((0, chalk_1.cyan)(desc.extraAnalyzeStart.replace("%len", (0, chalk_1.yellow)(notAnalyzed.length))));
+                st = new Date().getTime();
+                notAnalyzed = analyzeExtra(depEval, unused, pkgEx);
+                ed = new Date().getTime();
+                timeCost += ed - st;
+                console.log('\n' + (0, chalk_1.cyan)(desc.analyzed
+                    .replace("%len", (0, chalk_1.yellowBright)(depEval.analyzed.size)))
+                    .replace("%t", (0, chalk_1.yellowBright)((0, utils_1.timeString)(timeCost))));
+            }
         }
         const { result: res } = depEval, evalRes = __rest(depEval, ["result"]);
         const sres = options.proto ? res : (0, diagram_1.toDiagram)(res);
@@ -246,18 +257,16 @@ const action = (str, options, lang) => __awaiter(void 0, void 0, void 0, functio
         console.error((0, cli_1.error)(lang.commons.error + ':' + e));
     }
 });
-function analyzeExtra(depEval, notAnalyzed, pkgList, desc) {
+function analyzeExtra(depEval, notAnalyzed, pkgList) {
     const { pkgRoot, manager, depth, analyzed } = depEval;
-    console.log((0, chalk_1.cyan)(desc.extraAnalyzeStart.replace("%len", (0, chalk_1.yellow)(notAnalyzed.length))));
     for (const itemStr of notAnalyzed) {
         const { id, dir } = (0, utils_1.toDepItemWithId)(itemStr);
         const relDir = (0, path_1.join)(dir, id);
         // console.log(relDir);
-        (0, analyze_1.default)(pkgRoot, manager, depth, true, false, false, pkgList.length, relDir, {
+        (0, analyze_1.default)(pkgRoot, manager, depth, [true, false, false], pkgList.length, relDir, {
             result: depEval.result, analyzed
         });
     }
-    console.log('\n' + (0, chalk_1.cyan)(desc.analyzed.replace("%len", (0, chalk_1.yellowBright)(depEval.analyzed.size))));
     return pkgList.filter(e => !analyzed.has(e)).sort();
 }
 exports.default = analyzeCommand;

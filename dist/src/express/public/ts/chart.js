@@ -101,9 +101,10 @@ class Chart {
         const { nodes } = this;
         // 计算由根顶点到所有顶点的依赖路径
         this.requirePaths = (0, utils_1.getPaths)(0, nodes, (i) => nodes[i].data.requiring);
+        this.requirePaths.forEach((e, i) => nodes[i].depth = e ? e.length - 1 : NaN);
         // 计算强连通分量，并给每个顶点的mate属性赋值同一分量成员的顶点下标数组
         const components = (0, utils_1.getScc)(0, nodes, i => nodes[i].data.requiring, i => nodes[i].data.requiredBy);
-        components.filter(c => c.nodes.length > 1).forEach(c => c.nodes.forEach(n => nodes[n].mate = c.nodes));
+        components.filter(c => c.nodes.length > 1).forEach(c => c.nodes.map(i => nodes[i]).forEach(n => n.mate = c.nodes));
         this.vsbNodes = []; // 实际显示的顶点
         this.vsbLinks = []; // 实际显示的边
         this.marked = []; // 标记的顶点
@@ -320,13 +321,11 @@ class Chart {
         const hide = (n) => [n.showNode, n.showRequiring] = [false, false];
         for (const i of indices) {
             const node = nodes[i];
-            if (node.mate.length > 1) {
-                if (includes(node)) {
-                    node.mate.forEach(m => hide(nodes[m]));
-                }
-                continue;
+            if (includes(node)) {
+                node.mate.map(i => nodes[i])
+                    .filter(m => !excludes(m))
+                    .forEach(m => hide(m));
             }
-            hide(node);
         }
         this.clearAway(excludes);
     }
@@ -516,6 +515,7 @@ class Chart {
                 .call(appendLine, `目录: ${node.data.dir}\n`)
                 .call(appendLine, `依赖: ${node.data.requiring.length}个包`)
                 .call(appendLine, `应用: ${node.data.requiredBy.length}个包`)
+                .call(appendLine, `拓扑深度: ${node.depth}`)
                 .call(appendLine, this.getNodeClass(node, 1));
         }
         const { requiring: outs, requiredBy: ins } = node.data;

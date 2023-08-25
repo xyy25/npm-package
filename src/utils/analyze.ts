@@ -96,7 +96,7 @@ export default function analyze(
         space: stSpace, 
         name: stName,
         version: stPkgJson.version,
-        dir: getParentDir(stId, relDir),
+        dir: getParentDir(stId, relDir === '.' ? pkgRoot : relDir),
         meta: null,
         requires: {}
     };

@@ -30,8 +30,13 @@ export const getREADME = (id: string, dir?: string): string | null => {
     }
 }
 
-export const getParentDir = (id: string, pkgDir: string): string =>
-    join(pkgDir, ...id.split("/").map(() => ".."));
+export function getParentDir(id: string, pkgDir: string): string;
+export function getParentDir([space, name]: [string, string], pkgDir: string): string;
+export function getParentDir(par1: string | [string, string], pkgDir: string): string { 
+    return typeof par1 === 'string' ?
+        join(pkgDir, ...par1.split("/").map(() => "..")) :
+        join(pkgDir, par1[0] && "..", par1[1] && "..");
+}
 
 export const countMatches = (str: string, matcher: RegExp | string): number => 
     str.match(new RegExp(matcher, "g"))?.length ?? 0;
@@ -50,7 +55,7 @@ export const splitAt = (str: string, pos: number): [string, string] =>
     pos < 0 ? ['', str] : pos >= str.length ? [str, ''] : 
         [str.slice(0, pos), str.slice(pos)];
     
-export const find = <T extends Item>(items: DirectedDiagram, item: T): number =>
+export const find = <T extends Item>(items: DiagramNode[], item: T): number =>
     items.findIndex(e => toString(e) === toString(item));
 
 export const getSpaceName = (id: string): [string, string] => 
@@ -87,6 +92,24 @@ export const toDepItemWithId = (itemStr: string): DiagramNode => {
     return splitDirId(pre, post.slice(1), areaAtPos - 1);
 }
 
+export const timeString = (miliseconds: number): string => {
+    let str: string, t = miliseconds;
+    str = (t % 1e3) + 'ms';
+    t = Math.floor(t / 1e3);
+    if(!t) return str;
+    str = `${t % 60}.${miliseconds % 1000}s`;
+    t = Math.floor(t / 60);
+    if(!t) return str;
+    str = `${t % 60}m${str}`;
+    t = Math.floor(t / 60);
+    if(!t) return str;
+    str = `${t % 24}h${str}`;
+    t = Math.floor(t / 24);
+    if(!t) return str;
+    str = `${t}d${str}`;
+    return str;
+}
+
 export const compareVersion = (versionA: string, versionB: string): -1 | 0 | 1 => {
     const [arr1, arr2] = [versionA, versionB].map(v => v.split('.'));
     const [len1, len2] = [arr1.length, arr2.length];
@@ -116,24 +139,6 @@ export const compareVersion = (versionA: string, versionB: string): -1 | 0 | 1 =
         return 0
     }
     return 0
-}
-
-export const timeString = (miliseconds: number): string => {
-    let str: string, t = miliseconds;
-    str = (t % 1e3) + 'ms';
-    t = Math.floor(t / 1e3);
-    if(!t) return str;
-    str = `${t % 60}.${miliseconds % 1000}s`;
-    t = Math.floor(t / 60);
-    if(!t) return str;
-    str = `${t % 60}m${str}`;
-    t = Math.floor(t / 60);
-    if(!t) return str;
-    str = `${t % 24}h${str}`;
-    t = Math.floor(t / 24);
-    if(!t) return str;
-    str = `${t}d${str}`;
-    return str;
 }
 
 type CompareSymbol = "<" | ">" | "==" | "!=" | "<=" | ">=";

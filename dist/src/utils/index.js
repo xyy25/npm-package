@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.stringPlus = exports.compareVersionExpr = exports.compareVersion = exports.toDepItemWithId = exports.find = exports.splitAt = exports.limit = exports.toString = exports.countMatches = exports.getParentDir = exports.getREADME = exports.getManagerType = exports.readPackageJson = void 0;
+exports.stringPlus = exports.compareVersionExpr = exports.timeString = exports.compareVersion = exports.toDepItemWithId = exports.getSpaceName = exports.find = exports.splitAt = exports.limit = exports.toString = exports.countMatches = exports.getParentDir = exports.getREADME = exports.getManagerType = exports.readPackageJson = void 0;
 const path_1 = require("path");
 const fs_1 = __importDefault(require("fs"));
 // 获取包根目录下的package.json对象
@@ -37,7 +37,11 @@ const getREADME = (id, dir) => {
     }
 };
 exports.getREADME = getREADME;
-const getParentDir = (id, pkgDir) => (0, path_1.join)(pkgDir, ...id.split("/").map(() => ".."));
+function getParentDir(par1, pkgDir) {
+    return typeof par1 === 'string' ?
+        (0, path_1.join)(pkgDir, ...par1.split("/").map(() => "..")) :
+        (0, path_1.join)(pkgDir, par1[0] && "..", par1[1] && "..");
+}
 exports.getParentDir = getParentDir;
 const countMatches = (str, matcher) => { var _a, _b; return (_b = (_a = str.match(new RegExp(matcher, "g"))) === null || _a === void 0 ? void 0 : _a.length) !== null && _b !== void 0 ? _b : 0; };
 exports.countMatches = countMatches;
@@ -55,12 +59,15 @@ const splitAt = (str, pos) => pos < 0 ? ['', str] : pos >= str.length ? [str, ''
 exports.splitAt = splitAt;
 const find = (items, item) => items.findIndex(e => (0, exports.toString)(e) === (0, exports.toString)(item));
 exports.find = find;
+const getSpaceName = (id) => id.includes('/') ? id.split('/', 2) : ['', id];
+exports.getSpaceName = getSpaceName;
 const toDepItemWithId = (itemStr) => {
     var _a, _b, _c, _d;
     const splitDirId = (itemUri, version, pos) => {
         const [dir, id] = (0, exports.splitAt)(itemUri, pos);
+        const [space, name] = (0, exports.getSpaceName)(id.slice(1));
         return {
-            id: id.slice(1), version, dir,
+            id: id.slice(1), space, name, version, dir,
             meta: [], requiring: [], requiredBy: []
         };
     };
@@ -119,6 +126,28 @@ const compareVersion = (versionA, versionB) => {
     return 0;
 };
 exports.compareVersion = compareVersion;
+const timeString = (miliseconds) => {
+    let str, t = miliseconds;
+    str = (t % 1e3) + 'ms';
+    t = Math.floor(t / 1e3);
+    if (!t)
+        return str;
+    str = `${t % 60}.${miliseconds % 1000}s`;
+    t = Math.floor(t / 60);
+    if (!t)
+        return str;
+    str = `${t % 60}m${str}`;
+    t = Math.floor(t / 60);
+    if (!t)
+        return str;
+    str = `${t % 24}h${str}`;
+    t = Math.floor(t / 24);
+    if (!t)
+        return str;
+    str = `${t}d${str}`;
+    return str;
+};
+exports.timeString = timeString;
 const compareVersionExpr = (input, expr, target) => {
     const res = (0, exports.compareVersion)(input, target);
     switch (expr) {

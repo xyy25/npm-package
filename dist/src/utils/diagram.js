@@ -6,9 +6,9 @@ const toDiagram = (depResult) => {
     const res = [];
     const dfs = (dep, originIndex = -1) => {
         for (const [id, item] of Object.entries(dep)) {
-            const { requires, version, dir, meta } = item;
+            const { space, name, requires, version, dir, meta } = item;
             const newItem = {
-                id, version, dir,
+                id, space, name, version, dir,
                 meta: [], requiring: [],
                 requiredBy: []
             };

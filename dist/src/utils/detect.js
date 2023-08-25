@@ -17,7 +17,7 @@ function detect(pkgRoot, manager, depth = Infinity) {
         return [];
     }
     // 如果包管理器是pnpm的符号链接结构
-    if (manager === 'pnpm') {
+    if (manager === 'auto' || manager === 'pnpm') {
         return detectPnpm(pkgRoot).map(e => typeof e === 'string' ? e : e[0]);
     }
     // 如果包管理器是npm或yarn的扁平结构

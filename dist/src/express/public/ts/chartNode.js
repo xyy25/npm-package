@@ -14,7 +14,8 @@ class Link {
             type: 'norm',
             optional: false,
             invalid: false,
-            depthEnd: false
+            depthEnd: false,
+            symlink: false
         };
     }
     center() {
@@ -82,6 +83,7 @@ class Node {
         this.showRequiring = false;
         this.r = 3.5;
         this.s = 1.5;
+        this.depth = NaN;
         this.mate = [dataIndex];
         [this.vx, this.vy] = [0, 0];
         [this.x, this.y] = [0, 0];

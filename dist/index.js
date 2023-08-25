@@ -1,7 +1,7 @@
 #!/usr/bin/env node -r "ts-node/register"
 "use strict";
 // linux下若要npm link请将第一行换成：
-// #!/usr/bin/env ts-node
+// #!/usr/bin/env ts-node-script
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
