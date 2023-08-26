@@ -241,14 +241,22 @@ const action = async (str: string, options: any, lang: any) => {
             const bufferEval = Buffer.from(JSON.stringify(outEvalRes));
             fs.writeFileSync(join(__dirname, '../express/public/res.json'), buffer);
             fs.writeFileSync(join(__dirname, '../express/public/eval.json'), bufferEval);
-            fs.writeFileSync(join(__dirname, '../view/json/res.json'), buffer);
-            fs.writeFileSync(join(__dirname, '../view/json/eval.json'), bufferEval);
             (await import('../express')).default(port, host, () => {
                 if(!options.noresource) {
+                    fs.writeFileSync(join(__dirname, '../view/json/res.json'), buffer);
+                    fs.writeFileSync(join(__dirname, '../view/json/eval.json'), bufferEval);
                     createResourceServer(pkgRoot);
                 }
             });
         } else if(!options.noresource) {
+            const dres = options.proto ? toDiagram(res) : sres as DirectedDiagram;
+            if(depth === Infinity && !extra) {
+                dres.push(...unused.map(e => toDepItemWithId(e))); 
+            }
+            const buffer = Buffer.from(JSON.stringify(dres));
+            const bufferEval = Buffer.from(JSON.stringify(outEvalRes));
+            fs.writeFileSync(join(__dirname, '../view/json/res.json'), buffer);
+            fs.writeFileSync(join(__dirname, '../view/json/eval.json'), bufferEval);
             createResourceServer(pkgRoot);
         }
     } catch(e: any) {

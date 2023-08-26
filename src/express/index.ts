@@ -20,7 +20,7 @@ export function createResourceServer(
         'http://localhost:5502'
     ];
     const corsSet = cors({ 
-        origin: (org, cb) => (console.log('origin', org), cb(null, org && allowlist.includes(org)))
+        origin: (org, cb) => cb(null, org && allowlist.includes(org))
     });
     resrc.use('/api', corsSet, express.static(rootDir));
 
