@@ -23,11 +23,10 @@ export declare type Scale = {
 
 declare class Chart {
     constructor(
-        svg: d3.Selection<any, any, any, any>, 
-        data: DirectedDiagram, 
+        public container: d3.Selection<any, any, any, any>, 
+        public data: DirectedDiagram, 
         initOptions: Partial<ChartOption> = {}
     )
-    svg: d3.Selection<any, any, any, any>
     data: DirectedDiagram
     scale: Scale
     options: ChartOption
@@ -76,6 +75,7 @@ declare class Chart {
     unmarkNode(...indices: number[]): void;
     getVsbPaths(nodeSet: Node[]): (number[] | null)[];
     clearAway(excludes: (n: Node) => boolean = () => false): void;
+    resize(width: number, height: number): void;
     updateOptions(): void;
     update(alpha?: number): void;
     clickNode(eThis: any, node: Node): void;

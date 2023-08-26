@@ -44,7 +44,7 @@ namespace Chart {
 
 export default class Chart {
     constructor(
-        public svg: d3.Selection<any, any, any, any>, 
+        public container: d3.Selection<any, any, any, any>, 
         public data: DirectedDiagram, 
         initOptions: Partial<ChartOption> = {}
     ) {
@@ -65,24 +65,25 @@ export default class Chart {
         }
         this.init();
     }
+    svg!: d3.Selection<SVGSVGElement, any, any, any>;
     scale: Scale
     options: ChartOption
-    nodes: Node[] = []
-    vsbNodes: Node[] = []
-    vsbLinks: Link[] = []
-    marked: number[] = []
-    requirePaths: (number[] | null) [] = []
-    g: d3.Selection<SVGGElement, any, any, any> = d3.select('body');
-    desc: d3.Selection<SVGTextElement, any, any, any> = d3.select('body');
-    linkg: d3.Selection<SVGGElement, any, any, any> = d3.select('body');
-    nodeg: d3.Selection<SVGGElement, any, any, any> = d3.select('body');
-    cellg: d3.Selection<SVGGElement, any, any, any> = d3.select('body');
-    link: d3.Selection<SVGPathElement | d3.BaseType, Link, any, any> = d3.selectAll('body');
+    nodes!: Node[];
+    vsbNodes!: Node[];
+    vsbLinks!: Link[];
+    marked: number[] = [];
+    requirePaths!: (number[] | null) [];
+    g!: d3.Selection<SVGGElement, any, any, any>;
+    desc!: d3.Selection<SVGTextElement, any, any, any>;
+    linkg!: d3.Selection<SVGGElement, any, any, any>;
+    nodeg!: d3.Selection<SVGGElement, any, any, any>;
+    cellg!: d3.Selection<SVGGElement, any, any, any>;
+    link!: d3.Selection<SVGPathElement | d3.BaseType, Link, any, any>;
     linkNote?: d3.Selection<SVGTextElement | d3.BaseType, Link, any, any>;
-    circle: d3.Selection<SVGCircleElement | d3.BaseType, Node, any, any> = d3.selectAll('body');
-    label: d3.Selection<SVGTextElement | d3.BaseType, Node, any, any> = d3.selectAll('body');
-    cell: d3.Selection<SVGPathElement | d3.BaseType, Node, any, any> = d3.selectAll('body');
-    simulation: d3.Simulation<Node, Link> = d3.forceSimulation();
+    circle!: d3.Selection<SVGCircleElement | d3.BaseType, Node, any, any>;
+    label!: d3.Selection<SVGTextElement | d3.BaseType, Node, any, any>;
+    cell!: d3.Selection<SVGPathElement | d3.BaseType, Node, any, any>;
+    simulation!: d3.Simulation<Node, Link>;
     
     init() {
         this.initData();
@@ -164,6 +165,14 @@ export default class Chart {
     };
 
     initDiagram() {
+        const { container } = this;
+        const { width, height } = this.scale;
+        this.svg = container
+            .append('svg')
+            .attr('width', width)
+            .attr('height', height)
+            .attr("viewBox", [-width / 2, -height / 2, width, height].join(','))
+            .attr("style", "max-width: 100%; max-height: 100%;");
         const { svg } = this;
 
         this.g = svg.append('g');
@@ -173,7 +182,7 @@ export default class Chart {
 
         // 创建zoom操作
         var zoom = d3
-            .zoom()
+            .zoom<SVGSVGElement, unknown>()
             // 设置缩放区域为0.1-100倍
             .scaleExtent([0.1, 100])
             .on("zoom", () => {
@@ -185,13 +194,12 @@ export default class Chart {
         // 绑定zoom事件，同时释放zoom双击事件
         svg.call(zoom).on("dblclick.zoom", () => {});
 
-        const { width, height } = this.scale;
         // 左上角文字描述
         this.desc = svg
             .append("g")
             .append("text")
             .attr("id", "desc")
-            .attr("x", - width / 2)
+            .attr("x", - width / 2 + 20)
             .attr("y", - height / 2)
             .style('font-size', 24);
 
@@ -464,6 +472,11 @@ export default class Chart {
             rest.forEach(n => [n.showNode, n.showRequiring] = [false, false]); 
             console.log(vsbPaths = this.getVsbPaths());
         }
+    }
+
+    resize(width: number, height: number) {
+        this.scale = { width, height };
+        this.svg.attr('width', width).attr('height', height);
     }
 
     // 右键菜单事件

@@ -3,8 +3,8 @@ import NodeMenu from "./chartMenu.js";
 import { Link, Node } from "./chartNode.js";
 
 export default class Chart {
-    constructor(svg, data, initOptions = {}) {
-        this.svg = svg;
+    constructor(container, data, initOptions = {}) {
+        this.container = container;
         this.data = data;
         this.scale = {
             width: globalThis.innerWidth,
@@ -103,6 +103,14 @@ export default class Chart {
     };
 
     initDiagram() {
+        const { container } = this;
+        const { width, height } = this.scale;
+        this.svg = container
+            .append('svg')
+            .attr('width', width)
+            .attr('height', height)
+            .attr("viewBox", [-width / 2, -height / 2, width, height])
+            .attr("style", "max-width: 100%; max-height: 100%;");
         const { svg } = this;
 
         this.g = svg.append('g');
@@ -124,13 +132,12 @@ export default class Chart {
         // 绑定zoom事件，同时释放zoom双击事件
         svg.call(zoom).on("dblclick.zoom", () => {});
 
-        const { width, height } = this.scale;
         // 左上角文字描述
         this.desc = svg
             .append("g")
             .append("text")
             .attr("id", "desc")
-            .attr("x", - width / 2)
+            .attr("x", - width / 2 + 20)
             .attr("y", - height / 2)
             .style('font-size', 24);
 
@@ -398,6 +405,11 @@ export default class Chart {
             rest.forEach(n => [n.showNode, n.showRequiring] = [false, false]); 
             console.log(vsbPaths = this.getVsbPaths());
         }
+    }
+
+    resize(width, height) {
+        this.scale = { width, height };
+        this.svg.attr('width', width).attr('height', height);
     }
 
     // 右键菜单事件

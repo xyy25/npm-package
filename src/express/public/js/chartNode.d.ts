@@ -3,12 +3,10 @@ import { PosTuple } from "./utils"
 
 export declare class Link {
     constructor(
-        source: Node,
-        target: Node,
+        public source: Node,
+        public target: Node,
         meta: LinkMeta | null
     )
-    source: Node
-    target: Node
     meta: LinkMeta
     rotate: boolean
     text: string
@@ -24,9 +22,6 @@ export declare class Link {
 }
 
 export declare class Node {
-    dataIndex: number
-    data: DiagramNode
-    temp: boolean
     vx: number
     vy: number
     x: number
@@ -38,8 +33,8 @@ export declare class Node {
     s: number
     depth: number
     constructor(
-        dataIndex: number, 
-        data: DiagramNode,
-        temp: boolean = false
+        public dataIndex: number, 
+        public data: DiagramNode,
+        public temp: boolean = false
     )
 }

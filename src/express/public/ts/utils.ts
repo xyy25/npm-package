@@ -32,16 +32,16 @@ export function getAngle([x1, y1]: PosTuple, [x2, y2]: PosTuple, deg = false, ab
 }
 
 // 求无权有向图某个起始顶点到所有其他顶点的最短路径，如果无法通达，则路径为null
-export function getPaths(
+export function getPaths<T = Node>(
     startIndex: number, 
-    nodes: Node[], 
+    nodes: T[], 
     getAdjacent: (i: number) => number[], 
-    filter = (node: Node) => true
+    filter = (node: T) => true
 ): (number[] | null)[] {
     const dists = new Array(nodes.length).fill(Infinity);
     const paths = new Array(nodes.length).fill(null);
     type QueueItem = { 
-        i: number, v: Node, p: number[], d: number
+        i: number, v: T, p: number[], d: number
     }
     const queue: QueueItem[] = [];
     const stNode = nodes[startIndex];
@@ -67,14 +67,14 @@ export function getPaths(
 }
 
 // 查找一组可能不连通的顶点中所有无入边的顶点(root)，并按由它们出发的连通子图分组
-export function getDiagramGroups(
-    nodes: Node[], 
+export function getDiagramGroups<T = Node>(
+    nodes: T[], 
     getAdjacent: (i: number) => number[],
     getRevAdjacent: (i: number) => number[]
-): Node[][] {
+): T[][] {
     const roots = [...nodes.entries()]
         .filter(e => !getRevAdjacent(e[0]).length);
-    const groups: Node[][] = [];
+    const groups: T[][] = [];
     for(const [root] of roots) {
         const path = getPaths(root, nodes, getAdjacent);
         groups.push(nodes.filter((e, i) => path[i] !== null));
@@ -85,7 +85,7 @@ export function getDiagramGroups(
 // 求强连通分量返回的数组元素结构
 export type SCComponent = { 
     nodes: number[], // 该分量所含的顶点在有向图顶点数组中的下标
-    depth: number, // 该分量的深度，等价于对DAG拓扑排序的序号
+    depth: number, // 该分量在Tarjan算法中遍历到的顺序
     inner: [number, number][], // 该分量的内部边，使用的是顶点在有向图顶点数组里的下标
     outer: { // 该分量的外部边，使用的是【每个分量在返回数组中的下标】
         ins?: number[], // 只有传参里传入了顶点入边的获取方法getRevAdjacent，才有此属性
@@ -96,9 +96,9 @@ export type SCComponent = {
 // Tarjan算法求有向图所有的强连通分量(SCC)
 // SCC构成一个新的有向图的顶点，且该有向图必为有向无环图(DAG)
 // 返回所有SCC的数组，每个数组元素含三条属性描述一个SCC：包括每个分量所含顶点、内部顶点间的关系，及分量间的关系
-export function getScc(
+export function getScc<T = Node>(
     startIndex: number,
-    nodes: Node[],
+    nodes: T[],
     getAdjacent: (i: number) => number[],
     getRevAdjacent?: (i: number) => number[]
 ): SCComponent[] {
@@ -151,8 +151,8 @@ export function getScc(
 }
 
 // 求有向图中的所有环，采用Johnson算法（返回所有存在的循环依赖）
-export function getCircuits(
-    nodes: Node[],
+export function getCircuits<T = Node>(
+    nodes: T[],
     getAdjacent: (i: number) => number[]
 ): number[][] {
     const res: number[][] = [], stack: number[] = [];

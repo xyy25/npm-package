@@ -21,18 +21,18 @@ export function getAngle(
 ): number;
 
 // 求无权有向图某个起始顶点到所有其他顶点的最短路径，如果无法通达，则路径为null
-export function getPaths(
+export function getPaths<T = Node>(
     startIndex: number, 
-    nodes: Node[], 
+    nodes: T[], 
     getAdjacent: (i: number) => number[], 
-    filter: (node: Node) => boolean = (node: Node) => true
+    filter: (node: T) => boolean = (node: T) => true
 ): (number[] | null)[];
 
-export function getDiagramGroups(
-    nodes: Node[], 
+export function getDiagramGroups<T = Node>(
+    nodes: T[], 
     getAdjacent: (i: number) => number[],
     getRevAdjacent: (i: number) => number[]
-): Node[][]
+): T[][]
 
 // 求强连通分量返回的数组元素结构
 export type SCComponent = { 
@@ -45,15 +45,15 @@ export type SCComponent = {
     }
 }
 
-export function getScc(
+export function getScc<T = Node>(
     startIndex: number,
-    nodes: Node[],
+    nodes: T[],
     getAdjacent: (i: number) => number[],
     getRevAdjacent?: (i: number) => number[]
 ): SCComponent[]
 
-export function getCircuits(
-    nodes: Node[],
+export function getCircuits<T = Node>(
+    nodes: T[],
     getAdjacent: (i: number) => number[]
 ): number[][]
 
