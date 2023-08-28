@@ -16,13 +16,14 @@
                     "description": "设置依赖包检测的scope."
                 },
                 "depth": {
-                    "default": "不设深度.",
+                    "default": "不设深度限制",
                     "description": "设置最大递归深度."
                 },
                 "json": {
                     "description": "将结果输出为JSON文件, 否则打开网页视图."
                 },
                 "noweb": {
+                    "default": "由--json设置决定",
                     "description": "完成分析后不启动网页视图."
                 },
                 "format": {

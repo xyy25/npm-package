@@ -7,11 +7,11 @@ import inquirerAuto from "inquirer-autocomplete-prompt";
 
 import { getDirs, outJsonRelUri, resbase } from '.';
 import { error, publicOptions as opts } from "../cli";
-import { readPackageJson, getManagerType, toDepItemWithId, timeString } from "../utils";
+import { readPackageJson, toDepItemWithId, timeString } from "../utils";
 import { toDiagram } from '../utils/diagram';
 import detect from "../utils/detect";
 import { evaluate } from "../utils/evaluate";
-import { DepEval, DepResult, DirectedDiagram, PackageManager } from "../utils/types";
+import { DepEval, DirectedDiagram, PackageManager } from "../utils/types";
 import analyze, { orange } from "../utils/analyze";
 import { createResourceServer } from "../express";
 
@@ -116,8 +116,11 @@ function analyzeCommand(cmd: Command, lang: any) {
         .addOption(opts.host)
         .addOption(opts.port)
         .option('-e, --extra', lang.commands.analyze.options.extra.description, false)
-        .option('-c, --console, --print', lang.commands.analyze.options.console.description)
-        .option('-i, --noweb', lang.commands.analyze.options.noweb.description)
+        .option('-c, --console, --print', lang.commands.analyze.options.console.description, false)
+        .option('-i, --noweb', 
+            lang.commands.analyze.options.noweb.description + 
+            " (default: " + lang.commands.analyze.options.noweb.default + ")"
+        )
         .option('--noresource', lang.commands.analyze.options.noresource.description, false)
         .option('--proto', lang.commands.analyze.options.proto.description)
         .action((str, options) => action(str, options, lang));
@@ -243,6 +246,9 @@ const action = async (str: string, options: any, lang: any) => {
             fs.writeFileSync(join(__dirname, '../express/public/eval.json'), bufferEval);
             (await import('../express')).default(port, host, () => {
                 if(!options.noresource) {
+                    if(!fs.existsSync(join(__dirname, '../view/json'))) {
+                        fs.mkdirSync(join(__dirname, '../view/json'));
+                    }
                     fs.writeFileSync(join(__dirname, '../view/json/res.json'), buffer);
                     fs.writeFileSync(join(__dirname, '../view/json/eval.json'), bufferEval);
                     createResourceServer(pkgRoot);
@@ -252,6 +258,9 @@ const action = async (str: string, options: any, lang: any) => {
             const dres = options.proto ? toDiagram(res) : sres as DirectedDiagram;
             if(depth === Infinity && !extra) {
                 dres.push(...unused.map(e => toDepItemWithId(e))); 
+            }
+            if(!fs.existsSync(join(__dirname, '../view/json'))) {
+                fs.mkdirSync(join(__dirname, '../view/json'));
             }
             const buffer = Buffer.from(JSON.stringify(dres));
             const bufferEval = Buffer.from(JSON.stringify(outEvalRes));

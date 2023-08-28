@@ -11,13 +11,14 @@
                     "description": "The scope of dependencies to detect."
                 },
                 "depth": {
-                    "default": "To search all.",
+                    "default": "To search all",
                     "description": "Maximum depth of recursive searching."
                 },
                 "json": {
                     "description": "Output result as JSON file, otherwise will start the website view."
                 },
                 "noweb": {
+                    "default": "Depended by --json option",
                     "description": "Do not start the website view after analyzing."
                 },
                 "format": {
