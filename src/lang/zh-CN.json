@@ -30,7 +30,7 @@
                     "description": "自动格式化JSON文件."
                 },
                 "question": {
-                    "description": "询问各种选项配置."
+                    "description": "通过命令行询问并手动输入的方式进行选项配置."
                 },
                 "host": {
                     "description": "视图网页开启的地址."
@@ -42,7 +42,7 @@
                     "description": "输出树形的递归结果(不转化为可视化用的有向图结构)."
                 },
                 "console": {
-                    "description": "将结果打印至控制台."
+                    "description": "将结果打印至命令行."
                 },
                 "manager": {
                     "description": "指定该项目的包管理器."

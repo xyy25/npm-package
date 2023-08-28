@@ -72,10 +72,17 @@ const DOT_PNPM = '.pnpm';
 export function detectPnpm(pkgRoot: string): ([string, string[]] | string)[] {
     const abs = (...dir: string[]): string => join(pkgRoot, ...dir);
     const linkMap = new Map<string, string[]>();
-
+    const findPush = (key: string, value: string) => {
+        if(linkMap.has(key)) {
+            linkMap.get(key)!.push(value);
+        } else {
+            linkMap.set(key, [value]);
+        }
+    }
     const countPkg = (modDir: string, pkgId: string) => { // 登记一个依赖包
         const pkgDir = join(modDir, pkgId);
         const lstat = lstatSync(abs(pkgDir));
+        
         // 如果目录是符号链接，则找它所指向的源目录，并放到一个组里
         if(lstat.isSymbolicLink()) { 
             const org = readlinkSync(abs(pkgDir));
@@ -87,15 +94,11 @@ export function detectPnpm(pkgRoot: string): ([string, string[]] | string)[] {
             }
             const ver = readPackageJson(abs(orgDir, PACKAGE_JSON))?.version ?? '';
             const orgStr = orgDir + (ver ? '@' + ver : '');
-            if(!linkMap.has(orgStr)) {
-                linkMap.set(orgStr, [pkgDir]);
-            } else {
-                linkMap.get(orgStr)?.push(pkgDir);
-            }
+            findPush(orgStr, pkgDir);
         } else {
             const ver = readPackageJson(abs(pkgDir, PACKAGE_JSON))?.version ?? '';
             const pkgStr = toString({ version: ver, dir: modDir }, pkgId);
-            linkMap.set(pkgStr, [pkgDir]);
+            findPush(pkgStr, pkgDir);
         }
         detectPkg(join(modDir, pkgId));
     }

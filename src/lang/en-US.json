@@ -18,20 +18,20 @@
                     "description": "Output result as JSON file, otherwise will start the website view."
                 },
                 "noweb": {
-                    "default": "Depended by --json option",
+                    "default": "Determined by --json option",
                     "description": "Do not start the website view after analyzing."
                 },
                 "format": {
-                    "description": "Automatically format JSON file to a more pretty looking."
+                    "description": "Automatically format JSON file to a prettier looking."
                 },
                 "question": {
                     "description": "Ask questions for options."
                 },
                 "host": {
-                    "description": "The host the website opens on."
+                    "description": "The host the website to open on."
                 },
                 "port": {
-                    "description": "The port the website opens on."
+                    "description": "The port the website to open on."
                 },
                 "proto": {
                     "description": "Output result as the original recursive tree structure without converting it into diagram."
@@ -83,7 +83,7 @@
                     "description": "The version range of the package."
                 },
                 "all": {
-                    "description": "Auto get all versions of the package which satisfy the version range described by the option -v, otherwise will get the latest."
+                    "description": "Automatically get all versions of the package which satisfy the version range described by the option -v, otherwise will get the latest."
                 }
             }
         }
