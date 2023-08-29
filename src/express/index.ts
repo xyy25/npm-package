@@ -2,9 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import lang from '../lang/zh-CN.json'
 import { yellowBright } from 'chalk';
-import { exec } from 'child_process';
+import { ExecException, exec } from 'child_process';
 import { join } from 'path';
-import { existsSync, lstatSync } from 'fs';
+import { existsSync } from 'fs';
 
 export function createResourceServer(
     rootDir: string, 
@@ -32,6 +32,10 @@ export function createResourceServer(
             callback();
         }
     })
+}
+
+export function startView(callback?: (error: ExecException | null, stdout: string, stderr: string) => void) {
+    exec(`cd ${join(__dirname, "src", "view")}; npm run dev;`, callback);
 }
 
 export default function(

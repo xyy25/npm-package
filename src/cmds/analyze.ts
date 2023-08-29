@@ -13,7 +13,7 @@ import detect from "../utils/detect";
 import { evaluate } from "../utils/evaluate";
 import { DepEval, DirectedDiagram, PackageManager } from "../utils/types";
 import analyze, { orange } from "../utils/analyze";
-import { createResourceServer } from "../express";
+import { createResourceServer, startView } from "../express";
 
 inquirer.registerPrompt('auto', inquirerAuto);
 
@@ -234,27 +234,8 @@ const action = async (str: string, options: any, lang: any) => {
                 .replace('%e', yellowBright(relative(cwd, evalJson)))
             ));
         }
-        if(!noweb) {
-            const dres = options.proto ? toDiagram(res) : sres as DirectedDiagram;
-            if(depth === Infinity && !extra) {
-                dres.push(...unused.map(e => toDepItemWithId(e))); 
-            }
 
-            const buffer = Buffer.from(JSON.stringify(dres));
-            const bufferEval = Buffer.from(JSON.stringify(outEvalRes));
-            fs.writeFileSync(join(__dirname, '../express/public/res.json'), buffer);
-            fs.writeFileSync(join(__dirname, '../express/public/eval.json'), bufferEval);
-            (await import('../express')).default(port, host, () => {
-                if(!options.noresource) {
-                    if(!fs.existsSync(join(__dirname, '../view/json'))) {
-                        fs.mkdirSync(join(__dirname, '../view/json'));
-                    }
-                    fs.writeFileSync(join(__dirname, '../view/json/res.json'), buffer);
-                    fs.writeFileSync(join(__dirname, '../view/json/eval.json'), bufferEval);
-                    createResourceServer(pkgRoot);
-                }
-            });
-        } else if(!options.noresource) {
+        const outViewJson = () => {
             const dres = options.proto ? toDiagram(res) : sres as DirectedDiagram;
             if(depth === Infinity && !extra) {
                 dres.push(...unused.map(e => toDepItemWithId(e))); 
@@ -266,7 +247,16 @@ const action = async (str: string, options: any, lang: any) => {
             const bufferEval = Buffer.from(JSON.stringify(outEvalRes));
             fs.writeFileSync(join(__dirname, '../view/json/res.json'), buffer);
             fs.writeFileSync(join(__dirname, '../view/json/eval.json'), bufferEval);
-            createResourceServer(pkgRoot);
+        }
+
+        if(!noweb) {
+            outViewJson();
+            if(!options.noresource) {
+                createResourceServer(pkgRoot, undefined, undefined, 
+                    () => startView(console.log));
+            } else { startView(console.log); }
+        } else if(!options.noresource) {
+            createResourceServer(pkgRoot, undefined, undefined, () => startView(console.log)); 
         }
     } catch(e: any) {
         console.error(error(lang.commons.error + ':' + e));
