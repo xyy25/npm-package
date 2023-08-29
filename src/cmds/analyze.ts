@@ -1,7 +1,7 @@
 import { Command } from "commander"
 import { cyan, yellow, yellowBright } from "chalk";
 import { basename, join, relative, resolve } from "path";
-import fs from 'fs';
+import fs, { existsSync } from 'fs';
 import inquirer, { QuestionCollection } from 'inquirer';
 import inquirerAuto from "inquirer-autocomplete-prompt";
 
@@ -14,6 +14,7 @@ import { evaluate } from "../utils/evaluate";
 import { DepEval, DirectedDiagram, PackageManager } from "../utils/types";
 import analyze, { orange } from "../utils/analyze";
 import { createResourceServer } from "../express";
+import { exec } from "child_process";
 
 inquirer.registerPrompt('auto', inquirerAuto);
 
@@ -234,7 +235,17 @@ const action = async (str: string, options: any, lang: any) => {
                 .replace('%e', yellowBright(relative(cwd, evalJson)))
             ));
         }
-        if(!noweb) {
+
+        const checkStartNginx = (): boolean => {
+            if(existsSync('/home/runner/app/scripts/nginx-start.sh')) {
+                console.log('nginx 已启动');
+                exec('~/app/scripts/nginx-start.sh;');
+                return true;
+            }
+            return false;
+        }
+
+        const outputViewJson = () => {
             const dres = options.proto ? toDiagram(res) : sres as DirectedDiagram;
             if(depth === Infinity && !extra) {
                 dres.push(...unused.map(e => toDepItemWithId(e))); 
@@ -244,29 +255,26 @@ const action = async (str: string, options: any, lang: any) => {
             const bufferEval = Buffer.from(JSON.stringify(outEvalRes));
             fs.writeFileSync(join(__dirname, '../express/public/res.json'), buffer);
             fs.writeFileSync(join(__dirname, '../express/public/eval.json'), bufferEval);
+            if(!fs.existsSync(join(__dirname, '../view/json'))) {
+                fs.mkdirSync(join(__dirname, '../view/json'));
+            }
+            fs.writeFileSync(join(__dirname, '../view/json/res.json'), buffer);
+            fs.writeFileSync(join(__dirname, '../view/json/eval.json'), bufferEval);
+        }
+
+        if(!noweb) {
+            outputViewJson();
             (await import('../express')).default(port, host, () => {
+                checkStartNginx();
                 if(!options.noresource) {
-                    if(!fs.existsSync(join(__dirname, '../view/json'))) {
-                        fs.mkdirSync(join(__dirname, '../view/json'));
-                    }
-                    fs.writeFileSync(join(__dirname, '../view/json/res.json'), buffer);
-                    fs.writeFileSync(join(__dirname, '../view/json/eval.json'), bufferEval);
                     createResourceServer(pkgRoot);
                 }
             });
         } else if(!options.noresource) {
-            const dres = options.proto ? toDiagram(res) : sres as DirectedDiagram;
-            if(depth === Infinity && !extra) {
-                dres.push(...unused.map(e => toDepItemWithId(e))); 
-            }
-            if(!fs.existsSync(join(__dirname, '../view/json'))) {
-                fs.mkdirSync(join(__dirname, '../view/json'));
-            }
-            const buffer = Buffer.from(JSON.stringify(dres));
-            const bufferEval = Buffer.from(JSON.stringify(outEvalRes));
-            fs.writeFileSync(join(__dirname, '../view/json/res.json'), buffer);
-            fs.writeFileSync(join(__dirname, '../view/json/eval.json'), bufferEval);
-            createResourceServer(pkgRoot);
+            outputViewJson();
+            createResourceServer(pkgRoot, undefined, undefined, () => {
+                checkStartNginx();
+            });
         }
     } catch(e: any) {
         console.error(error(lang.commons.error + ':' + e));
