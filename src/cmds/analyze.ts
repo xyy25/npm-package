@@ -14,7 +14,8 @@ import { evaluate } from "../utils/evaluate";
 import { DepEval, DirectedDiagram, PackageManager } from "../utils/types";
 import analyze, { orange } from "../utils/analyze";
 import { createResourceServer } from "../express";
-import { exec } from "child_process";
+import { run, checkStartNginx } from "../express/script"
+
 
 inquirer.registerPrompt('auto', inquirerAuto);
 
@@ -236,15 +237,6 @@ const action = async (str: string, options: any, lang: any) => {
             ));
         }
 
-        const checkStartNginx = (): boolean => {
-            if(existsSync('/home/runner/app/scripts/nginx-start.sh')) {
-                console.log('nginx 已启动');
-                exec('~/app/scripts/nginx-start.sh;');
-                return true;
-            }
-            return false;
-        }
-
         const outputViewJson = () => {
             const dres = options.proto ? toDiagram(res) : sres as DirectedDiagram;
             if(depth === Infinity && !extra) {
@@ -264,17 +256,16 @@ const action = async (str: string, options: any, lang: any) => {
 
         if(!noweb) {
             outputViewJson();
-            (await import('../express')).default(port, host, () => {
-                checkStartNginx();
-                if(!options.noresource) {
-                    createResourceServer(pkgRoot);
-                }
-            });
+            if(!options.noresource) {
+                createResourceServer(pkgRoot, undefined, undefined, async () => {
+                    run('VIEW', 'npm', ['run', 'view']);
+                    await new Promise<void>(res => setTimeout(() => res(), 2000));
+                    checkStartNginx();
+                });
+            }
         } else if(!options.noresource) {
             outputViewJson();
-            createResourceServer(pkgRoot, undefined, undefined, () => {
-                checkStartNginx();
-            });
+            createResourceServer(pkgRoot);
         }
     } catch(e: any) {
         console.error(error(lang.commons.error + ':' + e));

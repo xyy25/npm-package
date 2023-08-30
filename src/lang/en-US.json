@@ -120,7 +120,7 @@
         },
         "express.ts": {
             "start": "The generated view is now opened at %s",
-            "staticStart": "The static resources server of the package is now opened at %s"
+            "staticStart": "The static resources server of the package %root is now opened at %s"
         },
         "utils/analyze.ts": {
             "nowComplete": "Now"

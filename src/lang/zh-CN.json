@@ -124,7 +124,7 @@
         },
         "express.ts": {
             "start": "网页视图已在 %s 打开.",
-            "staticStart": "包目录静态资源已在 %s 打开."
+            "staticStart": "包目录 %root 静态资源已在 %s 打开."
         },
         "utils/analyze.ts": {
             "nowComplete": "当前"

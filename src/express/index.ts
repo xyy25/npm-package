@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import lang from '../lang/zh-CN.json'
-import { yellowBright } from 'chalk';
+import { yellow, yellowBright } from 'chalk';
 import { exec } from 'child_process';
 import { join } from 'path';
 import { existsSync, lstatSync } from 'fs';
@@ -9,7 +9,7 @@ import { existsSync, lstatSync } from 'fs';
 export function createResourceServer(
     rootDir: string, 
     port: number = 5501, 
-    host: string = '127.0.0.1',
+    host: string = 'localhost',
     callback?: () => void
 ) {
     const resrc = express();
@@ -17,17 +17,21 @@ export function createResourceServer(
         'http://127.0.0.1:5500', 
         'http://localhost:5500', 
         'http://127.0.0.1:5502', 
-        'http://localhost:5502'
+        'http://localhost:5502',
+        'http://127.0.0.1:8080', 
+        'http://localhost:8080', 
     ];
     const corsSet = cors({ 
         origin: (org, cb) => cb(null, org && allowlist.includes(org))
     });
-    resrc.use('/api', corsSet, express.static(rootDir));
+    resrc.use('/', corsSet, express.static(rootDir));
 
-    const addr = `http://${host}:${port}/api`;
+    const addr = `http://${host}:${port}`;
 
-    return resrc.listen(port, host, () => {
-        console.log(lang.logs['express.ts'].staticStart.replace('%s', yellowBright(addr)));
+    return resrc.listen(port, () => {
+        console.log(lang.logs['express.ts'].staticStart
+                .replace('%root', yellow(rootDir))
+                .replace('%s', yellowBright(addr)));
         if(callback) {
             callback();
         }

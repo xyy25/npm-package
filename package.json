@@ -4,6 +4,7 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
+    "view": "cd src/view && npx vite",
     "start": "ts-node index.ts analyze -q",
     "test": "ts-node index.ts analyze test-pkg",
     "detect": "ts-node index.ts detect",
@@ -40,6 +41,7 @@
     "@types/node": "^20.4.5",
     "@types/progress": "^2.0.5",
     "@types/semver": "^7.5.0",
+    "eslint": "^8.48.0",
     "typescript": "^5.1.6"
   }
 }
